@@ -190,8 +190,9 @@ resource is missing.
   > 2000 actions, `video_id` ≠ filename).
 - **Post-processing and selector** — property tests for every output, any input:
   sorted; non-overlapping; every segment ≥ 4.0 s; inside `[0, T]`; total ≤ 0.145·T;
-  except when T < 26.7 s, which gives exactly one 4.0 s segment. Plus unit tests on
-  small hand-made cases with the exact expected windows.
+  except when T < 26.7 s, which gives exactly one segment shaped by
+  `post.short_video_mode` (test both modes). Plus unit tests on small hand-made cases
+  with the exact expected windows.
 - **Expected-coverage gain**: hand-computed values on 2–3 clusters; monotone (adding
   a window never lowers covered probability); diminishing returns (gain of a window
   never increases as the selected set grows).
@@ -207,7 +208,9 @@ resource is missing.
   Plus properties: every metric in [0, 1]; perfect prediction → 1.0; empty
   prediction → 0.0.
 - **Oracle**: on GT-as-proposals, oracle coverage ≥ system coverage, and ≥ uniform.
-- **Pairing, routing, time conversion, cache versioning**: unit tests.
+- **Pairing, routing (including the uncertain route always emitting actions), time
+  conversion, cache versioning**: unit tests.
+- **Serializer**: both `output.schema` variants pass their matching validator rules.
 - **Import boundary**: a test that parses every module in `code/rewind/` and fails
   if any imports `rewind_eval` or reads an annotation path.
 - **`run.sh` contract**: on 30 s and 12 s synthetic videos generated in a fixture

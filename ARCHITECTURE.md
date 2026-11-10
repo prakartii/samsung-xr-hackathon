@@ -1,8 +1,20 @@
 # ARCHITECTURE.md — REWIND build spec
 
-This is the living build spec. Code must match it; when the design changes, update
-this file in the same PR (see `CLAUDE.md` §5). Rationale for the choices is in
+> **Status: LOCKED — v1.0, 2026-11-11.** Build against this spec.
+
+This is the build spec. Code must match it. Rationale for the choices is in
 `REWIND_v2.3_plan.md`. Status is in `PROGRESS.md`.
+
+**Change control after the lock**
+- *Resolving a `[verify]` item* (kit facts, organizer answers, checkpoint details) is
+  not a design change: update this file in the PR that resolves it, and log it in
+  `PROGRESS.md`.
+- *Kill-rule outcomes* listed in `PROGRESS.md` (fallback detector, label-dedup
+  selector) are pre-approved: switch, update this file, log the decision.
+- *Anything else* (a new module, a changed algorithm, a new output behavior) needs a
+  `PROGRESS.md` Decisions entry agreed by both A and B **before** the code PR, and
+  this file updated in that PR. Bump the version (v1.1, v1.2 …) in the status line.
+- Stretch work never changes the MVP design.
 
 Items marked **[verify]** depend on facts we haven't confirmed yet (kit contents,
 organizer answers, checkpoint details). Confirm them before relying on them, then
@@ -59,6 +71,7 @@ class VideoMeta:
     height: int
     dataset: Literal["epic_kitchens_100", "fpvsum", "unknown"]
     routed_by: Literal["manifest", "signals"]
+    route_conf: float      # 1.0 for manifest routing; below cfg.routing.min_conf = uncertain
 
 @dataclass(frozen=True)
 class Signals:
@@ -108,7 +121,7 @@ to keys once, in `rewind/vocab.py`.
 
 | Module | Responsibility | Pure? |
 |---|---|---|
-| `constants.py` | Kit facts: `MIN_SEG=4.0`, `MIN_SEG_EMIT=4.05`, `SCORING_BUDGET=0.15`, `DURATION_TOL=0.5`, `MAX_ACTIONS=2000`, `SHORT_VIDEO_T=MIN_SEG/SCORING_BUDGET` (26.67 s) | — |
+| `constants.py` | Kit facts: `MIN_SEG=4.0`, `MIN_SEG_EMIT=4.05`, `SCORING_BUDGET=0.15`, `DURATION_TOL=0.5`, `MAX_ACTIONS=2000`, `SHORT_VIDEO_T=MIN_SEG/SCORING_BUDGET` (26.67 s). **Provisional until P0** checks each value against our own kit copy; every value must cite its kit source in a comment | — |
 | `config.py` | Load and validate `configs/default.yaml` into typed dataclasses; `config_hash()` | yes |
 | `types.py` | §2 types | — |
 | `vocab.py` | Load kit classes; index ↔ key maps; verb–noun co-occurrence prior | load at edge, lookups pure |
@@ -117,7 +130,7 @@ to keys once, in `rewind/vocab.py`.
 | `features/flow.py` | Farneback flow at low resolution → residual + global motion | no |
 | `features/hands.py` | MediaPipe hand presence | no |
 | `features/clip.py` | CLIP image embeddings @ 1 fps; text embeddings for prompts | no |
-| `features/slowfast.py` | ActionFormer input features, exactly matching its EPIC config | no |
+| `features/slowfast.py` | ActionFormer input features (§10.1): load ActionFormer's released EPIC-100 features by `video_id` when available; otherwise extract with the matching SlowFast extractor | no |
 | `features/cache.py` | Versioned on-disk cache (§8) | no |
 | `detect/actionformer.py` | Run vendored ActionFormer → raw verb/noun proposals | no |
 | `detect/pairing.py` | Raw proposals → `Proposal` with paired, scored (verb, noun) (§5.1) | yes |
@@ -176,7 +189,11 @@ and crossfades for the demo only), `timeline_html.py` (stretch).
    → postprocess → `highlights[]`; label = `cooking`.
    FPVSum route: importance proxy → segments → postprocess → `highlights[]`;
    `actions[]` = `[]` **[verify Q6]**; label = CLIP zero-shot.
-   Unknown route: run both label scorers, pick by CLIP P(cooking) ≥ threshold.
+   Uncertain route (§6.1 confidence below threshold): **always emit actions** (EPIC
+   detector if SlowFast features are available, else the zero-shot fallback
+   detector), pick the label by CLIP P(cooking) ≥ threshold, and select highlights
+   with the route that label implies. A misrouted EPIC video must never lose its
+   actions.
 5. `output.py` builds the dict → `schema.validate` → on errors, log them and write
    `fallback.py` output instead (which is validated too).
 6. Any exception at any step → fallback output, error to stderr, exit code 0.
@@ -241,9 +258,12 @@ priority(w | S)   = gain / max(cost, ε)        (cost == 0 → skip)
 Lazy greedy with a max-heap of priorities. Before accepting `w`, simulate the union
 and reject `w` if it would create any fragment < `MIN_SEG`, or push the total over
 `(1 − h) · B` where `B = cfg.select.budget_frac · T` (default 0.145) and `h` is the
-hedge share. Stop when no window fits. `gain` is monotone submodular in `S`, so
-greedy keeps the (1 − 1/e) guarantee for the unit-cost case. Tests check monotonicity
-and diminishing returns (`CLAUDE.md` §7.2).
+hedge share. Stop when no window fits. The coverage term alone is monotone submodular, and tests
+check monotonicity and diminishing returns (`CLAUDE.md` §7.2). **We claim no
+approximation guarantee for the full procedure:** cost-ratio greedy under a budget,
+the ≥ 4 s and fragment rules, the hedge reserve and post-processing all break the
+conditions for one. Quality is measured empirically as **% of oracle coverage** (§9.5);
+that is the number we report in the deck.
 
 Complexity: windows ≈ 3 · T / 0.5, so ~12k for a 33-minute video; clusters per
 window are few. With lazy evaluation this runs in well under a second; it must stay
@@ -268,9 +288,16 @@ Input: any list of segments. Output satisfies every highlight rule in §7:
 4. While total > `cfg.select.budget_frac · T`: shrink the lowest-value segment
    (value passed in by the caller) from its lower-value end, never below
    `MIN_SEG_EMIT`; if it is already at the minimum, drop it.
-5. **Short video** (`T < SHORT_VIDEO_T`): return exactly one segment of length
-   `min(MIN_SEG_EMIT, T)` at the best-value position. This deliberately exceeds the
-   15% budget (soft penalty) because a < 4 s segment scores nothing.
+5. **Short video** (`T < SHORT_VIDEO_T`, 3 EPIC videos): R11 (≥ 1 highlight of
+   4 s) and R13 (≤ 15%) cannot both hold. Behavior is set by
+   `cfg.post.short_video_mode`:
+   - `min_seg` (default): one segment of `min(MIN_SEG_EMIT, T)` at the best-value
+     position. Satisfies R11, exceeds the budget. Under the rules as known (R11 is an
+     error, R13 a warning), this is the only output that validates.
+   - `within_budget`: one segment of `SCORING_BUDGET · T` at the best-value position.
+     Satisfies R13, violates R11.
+   P0 runs both modes through the **official** validator and the organizers' answer
+   to Q8, then fixes the default. Never ship a mode the official validator rejects.
 6. If the result is empty and `T ≥ MIN_SEG`: one `MIN_SEG_EMIT` window at the
    highest-activity position.
 7. Round to 3 decimals *inside* the bounds (round start up and end down so that
@@ -286,6 +313,9 @@ Input: any list of segments. Output satisfies every highlight rule in §7:
    (`routed_by="manifest"`) **[verify Q9]**.
 2. Otherwise use signals: CLIP P(cooking-scene prompts) averaged over keyframes ≥
    `cfg.routing.cooking_thr` → EPIC, else FPVSum (`routed_by="signals"`).
+3. Every route carries a confidence (1.0 for manifest routing; the CLIP margin from
+   the threshold for signal routing). Below `cfg.routing.min_conf` the route is
+   **uncertain** and §4 step 4's uncertain-route rule applies.
 
 Test both paths. The signal router must reach ≥ 95% agreement with the manifest on
 all 187 videos.
@@ -301,6 +331,10 @@ Weights are tuned on FPVSum cross-validation folds only.
 Segments: find shots from CLIP change points (`cfg.importance.shot_thr`). Within
 each shot, slide windows of 4.05–10 s and score each by mean `imp`. Greedily pick the
 best non-overlapping windows until budget `B`, then postprocess (§5.6).
+
+Ablation candidate (P6): add audio terms (RMS loudness, spectral flux; extracted
+with ffmpeg at 16 kHz) to `imp(t)`. Keep only if it wins on CV. Many FPVSum videos are
+YouTube uploads with music overlays, which may make audio misleading.
 
 Learned option (only if it beats the proxy on CV): ridge regression from CLIP
 embeddings to per-second importance, 5-fold CV over videos.
@@ -346,8 +380,19 @@ Source: the kit's `TEAM_README.md` as reported second-hand **[verify against `ki
 | R12 | Highlights < 4.0 s are ignored in scoring | warning (we treat it as error) |
 | R13 | Total highlight duration ≤ 15% of `duration_sec` | warning (soft penalty) |
 
-Our validator treats R12 as an error, and R13 as an error except for short videos,
-so that we never ship something that loses points silently.
+Our validator treats R12 as an error, and R13 as an error except for short videos
+under `short_video_mode: min_seg`, so that we never ship something that loses points
+silently.
+
+**Serializer variants.** `output.py` writes either schema, selected by
+`cfg.output.schema`:
+- `kit_readme` (default): the nested schema above.
+- `brochure_flat`: `label` as a string; actions as `{verb, noun, start, end}`;
+  highlights as `{start, end, importance}`. The brochure shows no `score`; if the kit
+  ends up confirming this variant, P0 must find out how ranking works for mAP.
+
+Internal types (§2) are the same for both; only `output.py` and `schema.py` switch.
+P0 sets the variant from our own kit copy.
 
 **Conservative assumptions until organizers answer** (see `PROGRESS.md` → Open
 questions): any-overlap capture for selection, reporting both capture variants;
@@ -420,12 +465,30 @@ Fill each row in before the model is used **[verify all]**.
 
 | Use | Model / repo | Weights source | License | Notes |
 |---|---|---|---|---|
-| Action detection | ActionFormer (vendored in `code/third_party/actionformer`) | Released EPIC-100 verb/noun checkpoints | | Must be trained on EPIC train only; record the evidence |
-| ActionFormer input | Feature extractor matching ActionFormer's EPIC config | | | Match fps, clip length and stride from its config exactly |
+| Action detection | ActionFormer (`happyharrycn/actionformer_release`, vendored in `code/third_party/actionformer`) | Released EPIC-100 verb and noun checkpoints (Google Drive links in its README) | | README trains on train and evaluates on val (reported avg mAP: verb ~23.4, noun ~21.9). Confirm from the configs/logs that val was never trained on |
+| ActionFormer input | ActionFormer's released `epic_kitchens.tar.gz` (Box / Google Drive / BaiduYun; md5 `add9803756afd9a023bc9a9c547e0229`) | — | EPIC-KITCHENS license | SlowFast pretrained on EPIC-100 train; 32-frame clips at 30 fps, stride 16 → one feature per 16/30 ≈ 0.533 s |
+| Raw-MP4 feature extraction | The SlowFast extractor matching the above (EPIC-KITCHENS action recognition code) | | | Only needed for videos missing from the release and for `run.sh` on a clean machine |
 | CLIP | open_clip ViT-B/16 (OpenAI weights) | | | Label, scene change, routing, clustering similarity |
 | Hands | MediaPipe Hands | | | CPU |
 | Optical flow | OpenCV Farneback | — | Apache-2.0 (OpenCV) | Low resolution (160 px) |
 | Verb–noun prior | Counts from `EPIC_100_train.csv` | Built by tool | EPIC-KITCHENS license | Train split only |
+
+### 10.1 Feature strategy (CPU-first; neither team member has a GPU)
+
+1. **Development and submission outputs for EPIC:** use ActionFormer's released
+   SlowFast features, keyed by `video_id`. This removes the only heavy GPU job.
+   P4 first checks that every EPIC `video_id` in `kit/manifest.csv` and every `tune`
+   video is present.
+2. **`run.sh` on a clean machine:** extracts features from the MP4 with the matching
+   extractor. This is slow on CPU but must work. A test on 1–2 videos checks that our
+   extraction matches the released features (cosine similarity ≥ 0.95 per timestep,
+   aligned to the same timestamps).
+3. **Gaps:** extract any missing videos on a free Kaggle/Colab GPU, one video at a
+   time (download, extract, delete), and save only the features.
+4. **README transparency:** state that submitted EPIC outputs used the published
+   features from the same extractor, and how to regenerate them from raw MP4.
+5. Everything else (decode, flow, hands, CLIP, ActionFormer inference, selection)
+   runs on CPU.
 
 ---
 
@@ -442,8 +505,9 @@ canonical YAML) is written to every leaderboard row so results are reproducible.
 
 | Stage | Target |
 |---|---|
-| Full pipeline, 10-minute video, one consumer GPU | ≤ 3 min |
-| Full pipeline, 10-minute video, CPU only | ≤ 20 min (it must work, even slowly) |
+| Full pipeline, 10-minute video, CPU, released SlowFast features | ≤ 10 min |
+| Full pipeline, 10-minute video, CPU, extracting SlowFast from the MP4 | must complete; measure and report |
+| Light signals (decode at low fps, flow, hands, CLIP), all 187 videos, one laptop | ≤ ~5 h (estimate; P3 measures it) |
 | Selector + postprocess, any video | ≤ 2 s |
 | Default test suite | ≤ 60 s |
 
