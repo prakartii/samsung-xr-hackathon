@@ -3,7 +3,8 @@
 **Track 4 — Action-Aware Video Summarization · Samsung XR Hackathon 2026**
 *Remember what matters. Rewind the rest.*
 
-> **Status:** This is the current canonical build spec (supersedes `REWIND_v2_plan.md`).
+> **Status:** **Superseded by `REWIND_v2.3_plan.md`.** Kept for history.
+> (Previously the canonical spec; superseded `REWIND_v2_plan.md`.)
 > It merges the detailed v2.1 design with the agreed scope-discipline decisions
 > (see "Key decisions & rationale"). Read "Scope discipline" before building — the
 > main risk is over-engineering for a 10-day window, not the approach.

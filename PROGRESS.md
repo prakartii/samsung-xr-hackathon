@@ -1,0 +1,282 @@
+# PROGRESS.md — REWIND live status
+
+**Update this file in every PR** (rules: `CLAUDE.md` §5). Tick checklist items as
+they land, add a Log line at the top of §5, and fill in the phase's Result block
+when the phase is done. Never delete log entries; correct them with a new one.
+
+Status values: `not started` · `in progress` · `blocked (reason)` · `done` · `cut`.
+Owners: **A** = ML & perception · **B** = algorithms & infra.
+Who is A and who is B: A = `<name>`, B = `<name>` ← fill in.
+
+---
+
+## 1. Phase overview
+
+| Phase | Name | Owner | Planned | Status | Exit check |
+|---|---|---|---|---|---|
+| P0 | Kit & rules | B | Nov 10 | not started | Kit committed in `kit/`; kit rules in `ARCHITECTURE.md` §7 confirmed or corrected; questions emailed |
+| P1 | Skeleton & submission contract | B | Nov 10–11 | not started | `run.sh` writes valid fallback JSON for all 187 videos; CI green |
+| P2 | Evaluation harness | B | Nov 11–12 | not started | Leaderboard has uniform + oracle rows on `tune` and `report` |
+| P3 | Video I/O, signals, feature cache | A | Nov 10–12 | not started | Flow, hands and CLIP cached for all 187 + `tune` videos |
+| P4 | Action detection → `actions[]` | A | Nov 11–13 | not started | mAP measured on `tune` and `report`; beats the zero-shot fallback |
+| P5 | Clustering + EPIC coverage selector | B | Nov 12–14 | not started | EPIC coverage > uniform; % of oracle reported; ablation done |
+| P6 | FPVSum route: importance, segments, label | A | Nov 13–15 | not started | F1 > uniform on FPVSum CV; label accuracy reported |
+| P7 | Integration, tuning, ablations | A + B | Nov 15–16 | not started | All 187 outputs from raw MP4 pass validation; tuned config committed; floors set |
+| P8 | Packaging, demo, deck | B (pkg) + A (demo) | Nov 16–17 | not started | Fresh clone + Docker reproduces one video; demo video + deck done |
+| P9 | Submission | A + B | Nov 18 | not started | Submitted via Google Form before 11:59 PM IST |
+
+Critical path: P0 → P1 → P2 (scorer) and P3 → P4 (detector) run in parallel; P5
+starts on GT-derived proposals before P4 lands, so neither person waits.
+
+---
+
+## 2. Phases
+
+### P0 — Kit & rules
+**Owner:** B · **Planned:** Nov 10 · **Status:** not started · **Depends on:** —
+
+- [ ] Download our own copy of the student kit; commit it unmodified to `kit/`
+      (`manifest.csv`, `supported_classes.json`, `TEAM_README.md`, `validate.py` if present, `examples/`)
+- [ ] Diff the kit against `ARCHITECTURE.md` §7 (schema, R1–R13); fix `ARCHITECTURE.md` where it differs
+- [ ] Check whether the official `validate.py` is in our kit; if yes, note how it differs from our rules
+- [ ] Email prism@samsung.com with Q4, Q6, Q7, Q8, Q9 (§3); record the date sent
+- [ ] Confirm the registered team name and set `team.team_id` in config
+
+**Exit check:** `kit/` committed; every `[verify]` in `ARCHITECTURE.md` §7 resolved
+or listed in §3 below.
+**Tests required:** none (documentation phase).
+
+**Result:** _fill in when done: what the kit confirmed or contradicted; links to the email._
+
+---
+
+### P1 — Skeleton & submission contract
+**Owner:** B · **Planned:** Nov 10–11 · **Status:** not started · **Depends on:** P0 (schema confirmed; can start on the second-hand rules)
+
+- [ ] `pyproject.toml` (ruff, pytest with `pythonpath = ["code"]`, markers `slow`, `data`, `gpu`), `requirements*.txt`, `.gitignore`
+- [ ] `configs/default.yaml` + `rewind/config.py` with `config_hash()`
+- [ ] `rewind/constants.py`, `rewind/types.py`, `rewind/vocab.py` (kit classes)
+- [ ] `rewind/schema.py` implementing R1–R13 + `rewind_eval/validate.py` CLI
+- [ ] `rewind/postprocess.py` (§5.6 of `ARCHITECTURE.md`)
+- [ ] `rewind/fallback.py` (uniform ≥ 4 s windows at 14.5%)
+- [ ] `rewind/output.py`, `rewind/pipeline.py` (fallback-only for now), `rewind/cli.py`, `run.sh`
+- [ ] `video_io.ffprobe_meta` (minimal; A extends it in P3)
+- [ ] GitHub Actions: ruff + `pytest` on every PR
+- [ ] Run on all 187 videos → `python -m rewind_eval.validate --dir outputs/` passes
+
+**Exit check:** all 187 dummy outputs pass our validator (and the official one if available); CI green on `main`.
+**Tests required:**
+- unit: one failing case per rule R1–R13; postprocess hand cases (merge, drop < 4 s, budget trim, short video, rounding keeps ≥ 4 s)
+- property: postprocess and fallback outputs always satisfy R9–R13 for T in [5, 2000] s
+- contract: `run.sh` on 30 s and 12 s synthetic videos → valid JSON; forced exception → fallback JSON, exit 0
+- import boundary test (`rewind` never imports `rewind_eval`)
+
+**Result:** _fill in when done._
+
+---
+
+### P2 — Evaluation harness
+**Owner:** B · **Planned:** Nov 11–12 · **Status:** not started · **Depends on:** P1
+
+- [ ] `tools/fetch_annotations.sh` (EPIC-100 train/val CSVs + class CSVs; FPVSum importance), documenting exact sources
+- [ ] `rewind_eval/gt_epic.py`, `gt_fpvsum.py` (class index → kit key mapping)
+- [ ] `configs/splits.yaml`: `tune` (~20 EPIC train videos matching the val duration spread) and `report`
+- [ ] `coverage.py` (both capture rules, < 4 s exclusion, penalty λ), `map.py`, `f1.py`, `label_acc.py`
+- [ ] `baselines.py` (uniform, random), `oracle.py`
+- [ ] `score.py` CLI → `results/leaderboard.csv` (SHA, tag, config hash, all metrics, split)
+- [ ] Leaderboard rows: uniform and oracle on `tune` and `report`
+
+**Exit check:** uniform + oracle rows exist; oracle coverage > uniform on every video.
+**Tests required:**
+- unit: every metric on hand-computed cases (arithmetic in comments); AP with ties and duplicate detections; each tIoU threshold; F1 at a known overlap
+- property: metrics in [0, 1]; perfect prediction → 1.0; empty → 0.0; coverage never decreases when a highlight is added (within budget)
+- unit: GT loaders on a 5-row CSV fixture (class keys mapped correctly)
+
+**Result:** _fill in: uniform and oracle numbers; note the oracle's coverage ceiling._
+
+---
+
+### P3 — Video I/O, signals, feature cache
+**Owner:** A · **Planned:** Nov 10–12 · **Status:** not started · **Depends on:** — (P1 types; coordinate with B)
+
+- [ ] Download the 187 videos into `data/videos/` + the `tune` videos
+- [ ] `video_io.py`: decoding at a target fps, frame ↔ seconds
+- [ ] `features/flow.py` (residual + global motion), `features/hands.py`, `features/clip.py`
+- [ ] `features/cache.py` (versioned, atomic) + `tools/cache_features.py` (longest first, resumable)
+- [ ] `routing.py` (manifest + signal fallback)
+- [ ] Start caching on Nov 10; record throughput (seconds of compute per minute of video)
+
+**Exit check:** caches complete for all 187 + `tune`; throughput recorded below.
+**Tests required:**
+- unit: frame ↔ seconds conversion at 25/30/59.94 fps; cache version mismatch → recompute; atomic write leaves no partial file
+- unit: routing with the manifest present, missing id, missing manifest
+- integration (`data`): signals on one real video have the expected shapes, and the timestamps span `[0, T]`
+
+**Result:** _fill in: throughput, total cache size, any videos that failed to decode._
+
+---
+
+### P4 — Action detection → `actions[]`
+**Owner:** A · **Planned:** Nov 11–13 · **Status:** not started · **Depends on:** P3 (frames), P2 (mAP scorer)
+
+- [ ] Vendor ActionFormer into `code/third_party/actionformer` with its LICENSE
+- [ ] Identify the EPIC-100 verb/noun checkpoints and their exact feature extractor + config (fps, clip length, stride); record in `ARCHITECTURE.md` §10
+- [ ] **Leakage check:** confirm the checkpoints were trained on EPIC train only; record the evidence in §4 Decisions
+- [ ] `features/slowfast.py` matching that config; cache it
+- [ ] `tools/build_vn_prior.py` → `weights/vn_prior.npy` (train split only)
+- [ ] `detect/actionformer.py`, `detect/pairing.py`; cache proposals
+- [ ] Wire into `pipeline.py` (EPIC route → `actions[]`)
+- [ ] Tune `max_per_video` and the minimum score on `tune`
+- [ ] **Kill rule (end of Nov 13):** if no working mAP, switch to `detect/fallback_zeroshot.py`
+
+**Exit check:** mAP rows on `tune` and `report`; mAP > the zero-shot fallback's mAP (or the fallback is shipped and logged).
+**Tests required:**
+- unit: pairing on hand-made verb/noun proposals (matching tIoU, prior applied, out-of-vocabulary pairs dropped, score in [0, 1], sorted, ≤ 2000)
+- unit: score rescaling is monotone and identical across videos
+- integration (`data`, `gpu`): one cached EPIC video → ≥ 1 valid action; mAP floor recorded
+
+**Result:** _fill in: mAP per tIoU, checkpoint used, leakage evidence._
+
+---
+
+### P5 — Clustering + EPIC coverage selector
+**Owner:** B · **Planned:** Nov 12–14 · **Status:** not started · **Depends on:** P2; starts on GT-derived proposals, switches to P4's proposals when they land
+
+- [ ] `cluster.py`
+- [ ] `select/candidates.py` (both capture rules)
+- [ ] `select/coverage.py` (expected-coverage lazy greedy, new-seconds cost, fragment check)
+- [ ] `select/hedge.py`
+- [ ] Label-dedup baseline selector (for the ablation and the kill rule)
+- [ ] Wire into `pipeline.py` (EPIC route → `highlights[]`)
+- [ ] Tune `window_lengths`, `stride`, `h`, `cluster.*` on `tune`
+- [ ] **Kill rule (end of Nov 14):** if expected coverage doesn't beat label dedup, ship label dedup
+
+**Exit check:** EPIC coverage > uniform on `report`; % of oracle recorded; ablation table below.
+**Tests required:**
+- unit: gain values on 2–3 hand-made clusters; one-hot distributions reduce to plain distinct counting
+- property: gain is monotone and has diminishing returns; selector output always passes R9–R13; total ≤ 0.145·T (except short videos)
+- property: on GT-derived clusters, oracle coverage ≥ selector coverage ≥ uniform coverage (allow a small tolerance on the second inequality and log failures)
+- unit: hedge windows never overlap selected windows and respect spacing
+- performance: selector on a synthetic 2000 s video with 300 clusters < 2 s
+
+**Result:** _fill in: coverage (both capture rules), % of oracle, ablation table (label dedup vs expected; 4 s only vs mixed lengths; hedge on/off)._
+
+---
+
+### P6 — FPVSum route: importance, segments, label
+**Owner:** A · **Planned:** Nov 13–15 · **Status:** not started · **Depends on:** P3, P2 (F1 scorer)
+
+- [ ] `select/importance.py` (proxy, shots, windows of 4.05–10 s)
+- [ ] `label/` (EPIC → cooking; FPVSum CLIP zero-shot with a prompt ensemble)
+- [ ] Wire the FPVSum route into `pipeline.py`
+- [ ] Tune importance weights on FPVSum CV folds (never on all 49 at once)
+- [ ] Check signal-router agreement with the manifest (target ≥ 95%)
+- [ ] Optional: ridge on CLIP if it beats the proxy on CV
+
+**Exit check:** F1 > uniform on FPVSum (CV); label accuracy reported; router agreement recorded.
+**Tests required:**
+- unit: importance on synthetic signals (a spike → selected); segments obey ≥ 4 s and budget
+- unit: label picks the argmax prompt with fake CLIP embeddings; score in [0, 1]
+- property: FPVSum route output always passes R9–R13
+
+**Result:** _fill in: F1 per fold, label accuracy, confusion of the worst categories, router agreement._
+
+---
+
+### P7 — Integration, tuning, ablations
+**Owner:** A + B · **Planned:** Nov 15–16 · **Status:** not started · **Depends on:** P4, P5, P6
+
+- [ ] Clean-run all 187 videos from raw MP4 with an empty cache (time it)
+- [ ] Final tuning on `tune` only; commit the tuned `configs/default.yaml`
+- [ ] Score on `report`; full ablation table (`tools/ablate.py`)
+- [ ] `tools/latency.py`: seconds per minute of video on GPU and on CPU
+- [ ] Set metric floors in `tests/integration/floors.yaml`
+- [ ] Determinism check: two runs → byte-identical JSON
+
+**Exit check:** all 187 outputs pass validation; leaderboard has the final `report` row; floors committed.
+**Tests required:** integration floors; determinism test on 2 videos (`data`).
+
+**Result:** _fill in: final leaderboard row, ablation table, latency numbers._
+
+---
+
+### P8 — Packaging, demo, deck
+**Owner:** B (packaging) + A (demo, numbers) · **Planned:** Nov 16–17 · **Status:** not started · **Depends on:** P7
+
+- [ ] `Dockerfile` (CPU and GPU variants or one with a flag); `tools/fetch_weights.sh` works on a clean machine
+- [ ] Submission `README.md`: setup, data used, how to reproduce, the tuning-split statement, licenses
+- [ ] Fresh clone → Docker build → `run.sh` on one video → identical JSON to ours
+- [ ] `tools/make_reel.py`: demo reel with padding/crossfades (demo only, not outputs)
+- [ ] Demo video (length per Q7; default ≤ 3 min) uploaded; link recorded here
+- [ ] Deck `CollegeName_TeamName`: problem, architecture diagram, tech stack, innovation, results, limitations; the three numbers (% of oracle, tokens pruned, latency)
+- [ ] Repo shared with the organizers (public, or invite as required)
+
+**Exit check:** reproduction from a fresh clone works; demo video and deck links recorded.
+**Tests required:** contract test runs inside the Docker image in CI (or documented manual run).
+
+**Result:** _fill in: links to demo video and deck; reproduction notes._
+
+---
+
+### P9 — Submission
+**Owner:** A + B · **Planned:** Nov 18 · **Status:** not started · **Depends on:** P8
+
+- [ ] Freeze `main`; tag `submission-v1`
+- [ ] Regenerate `outputs/` from the tagged commit; validate (ours + official); commit `outputs/`
+- [ ] Assemble `TEAM_ID/` exactly as `ARCHITECTURE.md` §13
+- [ ] Submit the Google Form (repo link, demo video, deck); screenshot the confirmation
+- [ ] No new features today. Fixes only, and only for validation failures
+
+**Exit check:** confirmation received before 11:59 PM IST, Nov 18.
+
+**Result:** _fill in: submission time, tag, confirmation._
+
+---
+
+### Stretch (only after P7 is done)
+- [ ] S1 Temperature calibration of cluster distributions (fit on `tune`)
+- [ ] S2 Learned FPVSum importance (ridge on CLIP)
+- [ ] S3 ONNX export + CPU latency benchmark
+- [ ] S4 HTML timeline viewer for the demo
+- [ ] S5 Downstream QA demo (local VLM: full video vs highlights)
+
+---
+
+## 3. Open questions
+
+| # | Question | Asked (date, how) | Answer (date, source) | Changes made |
+|---|---|---|---|---|
+| Q4 | How is a GT action "captured" by a highlight (any overlap, tIoU, fraction)? | | | |
+| Q6 | Is highlight F1 scored on EPIC? Is mAP scored on FPVSum? | | | |
+| Q7 | Demo video max 3 or 5 min? | | | |
+| Q8 | Is the official `validate.py` coming? Does "< 4 s ignored" apply to coverage and F1? Over-budget penalty curve? | | | |
+| Q9 | May `run.sh` read the kit's `manifest.csv` for routing? Scoring only on the 187 listed videos? | | | |
+| K1 | Do the second-hand kit rules (`ARCHITECTURE.md` §7) match our own kit copy? | — | | |
+
+---
+
+## 4. Decisions log
+
+Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outcome.
+
+| Date | Decision | Why | By |
+|---|---|---|---|
+| 2026-11-10 | Adopt REWIND v2.3: ≥ 4 s distinct-action windows, expected coverage, ActionFormer, no per-frame HOI | Kit rules: < 4 s highlights ignored; ~8 windows per median video | A + B |
+
+---
+
+## 5. Log
+
+Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
+
+- 2026-11-10 · — · setup · Created CLAUDE.md, ARCHITECTURE.md, PROGRESS.md · —
+
+---
+
+## 6. Leaderboard summary
+
+Copy the key rows from `results/leaderboard.csv` when a phase finishes.
+
+| Date | Phase | Split | Tag | Coverage (any / 50%) | % oracle | mAP | F1 | Label | Weighted |
+|---|---|---|---|---|---|---|---|---|---|
+| | | | | | | | | | |
