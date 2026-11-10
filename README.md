@@ -29,6 +29,6 @@ per video in the kit's schema (`team_id`, `video_id`, `duration_sec`, `label`,
 Action coverage 40% · Action mAP 25% · Highlight F1 25% · Label accuracy 10%.
 
 ## Status
-Planning complete (v2.3, revised Nov 10 with kit rules). Next: diff our kit copy
-against `ARCHITECTURE.md` §7, email the open questions, then phases P1 (B) and P3 (A)
-in parallel. See `PROGRESS.md`.
+Architecture **locked** (`ARCHITECTURE.md` v1.0, 2026-11-11). Build starts: P0 (kit
+check, email open questions), then P1 (B) and P3 (A) in parallel. Live status in
+`PROGRESS.md`.
