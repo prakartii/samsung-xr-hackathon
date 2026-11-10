@@ -41,6 +41,9 @@ starts on GT-derived proposals before P4 lands, so neither person waits.
 - [ ] Check whether the official `validate.py` is in our kit; if yes, note how it differs from our rules
 - [ ] Email prism@samsung.com with Q4, Q6, Q7, Q8, Q9 (§3); record the date sent
 - [ ] Confirm the registered team name and set `team.team_id` in config
+- [ ] Set `output.schema` (`kit_readme` or `brochure_flat`) from the kit's README and examples
+- [ ] Check every value in `rewind/constants.py` against the kit; cite the source in a comment
+- [ ] Run both `post.short_video_mode` values through the official validator (if present); set the default (see Q8)
 
 **Exit check:** `kit/` committed; every `[verify]` in `ARCHITECTURE.md` §7 resolved
 or listed in §3 below.
@@ -59,7 +62,8 @@ or listed in §3 below.
 - [ ] `rewind/schema.py` implementing R1–R13 + `rewind_eval/validate.py` CLI
 - [ ] `rewind/postprocess.py` (§5.6 of `ARCHITECTURE.md`)
 - [ ] `rewind/fallback.py` (uniform ≥ 4 s windows at 14.5%)
-- [ ] `rewind/output.py`, `rewind/pipeline.py` (fallback-only for now), `rewind/cli.py`, `run.sh`
+- [ ] `rewind/output.py` with both `output.schema` variants; `rewind/pipeline.py` (fallback-only for now), `rewind/cli.py`, `run.sh`
+- [ ] `post.short_video_mode` flag (`min_seg` / `within_budget`) in postprocess
 - [ ] `video_io.ffprobe_meta` (minimal; A extends it in P3)
 - [ ] GitHub Actions: ruff + `pytest` on every PR
 - [ ] Run on all 187 videos → `python -m rewind_eval.validate --dir outputs/` passes
@@ -119,10 +123,14 @@ or listed in §3 below.
 ### P4 — Action detection → `actions[]`
 **Owner:** A · **Planned:** Nov 11–13 · **Status:** not started · **Depends on:** P3 (frames), P2 (mAP scorer)
 
-- [ ] Vendor ActionFormer into `code/third_party/actionformer` with its LICENSE
-- [ ] Identify the EPIC-100 verb/noun checkpoints and their exact feature extractor + config (fps, clip length, stride); record in `ARCHITECTURE.md` §10
-- [ ] **Leakage check:** confirm the checkpoints were trained on EPIC train only; record the evidence in §4 Decisions
-- [ ] `features/slowfast.py` matching that config; cache it
+- [ ] Vendor ActionFormer (`happyharrycn/actionformer_release`) into `code/third_party/actionformer` with its LICENSE
+- [ ] Download the released `epic_kitchens.tar.gz` (check md5) and the verb/noun checkpoints into `weights/`; script it in `tools/fetch_weights.sh`
+- [ ] **Coverage check:** every EPIC `video_id` in `kit/manifest.csv` and every `tune` video has released features; list any gaps here
+- [ ] **Leakage check:** confirm from configs/logs that the checkpoints were trained on EPIC train only; record the evidence in §4 Decisions
+- [ ] Run ActionFormer inference on CPU; record seconds per video
+- [ ] `features/slowfast.py`: load released features by `video_id`; extraction path for raw MP4
+- [ ] Extraction check on 1–2 videos (Kaggle/Colab if needed): our features match the released ones (cosine ≥ 0.95)
+- [ ] Extract any gap videos on Kaggle/Colab, one at a time
 - [ ] `tools/build_vn_prior.py` → `weights/vn_prior.npy` (train split only)
 - [ ] `detect/actionformer.py`, `detect/pairing.py`; cache proposals
 - [ ] Wire into `pipeline.py` (EPIC route → `actions[]`)
@@ -170,7 +178,9 @@ or listed in §3 below.
 - [ ] `label/` (EPIC → cooking; FPVSum CLIP zero-shot with a prompt ensemble)
 - [ ] Wire the FPVSum route into `pipeline.py`
 - [ ] Tune importance weights on FPVSum CV folds (never on all 49 at once)
-- [ ] Check signal-router agreement with the manifest (target ≥ 95%)
+- [ ] Check signal-router agreement with the manifest (target ≥ 95%); tune `routing.min_conf`
+- [ ] Uncertain route always emits actions (EPIC detector or zero-shot fallback)
+- [ ] Ablation: audio terms (RMS, spectral flux) in the importance proxy; keep only if CV improves
 - [ ] Optional: ridge on CLIP if it beats the proxy on CV
 
 **Exit check:** F1 > uniform on FPVSum (CV); label accuracy reported; router agreement recorded.
@@ -249,7 +259,7 @@ or listed in §3 below.
 | Q4 | How is a GT action "captured" by a highlight (any overlap, tIoU, fraction)? | | | |
 | Q6 | Is highlight F1 scored on EPIC? Is mAP scored on FPVSum? | | | |
 | Q7 | Demo video max 3 or 5 min? | | | |
-| Q8 | Is the official `validate.py` coming? Does "< 4 s ignored" apply to coverage and F1? Over-budget penalty curve? | | | |
+| Q8 | Is the official `validate.py` coming? Does "< 4 s ignored" apply to coverage and F1? Over-budget penalty curve? For videos under 26.7 s, ≥ 4 s and ≤ 15% conflict: which wins? | | | |
 | Q9 | May `run.sh` read the kit's `manifest.csv` for routing? Scoring only on the 187 listed videos? | | | |
 | K1 | Do the second-hand kit rules (`ARCHITECTURE.md` §7) match our own kit copy? | — | | |
 
@@ -261,6 +271,13 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 | Date | Decision | Why | By |
 |---|---|---|---|
+| 2026-11-11 | Withdraw the (1 − 1/e) guarantee claim (also made in the frozen v2.3 plan §4 and §15); report % of oracle coverage instead | Cost-ratio greedy under a budget, min-length and fragment rules break the conditions | A + B |
+| 2026-11-11 | Short videos: `post.short_video_mode` flag; default `min_seg` until P0 tests both against the official validator | R11 and R13 conflict for T < 26.7 s; under known rules only `min_seg` validates | A + B |
+| 2026-11-11 | Serializer supports both schemas (`output.schema`); P0 picks | Nested schema is second-hand; brochure shows a flat one | A + B |
+| 2026-11-11 | FPVSum: keep `actions: []` when confidently routed; uncertain route always emits actions | Kitchen actions on FPVSum videos would be false positives if mAP is pooled; a misrouted EPIC video must not lose its actions | A + B |
+| 2026-11-11 | Keep manifest routing as primary (pending Q9) | Manifest is a kit file, not GT; signal router kept working as a fallback | A + B |
+| 2026-11-11 | Rejected: fixed rare-action budget reserve (70/20/10) | Coverage counts distinct pairs per video; expected coverage already avoids repeats | A + B |
+| 2026-11-11 | Use ActionFormer's released EPIC-100 SlowFast features + checkpoints; Kaggle/Colab only for gaps | No GPU on the team; removes the only heavy GPU job | A + B |
 | 2026-11-10 | Adopt REWIND v2.3: ≥ 4 s distinct-action windows, expected coverage, ActionFormer, no per-frame HOI | Kit rules: < 4 s highlights ignored; ~8 windows per median video | A + B |
 
 ---
@@ -269,6 +286,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-11 · — · design · Applied external review: short-video flag, dual schema serializer, uncertain-route actions, routing confidence, no approximation claim, provisional constants, audio ablation; CPU-first feature strategy using ActionFormer's released features · PR (this)
 - 2026-11-10 · — · setup · Created CLAUDE.md, ARCHITECTURE.md, PROGRESS.md · —
 
 ---
