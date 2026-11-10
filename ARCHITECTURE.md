@@ -1,8 +1,20 @@
 # ARCHITECTURE.md — REWIND build spec
 
-This is the living build spec. Code must match it; when the design changes, update
-this file in the same PR (see `CLAUDE.md` §5). Rationale for the choices is in
+> **Status: LOCKED — v1.0, 2026-11-11.** Build against this spec.
+
+This is the build spec. Code must match it. Rationale for the choices is in
 `REWIND_v2.3_plan.md`. Status is in `PROGRESS.md`.
+
+**Change control after the lock**
+- *Resolving a `[verify]` item* (kit facts, organizer answers, checkpoint details) is
+  not a design change: update this file in the PR that resolves it, and log it in
+  `PROGRESS.md`.
+- *Kill-rule outcomes* listed in `PROGRESS.md` (fallback detector, label-dedup
+  selector) are pre-approved: switch, update this file, log the decision.
+- *Anything else* (a new module, a changed algorithm, a new output behavior) needs a
+  `PROGRESS.md` Decisions entry agreed by both A and B **before** the code PR, and
+  this file updated in that PR. Bump the version (v1.1, v1.2 …) in the status line.
+- Stretch work never changes the MVP design.
 
 Items marked **[verify]** depend on facts we haven't confirmed yet (kit contents,
 organizer answers, checkpoint details). Confirm them before relying on them, then
@@ -461,8 +473,6 @@ Fill each row in before the model is used **[verify all]**.
 | Optical flow | OpenCV Farneback | — | Apache-2.0 (OpenCV) | Low resolution (160 px) |
 | Verb–noun prior | Counts from `EPIC_100_train.csv` | Built by tool | EPIC-KITCHENS license | Train split only |
 
----
-
 ### 10.1 Feature strategy (CPU-first; neither team member has a GPU)
 
 1. **Development and submission outputs for EPIC:** use ActionFormer's released
@@ -479,6 +489,8 @@ Fill each row in before the model is used **[verify all]**.
    features from the same extractor, and how to regenerate them from raw MP4.
 5. Everything else (decode, flow, hands, CLIP, ActionFormer inference, selection)
    runs on CPU.
+
+---
 
 ## 11. Configuration (`configs/default.yaml`)
 
