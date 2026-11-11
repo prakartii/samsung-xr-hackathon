@@ -1,0 +1,6 @@
+# Keep LF in the repo and in checkouts: run.sh and *.sh must run on Linux even when
+# a teammate works on Windows (core.autocrlf would otherwise write CRLF).
+* text=auto eol=lf
+*.npz binary
+*.npy binary
+*.mp4 binary
