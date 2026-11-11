@@ -112,7 +112,7 @@ def test_softnms_gaussian_two_overlapping_segments_hand_computed():
 def test_softnms_hard_method_drops_overlap_above_threshold():
     # method 0: B's IoU 1/3 >= 0.3 -> weight 0 -> below min_score -> dropped
     segs = np.array([[0, 10], [5, 15]], dtype=f32)
-    inds, dets = nms_py.softnms_np(segs, np.array([0.9, 0.8], f32), 0.3, 0.5, 0.001, 0)
+    inds, _dets = nms_py.softnms_np(segs, np.array([0.9, 0.8], f32), 0.3, 0.5, 0.001, 0)
     assert inds.tolist() == [0]
 
 
