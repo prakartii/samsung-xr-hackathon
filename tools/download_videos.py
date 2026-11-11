@@ -80,7 +80,13 @@ def download_fpvsum(ids: list[str], out_dir: Path) -> None:
             "-o", str(out_dir / f"{vid}.%(ext)s"),
             f"https://www.youtube.com/watch?v={yt[vid]}",
         ]  # fmt: skip
-        if subprocess.run(cmd).returncode != 0:
+        # YouTube format extraction needs a JS runtime: put the venv's `deno` (pip
+        # package) on PATH for yt-dlp without requiring a system-wide install.
+        env = {
+            **os.environ,
+            "PATH": os.pathsep.join([str(Path(sys.executable).parent), os.environ.get("PATH", "")]),
+        }
+        if subprocess.run(cmd, env=env).returncode != 0:
             print(f"[fpvsum] FAILED: {vid}", flush=True)
 
 
