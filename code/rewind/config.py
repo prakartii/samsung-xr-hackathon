@@ -175,8 +175,8 @@ class RoutingCfg:
 
 @dataclass(frozen=True)
 class EvalCfg:
-    f1_fps: float
     coverage_lambda: float
+    capture_theta: float
 
 
 @dataclass(frozen=True)
@@ -354,6 +354,7 @@ def _check_ranges(cfg: Config) -> None:
         "features.hands.min_presence_conf": cfg.features.hands.min_presence_conf,
         "features.hands.min_tracking_conf": cfg.features.hands.min_tracking_conf,
         "select.fraction_theta": s.fraction_theta,
+        "eval.capture_theta": cfg.eval.capture_theta,
     }
     for key, v in unit_interval.items():
         if not 0.0 <= v <= 1.0:
@@ -367,7 +368,6 @@ def _check_ranges(cfg: Config) -> None:
         "importance.sigma": imp.sigma,
         "importance.len_step": imp.len_step,
         "importance.stride": imp.stride,
-        "eval.f1_fps": cfg.eval.f1_fps,
         "features.flow.width": cfg.features.flow.width,
         "features.flow.pyr_scale": cfg.features.flow.pyr_scale,
         "features.flow.levels": cfg.features.flow.levels,
