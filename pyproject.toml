@@ -18,6 +18,7 @@ markers = [
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+src = ["code", "tests"]
 extend-exclude = ["code/third_party"]
 
 [tool.ruff.lint]
