@@ -129,7 +129,7 @@ to keys once, in `rewind/vocab.py`.
 | `config.py` | Load and validate `configs/default.yaml` into typed dataclasses; `config_hash()` | yes |
 | `types.py` | §2 types | — |
 | `vocab.py` | Kit classes from the bundled copy `rewind/resources/classes.json` (byte-identical to `kit/supported_classes.json`, so `run.sh` runs without `kit/`); index ↔ key maps; verb–noun co-occurrence prior | load at edge, lookups pure |
-| `video_io.py` | ffprobe metadata; frame decoding at a target fps; frame ↔ seconds | no |
+| `video_io.py` | Metadata: `ffprobe_meta` (used by `run.sh`) or PyAV `probe_video`. Frames: PyAV decode of the first video stream at a target fps by presentation time, relative to the stream start (D1); frame ↔ seconds | no |
 | `routing.py` | Dataset routing from video signals only (§6.1) | yes, given inputs |
 | `features/flow.py` | Farneback flow at low resolution → residual + global motion | no |
 | `features/hands.py` | MediaPipe hand presence | no |
@@ -228,8 +228,12 @@ only echoed into the JSON. A contract test renames the input and checks that onl
 ### 5.1 Pairing (`detect/pairing.py`)
 
 ActionFormer's EPIC models produce verb proposals and noun proposals separately.
-For each verb proposal, match noun proposals with tIoU ≥ `cfg.pairing.match_tiou`.
-For each matched pair of top-k verbs and top-k nouns:
+Greedy anchors: visit verb proposals by (probability desc, start, key); a verb anchors
+one proposal if it has a noun with tIoU ≥ `cfg.pairing.match_tiou` and doesn't overlap
+(same threshold) an anchor already emitted. So duplicate labels on one span give one
+proposal, and a confident verb without a matching noun never blocks an overlapping verb
+that has one. Each anchor's group is the verbs and nouns overlapping it; for each pair
+of its top-k verbs and top-k nouns:
 
 ```
 score(v, n) = p(v) · p(n) · prior(v, n)^α

@@ -3,11 +3,13 @@
 ActionFormer's EPIC models detect verbs and nouns separately: each detection is
 (segment, class key, probability). Pairing:
 
-1. Anchor on each verb detection. Its group = verb detections and noun detections
-   overlapping it with tIoU >= `match_tiou`. An anchor without a matching noun yields
-   nothing (an action needs both).
-2. One proposal per group: an anchor is kept only if it is its group's top verb
-   (so k verb labels on the same span give one proposal, not k duplicates).
+1. Greedy anchors: visit verb detections by (probability desc, start, key). A verb
+   anchors a proposal if it has at least one noun detection with tIoU >= `match_tiou`
+   and doesn't overlap (tIoU >= `match_tiou`) an anchor already emitted. Its group =
+   the verb and noun detections overlapping it.
+2. So k verb labels on the same span give one proposal, not k duplicates, and a
+   confident verb with no matching noun never blocks an overlapping verb that has one
+   (an earlier "top verb of its group" rule dropped such actions).
 3. Top-k verbs and nouns (max probability per key), then every (v, n) of them that is
    in the kit vocabulary is scored
 
@@ -115,15 +117,19 @@ def pair_proposals(
     vn = tiou_matrix(vsegs, nsegs) >= params.match_tiou
 
     proposals = []
-    for i, (seg, _, _) in enumerate(verb_dets):
+    anchors: list[int] = []
+    order = sorted(
+        range(len(verb_dets)), key=lambda i: (-verb_dets[i][2], verb_dets[i][0], verb_dets[i][1])
+    )
+    for i in order:
+        seg = verb_dets[i][0]
         noun_idx = np.flatnonzero(vn[i])
         if noun_idx.size == 0:
-            continue
+            continue  # no noun: can't form an action, and doesn't block its neighbours
+        if any(vv[i, a] for a in anchors):
+            continue  # an overlapping, more confident verb already anchors this span
         group = np.flatnonzero(vv[i])
         verbs = _top_k(verb_dets, group, params.top_k)
-        leaders = [j for j in group if verb_dets[j][1:] == verbs[0]]
-        if i != min(leaders):
-            continue  # another detection leads this group and anchors its proposal
         nouns = _top_k(noun_dets, noun_idx, params.top_k)
         pairs = [
             (v, n, (pv * pn * prior.get(v, n) ** params.alpha) ** params.score_power)
@@ -133,7 +139,8 @@ def pair_proposals(
             if n in noun_vocab
         ]
         if not pairs:
-            continue
+            continue  # nothing in the kit vocabulary: not an anchor either
+        anchors.append(i)
         pairs.sort(key=lambda x: (-x[2], x[0], x[1]))
         proposals.append(Proposal(seg, verbs, nouns, tuple(pairs[: params.top_k])))
     proposals.sort(key=lambda pr: (pr.segment[0], pr.segment[1]))
