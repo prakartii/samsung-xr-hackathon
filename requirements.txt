@@ -8,6 +8,9 @@ pyyaml==6.0.2
 # both own the `cv2` module. On a bare Linux image it needs libgl1 (Dockerfile, P8).
 opencv-contrib-python==4.10.0.84
 mediapipe==1.2.2
+# Video decoding: bundles FFmpeg, reads multi-stream GoPro files (OpenCV stops early on
+# them) with threaded decode and exact frame timestamps; also replaces ffprobe.
+av==19.0.2
 torch==2.15.0+cpu
 torchvision==0.29.2+cpu
 open_clip_torch==4.2.2
