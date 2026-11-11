@@ -6,7 +6,7 @@ when the phase is done. Never delete log entries; correct them with a new one.
 
 Status values: `not started` · `in progress` · `blocked (reason)` · `done` · `cut`.
 Owners: **A** = ML & perception · **B** = algorithms & infra.
-Who is A and who is B: A = `<name>`, B = `<name>` ← fill in.
+Who is A and who is B: **A = prakartii**, **B = Daksh Arora (DA)**.
 
 ---
 
@@ -148,7 +148,7 @@ package: `validate.py`. Remaining: send the email, set the team ID.
 **Tests required:**
 - unit: pairing on hand-made verb/noun proposals (matching tIoU, prior applied, out-of-vocabulary pairs dropped, score in [0, 1], sorted, ≤ 2000)
 - unit: score rescaling is monotone and identical across videos
-- integration (`data`, `gpu`): one cached EPIC video → ≥ 1 valid action; mAP floor recorded
+- integration (`data`): one cached EPIC video → ≥ 1 valid action on CPU; mAP floor recorded
 
 **Result:** _fill in: mAP per tIoU, checkpoint used, leakage evidence._
 
@@ -206,7 +206,7 @@ package: `validate.py`. Remaining: send the email, set the team ID.
 - [ ] Clean-run all 187 videos from raw MP4 with an empty cache (time it)
 - [ ] Final tuning on `tune` only; commit the tuned `configs/default.yaml`
 - [ ] Score on `report`; full ablation table (`tools/ablate.py`)
-- [ ] `tools/latency.py`: seconds per minute of video on GPU and on CPU
+- [ ] `tools/latency.py`: seconds per minute of video on CPU (add a GPU row only if a free Kaggle/Colab run is handy)
 - [ ] Set metric floors in `tests/integration/floors.yaml`
 - [ ] Determinism check: two runs → byte-identical JSON
 
@@ -220,7 +220,7 @@ package: `validate.py`. Remaining: send the email, set the team ID.
 ### P8 — Packaging, demo, deck
 **Owner:** B (packaging) + A (demo, numbers) · **Planned:** Nov 16–17 · **Status:** not started · **Depends on:** P7
 
-- [ ] `Dockerfile` (CPU and GPU variants or one with a flag); `tools/fetch_weights.sh` works on a clean machine
+- [ ] `Dockerfile` (CPU; the pipeline needs no GPU); `tools/fetch_weights.sh` works on a clean machine
 - [ ] Submission `README.md`: setup, data used, how to reproduce, the tuning-split statement, licenses
 - [ ] Fresh clone → Docker build → `run.sh` on one video → identical JSON to ours
 - [ ] `tools/make_reel.py`: demo reel with padding/crossfades (demo only, not outputs)
@@ -311,6 +311,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-11 · DA · P0 · Recorded roles (A = prakartii, B = DA); removed leftover GPU assumptions (P4 test marker, P7 latency, P8 Dockerfile) · #5
 - 2026-11-11 · DA · P0 · Teammate (prakartii) confirmed the v1.1 routing decision · #4
 - 2026-11-11 · DA · P0 · Committed the official kit to `kit/`; ARCHITECTURE v1.1 (signal-only routing, cache keyed by content fingerprint, one schema, 2 decimals, kit facts); answered Q6, Q9, K1; added Q10, Q11 and the email draft; removed superseded plans · #3
 - 2026-11-11 · — · design · Recorded the lock in PROGRESS.md and README (follow-up to #1) · #2
