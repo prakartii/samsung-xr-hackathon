@@ -118,10 +118,12 @@ package: `validate.py`. Remaining: send the email, set the team ID.
 > layout in `CLAUDE.md` §3.
 
 - [ ] Download the 187 videos into `data/videos/` + the `tune` videos
-- [ ] `video_io.py`: decoding at a target fps, frame ↔ seconds
-- [ ] `features/flow.py` (residual + global motion), `features/hands.py`, `features/clip.py`
-- [ ] `features/cache.py` (versioned, atomic) + `tools/cache_features.py` (longest first, resumable)
-- [ ] `routing.py` (video signals only; no manifest, no filename)
+- [x] `video_io.py`: decoding at a target fps, frame ↔ seconds (also ffprobe parsing, so P1's `ffprobe_meta` item is covered)
+- [x] `features/flow.py` (residual + global motion)
+- [ ] `features/hands.py`, `features/clip.py`
+- [x] `features/cache.py` (versioned, atomic)
+- [ ] `tools/cache_features.py` (longest first, resumable)
+- [x] `routing.py` (video signals only; no manifest, no filename): pure decision from per-keyframe CLIP P(cooking); the CLIP prompts that produce it come with `features/clip.py`
 - [ ] Start caching on Nov 10; record throughput (seconds of compute per minute of video)
 
 **Exit check:** caches complete for all 187 + `tune`; throughput recorded below.
@@ -129,6 +131,17 @@ package: `validate.py`. Remaining: send the email, set the team ID.
 - unit: frame ↔ seconds conversion at 25/30/59.94 fps; cache version mismatch → recompute; atomic write leaves no partial file; cache key is the content fingerprint (renamed file → cache hit)
 - unit: routing on fake CLIP scores (clear EPIC, clear FPVSum, uncertain margin)
 - integration (`data`): signals on one real video have the expected shapes, and the timestamps span `[0, T]`
+
+**Notes so far (2026-11-11, PK):**
+- Decoding uses OpenCV (`cv2.VideoCapture`), sequential grab/retrieve on the shared
+  `sample_times` grid; `duration_sec` and `fps` always come from ffprobe so every
+  signal agrees on the timestamps. The default test suite needs no ffmpeg on PATH.
+- Global motion = |median flow vector| (camera ego-motion); residual = mean |flow − median|
+  (hands/objects). Frame 0 copies frame 1's value. Both z-scored per video.
+- Routing returns `unknown` when |P(cooking) − thr| < `min_conf` and keeps the mean
+  P(cooking) so the uncertain-route rule (ARCHITECTURE.md §4) can still pick a side.
+- Local dev here runs Python 3.12 (CLAUDE.md says 3.11); `pyproject` targets ≥ 3.11 and
+  ruff checks against 3.11 syntax.
 
 **Result:** _fill in: throughput, total cache size, any videos that failed to decode._
 
@@ -318,6 +331,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-11 · PK · P3 · `video_io` (frame ↔ seconds, ffprobe parsing, decoding at a target fps), versioned fingerprint-keyed `features/cache`, Farneback `features/flow` (global vs residual motion), signal-only `routing`; 70 tests, each mutation-checked · —
 - 2026-11-11 · PK · P3 · Started P3 on `p3/video-io-signals`; minimal scaffolding note for B · —
 - 2026-11-11 · DA · P0 · Recorded roles (A = prakartii, B = DA); removed leftover GPU assumptions (P4 test marker, P7 latency, P8 Dockerfile) · #5
 - 2026-11-11 · DA · P0 · Teammate (prakartii) confirmed the v1.1 routing decision · #4
