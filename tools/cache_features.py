@@ -26,13 +26,13 @@ import hashlib
 import sys
 import time
 import traceback
+from dataclasses import asdict
 from pathlib import Path
-
-import yaml
 
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "code"))
 
+from rewind.config import load_config  # noqa: E402
 from rewind.features.cache import FeatureCache, content_fingerprint  # noqa: E402
 from rewind.features.clip import (  # noqa: E402
     ClipOnline,
@@ -85,12 +85,12 @@ def main() -> None:
     if unknown := set(feats) - set(FEATURES):
         ap.error(f"unknown features: {sorted(unknown)}")
 
-    cfg = yaml.safe_load(args.config.read_text(encoding="utf-8"))
-    dense_fps = cfg["signals"]["dense_fps"]
-    clip_fps = cfg["signals"]["clip_fps"]
-    flow_p = FlowParams(**cfg["features"]["flow"])
-    hand_p = HandParams(**cfg["features"]["hands"])
-    clip_p = ClipParams(**cfg["features"]["clip"])
+    cfg = load_config(args.config)  # strict: unknown or missing keys are errors
+    dense_fps = cfg.signals.dense_fps
+    clip_fps = cfg.signals.clip_fps
+    flow_p = FlowParams(**asdict(cfg.features.flow))
+    hand_p = HandParams(**asdict(cfg.features.hands))
+    clip_p = ClipParams(**asdict(cfg.features.clip))
 
     caches, models = {}, {}
     if "flow" in feats:

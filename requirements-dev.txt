@@ -1,5 +1,7 @@
-pytest==8.3.3
-hypothesis==6.112.1
-ruff==0.6.9
-yt-dlp[default]==2026.10.26   # tools/download_videos.py (FPVSum from YouTube)
+# Development only: tests and lint.
+pytest==9.2.0
+hypothesis==6.170.15
+ruff==0.17.4
+# Data tools (P3, A): tools/download_videos.py fetches FPVSum from YouTube.
+yt-dlp[default]==2026.10.26
 deno==2.9.8                   # JS runtime yt-dlp needs for YouTube format extraction

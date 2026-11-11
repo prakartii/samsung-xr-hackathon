@@ -1,14 +1,57 @@
-"""Unit tests for frame <-> seconds conversion (PROGRESS.md P3: 25 / 30 / 59.94 fps)."""
+"""video_io pure parts: parse_probe (ffprobe JSON -> ProbeInfo) and frame <-> seconds."""
 
 import pytest
 
 from rewind.video_io import (
+    VideoError,
     frame_to_sec,
-    parse_ffprobe,
+    parse_probe,
     parse_rate,
     sample_times,
     sec_to_frame,
 )
+
+
+def probe(fmt_dur="30.5", st_dur="30.4", rate="30000/1001"):
+    return {
+        "streams": [{"width": 1920, "height": 1080, "avg_frame_rate": rate, "duration": st_dur}],
+        "format": {"duration": fmt_dur},
+    }
+
+
+def test_parse_probe_prefers_container_duration():
+    assert parse_probe(probe()).duration_sec == pytest.approx(30.5, abs=1e-9)
+
+
+def test_parse_probe_falls_back_to_stream_duration():
+    assert parse_probe(probe(fmt_dur=None)).duration_sec == pytest.approx(30.4, abs=1e-9)
+
+
+def test_parse_probe_reads_fractional_frame_rate():
+    # 30000 / 1001 = 29.97...
+    assert parse_probe(probe()).fps == pytest.approx(29.97003, abs=1e-5)
+
+
+def test_parse_probe_zero_frame_rate_denominator_gives_zero_fps():
+    assert parse_probe(probe(rate="0/0")).fps == pytest.approx(0.0, abs=1e-12)
+
+
+@pytest.mark.parametrize(
+    "info",
+    [
+        {"streams": [], "format": {"duration": "10"}},
+        probe(fmt_dur=None, st_dur=None),
+        probe(fmt_dur="N/A", st_dur=None),
+        probe(fmt_dur="0"),
+        probe(fmt_dur="inf"),
+    ],
+)
+def test_parse_probe_unusable_input_raises_video_error(info):
+    with pytest.raises(VideoError):
+        parse_probe(info)
+
+
+# --- frame <-> seconds (P3) ---------------------------------------------------------
 
 NTSC_60 = 60000 / 1001  # "59.94" fps
 NTSC_30 = 30000 / 1001  # "29.97" fps
@@ -111,54 +154,3 @@ def test_sample_times_all_inside_duration():
     assert len(t) == 2247
     assert t[-1] == pytest.approx(561.5, abs=1e-12)
     assert t[-1] < 561.53
-
-
-# --- parse_ffprobe ----------------------------------------------------------------
-
-
-def _probe(fmt_duration="561.53", avg="60000/1001", r="60000/1001"):
-    """A trimmed `ffprobe -show_format -show_streams` result: audio first, then video."""
-    video = {
-        "codec_type": "video",
-        "width": 1920,
-        "height": 1080,
-        "avg_frame_rate": avg,
-        "r_frame_rate": r,
-        "duration": "561.40",
-    }
-    fmt = {} if fmt_duration is None else {"duration": fmt_duration}
-    return {"streams": [{"codec_type": "audio"}, video], "format": fmt}
-
-
-def test_parse_ffprobe_reads_container_duration_fps_and_size():
-    meta = parse_ffprobe(_probe())
-    assert meta.duration_sec == pytest.approx(561.53, abs=1e-9)
-    assert meta.fps == pytest.approx(60000 / 1001, abs=1e-9)
-    assert (meta.width, meta.height) == (1920, 1080)
-
-
-def test_parse_ffprobe_missing_container_duration_uses_stream_duration():
-    meta = parse_ffprobe(_probe(fmt_duration=None))
-    assert meta.duration_sec == pytest.approx(561.40, abs=1e-9)
-
-
-def test_parse_ffprobe_avg_rate_zero_falls_back_to_r_frame_rate():
-    meta = parse_ffprobe(_probe(avg="0/0", r="30/1"))
-    assert meta.fps == pytest.approx(30.0, abs=1e-12)
-
-
-def test_parse_ffprobe_prefers_avg_rate_over_r_frame_rate():
-    # Variable-frame-rate phone video: r_frame_rate is the timebase-ish max (60),
-    # avg_frame_rate is the true average (29.97). The average is the correct one.
-    meta = parse_ffprobe(_probe(avg="30000/1001", r="60/1"))
-    assert meta.fps == pytest.approx(30000 / 1001, abs=1e-9)
-
-
-def test_parse_ffprobe_audio_only_raises():
-    with pytest.raises(ValueError):
-        parse_ffprobe({"streams": [{"codec_type": "audio"}], "format": {"duration": "10"}})
-
-
-def test_parse_ffprobe_zero_duration_raises():
-    with pytest.raises(ValueError):
-        parse_ffprobe(_probe(fmt_duration="0.0"))

@@ -59,7 +59,9 @@ computed independently.
 
 ## 2. Core data types (`code/rewind/types.py`)
 
-All are frozen dataclasses. Times are float seconds.
+All are frozen dataclasses. Times are float seconds. `Signals` uses `eq=False`
+(numpy arrays don't compare with `==`). Build `Cluster.pair_dist` as a read-only
+mapping (`types.MappingProxyType`) so a frozen cluster can't be mutated through it.
 
 ```python
 Segment = tuple[float, float]                      # (start, end), 0 <= start < end <= T
@@ -123,10 +125,10 @@ to keys once, in `rewind/vocab.py`.
 
 | Module | Responsibility | Pure? |
 |---|---|---|
-| `constants.py` | Kit facts: `MIN_SEG=4.0`, `MIN_SEG_EMIT=4.05`, `SCORING_BUDGET=0.15`, `DURATION_TOL=0.5`, `MAX_ACTIONS=2000`, `SHORT_VIDEO_T=MIN_SEG/SCORING_BUDGET` (26.67 s), `TIME_DECIMALS=2`. Confirmed against `kit/TEAM_README.md`; every value cites its kit section in a comment | — |
+| `constants.py` | Kit facts: `MIN_SEG=4.0`, `MIN_SEG_EMIT=4.05`, `SCORING_BUDGET=0.15`, `DURATION_TOL=0.5`, `MAX_ACTIONS=2000`, `SHORT_VIDEO_T=MIN_SEG_EMIT/SCORING_BUDGET` (27.0 s: the shortest video whose budget fits one emitted 4.05 s window), `TIME_DECIMALS=2`, `END_TOL=0.5`, `REQUIRED_KEYS`, dataset names. Confirmed against `kit/TEAM_README.md`; every value cites its kit section in a comment | — |
 | `config.py` | Load and validate `configs/default.yaml` into typed dataclasses; `config_hash()` | yes |
 | `types.py` | §2 types | — |
-| `vocab.py` | Load kit classes; index ↔ key maps; verb–noun co-occurrence prior | load at edge, lookups pure |
+| `vocab.py` | Kit classes from the bundled copy `rewind/resources/classes.json` (byte-identical to `kit/supported_classes.json`, so `run.sh` runs without `kit/`); index ↔ key maps; verb–noun co-occurrence prior | load at edge, lookups pure |
 | `video_io.py` | ffprobe metadata; frame decoding at a target fps; frame ↔ seconds | no |
 | `routing.py` | Dataset routing from video signals only (§6.1) | yes, given inputs |
 | `features/flow.py` | Farneback flow at low resolution → residual + global motion | no |
@@ -144,11 +146,11 @@ to keys once, in `rewind/vocab.py`.
 | `select/importance.py` | FPVSum importance proxy + segment selection (§6.2) | yes |
 | `postprocess.py` | Sort, merge, enforce ≥ 4 s, budget trim, clamp (§5.6) | yes |
 | `label/` | EPIC → `cooking`; FPVSum → CLIP zero-shot (§6.3) | scoring pure |
-| `schema.py` | `validate(result_dict, expected_duration: float \| None) -> (errors, warnings)` per §7; `run.sh` passes `None`, the eval CLI passes the manifest duration | yes |
+| `schema.py` | `validate(doc, vocab, *, filename_stem, expected_duration, strict) -> (errors, warnings)` per §7; `run.sh` passes `strict=True` and no expected duration, the eval CLI passes the manifest duration | yes |
 | `output.py` | `VideoResult` → JSON dict in the kit schema (rounded to 2 decimals, sorted) | yes |
 | `fallback.py` | Safe output: uniform windows, empty actions, default label | yes |
-| `pipeline.py` | Wires M0–M6 for one video; catches exceptions → fallback | no |
-| `cli.py` | `python -m rewind.cli <video> <out>`; called by `run.sh` | no |
+| `pipeline.py` | `run_video(video, out, cfg, *, team_id, analyze)`: probe → `analyze` (the model stages; P1: the fallback) → `to_document` → strict validation → atomic write; any exception or validation error → validated fallback | no |
+| `cli.py` | `python -m rewind.cli <video> <out> [--config]`; called by `run.sh`. Exit 0 = valid JSON written (maybe the fallback); exit 2 = no readable duration, nothing written | no |
 | `utils.py` | `seed_all`, logging, timing | — |
 
 ### 3.2 `code/rewind_eval/` — evaluation (never imported by `rewind`)
@@ -165,7 +167,7 @@ to keys once, in `rewind/vocab.py`.
 | `oracle.py` | Greedy max coverage using GT spans + same window rules (§9.5) |
 | `baselines.py` | Uniform windows; random windows (seeded) |
 | `score.py` | CLI: score a prediction dir on a split; append to `results/leaderboard.csv` |
-| `validate.py` | CLI wrapper around `rewind.schema.validate` for a directory; checks durations and the 187 ids against `kit/manifest.csv` |
+| `validate.py` | CLI over `rewind.schema.validate` for a directory: durations against `kit/manifest.csv`, one file per manifest video, same `team_id` everywhere; `--kit-only` for kit severities |
 
 ### 3.3 `tools/`
 
@@ -182,9 +184,11 @@ and crossfades for the demo only), `timeline_html.py` (stretch).
 ./run.sh <video.mp4> <out.json>
 ```
 
-1. Activate the bundled environment if present, then
-   `python -m rewind.cli "$1" "$2" --config configs/default.yaml`.
+1. Use `./.venv/bin/python` if present, else `$PYTHON`, else `python3`; set
+   `PYTHONPATH=code`; run `python -m rewind.cli "$1" "$2" --config configs/default.yaml`.
 2. `cli` seeds everything, builds `VideoMeta` (ffprobe), routes the dataset.
+   `video_id` is the **output** file's stem (R2 requires it to match the JSON name);
+   the input file name is not used at all.
 3. Features: read from `cache/` if a valid versioned entry exists; else compute.
    (On a clean machine nothing is cached; everything is computed from the MP4.)
 4. EPIC route: detect → pairing → `actions[]`; cluster → coverage windows + hedge
@@ -196,9 +200,14 @@ and crossfades for the demo only), `timeline_html.py` (stretch).
    detector), pick the label by CLIP P(cooking) ≥ threshold, and select highlights
    with the route that label implies. A misrouted EPIC video must never lose its
    actions.
-5. `output.py` builds the dict → `schema.validate` → on errors, log them and write
-   `fallback.py` output instead (which is validated too).
-6. Any exception at any step → fallback output, error to stderr, exit code 0.
+5. `output.py` builds the dict (action times clamped into `[0, T]`, non-finite actions
+   dropped) → strict `schema.validate`. On errors, **salvage**: drop actions with
+   out-of-vocabulary names, replace an unknown label with the fallback label, replace
+   highlights only if they are invalid on their own; validate again. Only if that
+   still fails, write the full `fallback.py` output (validated too).
+6. Any exception at any step → fallback output, error to stderr, exit code 0. The
+   one exception: a video with no readable duration (missing, corrupt) gets no JSON
+   and exit code 2, because R3 can't be satisfied without a duration.
 7. Write JSON atomically (temp file + rename).
 
 `TEAM_ID` comes from the `REWIND_TEAM_ID` env var, defaulting to `team.team_id` in
@@ -243,7 +252,7 @@ detections:
    the cosine similarity of the mean CLIP embedding over their spans ≥ `cfg.cluster.sim`.
 3. Connected components → clusters. `pair_dist` = score-weighted sum of member
    top-k pair distributions, truncated to top `cfg.cluster.k` (default 5),
-   renormalized to 1, then temperature-scaled with `cfg.calibration.T` (default 1.0).
+   renormalized to 1, then temperature-scaled with `cfg.calibration.temperature` (default 1.0).
 
 ### 5.3 Candidate windows (`select/candidates.py`)
 
@@ -289,23 +298,32 @@ first, until the hedge budget `h · B` is used. The default `h` is 1/8, tuned la
 
 ### 5.6 Post-processing (`postprocess.py`), shared by both routes
 
-Input: any list of segments. Output satisfies every highlight rule in §7:
+`postprocess(segments, values, T, *, budget_frac, merge_gap, short_video_mode,
+profile=None)`. Input: any list of segments with one value each (higher = keep), and
+optionally a value profile over time `(t, v)`. Output satisfies every highlight rule
+in §7:
 
-1. Clamp to `[0, T]`; drop empty segments.
-2. Sort by start; merge segments that overlap or have a gap < `cfg.post.merge_gap` (0.5 s).
-3. Drop segments shorter than `MIN_SEG`. (Selectors should not produce them; this
-   is a safety net.)
-4. While total > `cfg.select.budget_frac · T`: shrink the lowest-value segment
-   (value passed in by the caller) from its lower-value end, never below
-   `MIN_SEG_EMIT`; if it is already at the minimum, drop it.
-5. **Short video** (`T < SHORT_VIDEO_T`; 3 EPIC videos: 11.13 s, 15.28 s, 25.16 s):
+1. Clamp to `[0, T]`; drop empty and non-finite segments.
+2. Sort by start; merge segments that overlap, touch, or have a gap <
+   `max(cfg.post.merge_gap, 0.01 s)` (a smaller gap could round to touching). A merged
+   segment's value is the max of its parts.
+3. Drop segments shorter than `MIN_SEG_EMIT` (not just `MIN_SEG`: 4.01 s could round
+   to 3.99 s). Selectors should not produce them; this is a safety net.
+4. While total > `cfg.select.budget_frac · T′` (T′ = T floored to 2 decimals, the
+   duration as written, so rounding can't break R13): shrink the lowest-value segment
+   (ties: the later one) from its lower-value end per the profile (the start if there
+   is no profile), never below `MIN_SEG_EMIT`; if it is already at the minimum, drop it.
+5. **Short video** (`T < SHORT_VIDEO_T` = 4.05 / 0.15 = 27.0 s; 3 EPIC videos:
+   11.13 s, 15.28 s, 25.16 s):
    R11 (≥ 1 highlight of 4 s) and R13 (≤ 15%) cannot both hold. The kit makes R11
    pass/fail and R13 a warning with a soft coverage penalty, so we emit one segment of
    `min(MIN_SEG_EMIT, T)` at the best-value position (`cfg.post.short_video_mode:
    min_seg`). The alternative `within_budget` (one segment of `SCORING_BUDGET · T`)
    fails R11 and stays only as a flag for tests; never ship it.
-6. If the result is empty and `T ≥ MIN_SEG`: one `MIN_SEG_EMIT` window at the
-   highest-activity position.
+6. If the result is empty and `T ≥ MIN_SEG`: one `MIN_SEG_EMIT` window centred on
+   the best input segment from before step 4, else on the profile's peak, else on
+   `T/2`. This also covers `T` between 27.0 s and 27.93 s, where `budget_frac · T` is
+   below 4.05 s but the kit's 15% still fits one window.
 7. Round to 2 decimals (kit) *inside* the bounds (round start up and end down so that
    lengths stay ≥ `MIN_SEG`).
 
@@ -389,14 +407,18 @@ arrives, our validator is the reference.
 | R7 | Each action: `verb`, `noun` strings in the kit vocabulary | error / warning if out of vocabulary |
 | R8 | Each action: `score` finite in [0, 1] | error |
 | R9 | `highlights` non-empty list; each `segment` valid as in R6 | error |
-| R10 | Highlights sorted by start and non-overlapping | error |
+| R10 | Highlights sorted by start and strictly non-overlapping (touching, `end == next start`, counts as overlap) | error |
 | R11 | At least one highlight ≥ 4.0 s | error |
 | R12 | Highlights < 4.0 s are ignored in scoring | warning (we treat it as error) |
 | R13 | Total highlight duration ≤ 15% of `duration_sec` | warning (soft penalty) |
+| R14 | Timestamps have at most 2 decimal places (kit: "should") | warning |
 
-Our validator treats R12 as an error, and R13 as an error except for short videos
-under `short_video_mode: min_seg`, so that we never ship something that loses points
-silently.
+`strict=True` (what `run.sh` uses) also rejects what would lose points silently: R12,
+R14, unknown names under R4/R7, and R13, except for a short video (`T < SHORT_VIDEO_T`)
+whose only highlight is at most `MIN_SEG_EMIT` long; it also compares lengths and
+bounds exactly (no float slack), as a plain `end - start >= 4.0` check would.
+`strict=False` follows the kit's severities with a 1e-9 slack, except that unexpected
+keys are always errors (conservative: the kit only requires the six to be present).
 
 Timestamps have at most 2 decimal places (kit). Any invalid or missing file scores
 0 on every metric for that video (kit §4).
@@ -515,10 +537,15 @@ Fill each row in before the model is used **[verify all]**.
 
 ## 11. Configuration (`configs/default.yaml`)
 
-Top-level sections mirror the modules: `team`, `signals`, `features`, `actions`,
-`pairing`, `cluster`, `calibration`, `select`, `hedge`, `post`, `importance`,
-`label`, `routing`, `eval`. Each key has a comment. `config_hash()` (sha1 of the
-canonical YAML) is written to every leaderboard row so results are reproducible.
+Top-level sections mirror the modules: `run` (seed), `team`, `signals`, `features`,
+`actions`, `pairing`, `cluster`, `calibration`, `select`, `hedge`, `post`,
+`importance`, `label`, `routing`, `eval`. Each key has a comment. The loader is
+strict: unknown keys, missing keys and wrong types are errors, and range checks tie
+values to the kit constants (e.g. `budget_frac ≤ 0.15`, every window ≥ 4.05 s).
+Duplicate keys and non-finite numbers (NaN, inf) are errors too.
+`config_hash(cfg)` (sha1 of the *loaded* `Config` as canonical JSON, so comments, key
+order and `1` vs `1.0` don't matter) is written to every leaderboard row so results
+are reproducible. `rewind_eval.score` must hash the same `Config` object that ran.
 
 ---
 
