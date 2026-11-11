@@ -45,6 +45,14 @@ pairing:
   top_k: 5                 # verbs and nouns kept per proposal when pairing
   alpha: 1.0               # exponent on the verb–noun co-occurrence prior
   eps: 1.0                 # additive smoothing for prior counts
+  score_power: 0.5         # fixed monotone rescale: (p_v * p_n * prior^alpha) ** power; P4
+
+zeroshot:                  # detect/fallback_zeroshot.py: kill-rule + uncertain-route detector (P4)
+  window_sec: 2.0          # sliding window over 1 fps CLIP embeddings (REWIND_v2.3_plan §7)
+  stride_sec: 1.0          # window step
+  top_k: 3                 # verb / noun classes emitted per window
+  verb_template: "a first-person photo of hands that {} something."
+  noun_template: "a first-person photo of a {}."
 
 cluster:
   tiou: 0.3                # min tIoU to link two proposals; initial, P5

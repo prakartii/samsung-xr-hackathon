@@ -310,3 +310,28 @@ def test_config_hands_threshold_above_one_is_rejected(default_cfg_dict):
 
     with pytest.raises(ConfigError, match=r"features\.hands\.min_presence_conf: 1\.5 must be"):
         config_from_dict(default_cfg_dict)
+
+
+# --- P4 additions: pairing.score_power, zeroshot ------------------------------------
+
+
+def test_config_zeroshot_template_without_slot_is_rejected(default_cfg_dict):
+    default_cfg_dict["zeroshot"]["verb_template"] = "a photo of hands"
+
+    with pytest.raises(ConfigError, match=r"zeroshot\.verb_template: .* has no '\{\}' slot"):
+        config_from_dict(default_cfg_dict)
+
+
+def test_config_zeroshot_zero_stride_is_rejected(default_cfg_dict):
+    default_cfg_dict["zeroshot"]["stride_sec"] = 0.0
+
+    with pytest.raises(ConfigError, match=r"zeroshot\.stride_sec: 0\.0 must be > 0"):
+        config_from_dict(default_cfg_dict)
+
+
+def test_config_score_power_zero_is_rejected(default_cfg_dict):
+    # power 0 would map every pair score to 1.0 and destroy the ranking mAP needs
+    default_cfg_dict["pairing"]["score_power"] = 0.0
+
+    with pytest.raises(ConfigError, match=r"pairing\.score_power: 0\.0 must be > 0"):
+        config_from_dict(default_cfg_dict)

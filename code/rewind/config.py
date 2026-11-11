@@ -93,6 +93,18 @@ class PairingCfg:
     top_k: int
     alpha: float
     eps: float
+    score_power: float
+
+
+@dataclass(frozen=True)
+class ZeroShotCfg:
+    """Sliding-window CLIP zero-shot detector (detect/fallback_zeroshot.py)."""
+
+    window_sec: float
+    stride_sec: float
+    top_k: int
+    verb_template: str
+    noun_template: str
 
 
 @dataclass(frozen=True)
@@ -173,6 +185,7 @@ class Config:
     features: FeaturesCfg
     actions: ActionsCfg
     pairing: PairingCfg
+    zeroshot: ZeroShotCfg
     cluster: ClusterCfg
     calibration: CalibrationCfg
     select: SelectCfg
@@ -315,6 +328,12 @@ def _check_ranges(cfg: Config) -> None:
         )
     if "cooking" not in cfg.label.classes:
         raise ConfigError("label.classes: must include 'cooking' (routing scores P(cooking))")
+    for key, tmpl in (
+        ("zeroshot.verb_template", cfg.zeroshot.verb_template),
+        ("zeroshot.noun_template", cfg.zeroshot.noun_template),
+    ):
+        if "{}" not in tmpl:
+            raise ConfigError(f"{key}: {tmpl!r} has no '{{}}' slot for the class name")
     if not cfg.label.prompts:
         raise ConfigError("label.prompts: must not be empty")
     no_slot = [p for p in cfg.label.prompts if "{}" not in p]
@@ -358,6 +377,10 @@ def _check_ranges(cfg: Config) -> None:
         "features.clip.batch_size": cfg.features.clip.batch_size,
         "pairing.top_k": cfg.pairing.top_k,
         "pairing.eps": cfg.pairing.eps,
+        "pairing.score_power": cfg.pairing.score_power,
+        "zeroshot.window_sec": cfg.zeroshot.window_sec,
+        "zeroshot.stride_sec": cfg.zeroshot.stride_sec,
+        "zeroshot.top_k": cfg.zeroshot.top_k,
         "cluster.k": cfg.cluster.k,
         "label.n_keyframes": cfg.label.n_keyframes,
     }

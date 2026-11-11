@@ -7,3 +7,4 @@ scipy==1.17.1
 # Data tools (P3, A): tools/download_videos.py fetches FPVSum from YouTube.
 yt-dlp[default]==2026.10.26
 deno==2.9.8                   # JS runtime yt-dlp needs for YouTube format extraction
+gdown==6.5.1                  # tools/fetch_weights.sh (ActionFormer checkpoints on Google Drive)

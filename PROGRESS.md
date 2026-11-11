@@ -18,6 +18,7 @@ Who is A and who is B: **A = prakartii**, **B = Daksh Arora (DA)**.
 | P1 | Skeleton & submission contract | B | Nov 10–11 | in progress | `run.sh` writes valid fallback JSON for all 187 videos; CI green |
 | P2 | Evaluation harness | B | Nov 11–12 | done | Leaderboard has uniform + oracle rows on `tune` and `report` |
 | P3 | Video I/O, signals, feature cache | A | Nov 10–12 | in progress | Flow, hands and CLIP cached for all 187 + `tune` videos |
+| P4 | Action detection → `actions[]` | A | Nov 11–13 | in progress | mAP measured on `tune` and `report`; beats the zero-shot fallback |
 | P4 | Action detection → `actions[]` | A | Nov 11–13 | not started | mAP measured on `tune` and `report`; beats the zero-shot fallback |
 | P5 | Clustering + EPIC coverage selector | B | Nov 12–14 | in progress | EPIC coverage > uniform; % of oracle reported; ablation done |
 | P6 | FPVSum route: importance, segments, label | A | Nov 13–15 | not started | F1 > uniform on FPVSum CV; label accuracy reported |
@@ -195,21 +196,30 @@ are blank.)
 ---
 
 ### P4 — Action detection → `actions[]`
-**Owner:** A · **Planned:** Nov 11–13 · **Status:** not started · **Depends on:** P3 (frames), P2 (mAP scorer)
+**Owner:** A (prakartii) · **Planned:** Nov 11–13 · **Status:** in progress (started 2026-11-11, branch `p4/actionformer`, stacked on `p3/video-io-signals`) · **Depends on:** P3 (frames), P2 (mAP scorer)
 
-- [ ] Vendor ActionFormer (`happyharrycn/actionformer_release`) into `code/third_party/actionformer` with its LICENSE; make sure the boundary tests cover the code paths we call (its dataset loaders read annotation JSONs)
-- [ ] Download the released `epic_kitchens.tar.gz` (check md5) and the verb/noun checkpoints into `weights/`; script it in `tools/fetch_weights.sh`
-- [ ] **Coverage check:** every EPIC `video_id` in `kit/manifest.csv` and every `tune` video has released features; list any gaps here
-- [ ] **Leakage check:** confirm from configs/logs that the checkpoints were trained on EPIC train only; record the evidence in §4 Decisions
-- [ ] Run ActionFormer inference on CPU; record seconds per video
-- [ ] `tools/import_released_features.py` (released features → cache by content fingerprint); `features/slowfast.py` reads the cache, else extracts from the MP4
+> **Coordination (A → B):** pairing needed `rewind/types.py` and `rewind/constants.py`
+> (P1 items). Both are transcribed verbatim from ARCHITECTURE.md §2 / §3.1 on this branch;
+> keep or replace them in P1. Also: kit key *i* = EPIC class id *i* for verbs and
+> nouns (`other` last), checked against `EPIC_100_{verb,noun}_classes.csv`; `vocab.py`
+> can rely on it.
+>
+> Note: the vendoring commit (`fd0d477`) landed on the P3 branch before `p4/actionformer`
+> was cut; it is P4 work. Rewriting the pushed P3 branch to move it was not worth the risk.
+
+- [x] Vendor ActionFormer (`happyharrycn/actionformer_release`) into `code/third_party/actionformer` with its LICENSE (commit `61ea7eb`, MIT); make sure the boundary tests cover the code paths we call (its dataset loaders read annotation JSONs) — inference imports only `libs.core` and `libs.modeling`, never `libs.datasets` (`tests/contract/test_actionformer_boundary.py`)
+- [x] Download the released `epic_kitchens.tar.gz` (check md5) and the verb/noun checkpoints into `weights/`; script it in `tools/fetch_weights.sh` — checkpoints done (SHA-256 pinned); features archive via `tools/fetch_released_features.py` (Box mirror, parallel byte ranges, resumable, MD5-checked; Google Drive throttled to ~25 KiB/s). **MD5 ok (2026-11-11);** 700 videos, `feats` (K, 2304) float32 (+ `v_prob`, `n_prob`)
+- [x] **Coverage check:** every EPIC `video_id` in `kit/manifest.csv` and every `tune` video has released features; list any gaps here — **138/138 manifest EPIC videos covered, no gaps** (2026-11-11); `tune` ids pending B's `configs/splits.yaml` (the archive has 700 videos, train included)
+- [x] **Leakage check:** confirm from configs/logs that the checkpoints were trained on EPIC train only; record the evidence in §4 Decisions (passed, see Decisions 2026-11-11)
+- [ ] Run ActionFormer inference on CPU; record seconds per video — `detect/actionformer.py` loads the EMA checkpoint on CPU (strict) and is deterministic; smoke run on random features: 13.6 s for a 267 s video (≈ 3 s per video minute, incl. soft-NMS). Real features (P01_12, 174 s): verb + noun models 4.1 s total (≈ 1.4 s per video minute), 2000 + 2000 detections → 788 paired actions; top: close/open cupboard, open fridge, open drawer. `tests/integration/test_epic_actions.py` passes
+- [ ] `tools/import_released_features.py` (released features → cache by content fingerprint); `features/slowfast.py` reads the cache, else extracts from the MP4 — importer done (10 downloaded videos imported, 0 alignment warnings; rest import as videos land); extraction from MP4 not yet written
 - [ ] Extraction check on 1–2 videos (Kaggle/Colab if needed): our features match the released ones (cosine ≥ 0.95)
 - [ ] Extract any gap videos on Kaggle/Colab, one at a time
-- [ ] `tools/build_vn_prior.py` → `weights/vn_prior.npy` (train split only)
-- [ ] `detect/actionformer.py`, `detect/pairing.py`; cache proposals
+- [x] `tools/build_vn_prior.py` → `weights/vn_prior.npy` (train split only): 67,217 train segments, 3,568 distinct pairs; refuses CSVs containing manifest videos. Source: `epic-kitchens-100-annotations` @ `ea8b404`
+- [ ] `detect/actionformer.py`, `detect/pairing.py`; cache proposals — `pairing.py` done (§5.1; proposals anchored on the group's top verb, scores `(p_v·p_n·prior^α)^power`)
 - [ ] Wire into `pipeline.py` (EPIC route → `actions[]`)
 - [ ] Tune `max_per_video` and the minimum score on `tune`
-- [ ] **Kill rule (end of Nov 13):** if no working mAP, switch to `detect/fallback_zeroshot.py`
+- [ ] **Kill rule (end of Nov 13):** if no working mAP, switch to `detect/fallback_zeroshot.py` — fallback implemented (2 s windows / 1 s stride over 1 fps CLIP, top-k verbs and nouns per window, paired by `pairing.py`); also serves the uncertain route (ARCHITECTURE.md §4)
 
 **Exit check:** mAP rows on `tune` and `report`; mAP > the zero-shot fallback's mAP (or the fallback is shipped and logged).
 **Tests required:**
@@ -390,7 +400,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 | 2026-11-11 | `hedge.share` 0.125 → 0 | Simulated proposals on `tune`: the reserve cost ~0.08 coverage without an activity profile. Re-tune when P3's flow/hands exist | DA (tuning on `tune`) |
 | 2026-11-11 | Expected-coverage formula corrected (§5.4): `P_miss` uses each cluster's capture by the merged union, not a factor per window | The v1.0 formula counted overlapping windows over one cluster as independent chances to catch the same action, inflating gains. The fix also scores exactly what post-processing emits | DA (prakartii to confirm) |
 | 2026-11-11 | F1 ground truth = FPVSum's own top-15% frames (`Binary_score`), evaluated at native frame times; `eval.f1_fps` removed | Closest to the kit's "top 15% of consensus importance frames"; no resampling error. Exact-count `top_frames(score)` kept as a variant | DA |
-| 2026-11-11 | Expected-coverage formula corrected (§5.4): `P_miss` uses each cluster's capture by the merged union, not a factor per window | The v1.0 formula counted overlapping windows over one cluster as independent chances to catch the same action, inflating gains. The fix also scores exactly what post-processing emits | DA (prakartii to confirm) |
+| 2026-11-11 | **ActionFormer checkpoints accepted (leakage check passed).** Released `epic_slowfast_{verb,noun}_reproduce` configs: `train_split: ['training']`, `val_split: ['validation']`; logs evaluate on 138 val videos (avg mAP verb 23.51, noun 21.88). Classes 97 verbs / 300 nouns map to the kit's 98 / 301 with `other` | P4 leakage check (ARCHITECTURE.md §10) | PK |
 | 2026-11-11 | **ARCHITECTURE.md v1.1.** Inference never reads `manifest.csv` and never derives the route, label or anything else from the filename; routing uses video signals only. Feature cache keyed by content fingerprint, not `video_id`. Supersedes "Keep manifest routing as primary" below | Kit §6: re-runs in an isolated environment; hardcoded video IDs disqualify. FPVSum filenames contain the category (`Ski_…`) | DA + prakartii (confirmed 2026-11-11) |
 | 2026-11-11 | Drop the flat brochure serializer (`output.schema`); one schema | Kit confirms the nested six-key schema | DA (kit fact) |
 | 2026-11-11 | Remove `REWIND_v2_plan.md` and `REWIND_v2.2_plan.md` (still in git history); mark the superseded parts of the v2.3 plan in its banner | Stale; `ARCHITECTURE.md` is the spec | DA |
@@ -410,6 +420,9 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-12 · DA · P4 · Review fixes (B took over on request): pairing uses greedy anchors so a confident verb without a matching noun no longer drops an overlapping verb's action (two regression tests; ARCHITECTURE §5.1); zero-shot windows end exactly at T; P4 log lines now cite #18 · #18
+- 2026-11-12 · PK · P3 · CI fixes: PyAV pinned to 18.0.0 (19.x has no Python 3.11 wheels); `video_io` imports OpenCV lazily so `run.sh`'s fallback path loads no OpenCV; `test_run_sh_never_opens_manifest_or_ground_truth` (P1) now ignores files inside the Python installation, which tripped it with library names (`torch/jit/annotations.py`, `cv2/data/`), while still checking every other path · —
+- 2026-11-12 · PK · P3 · Merged `main` (P1) into `p3/video-io-signals`: P1 owns `video_io` probing (`ProbeInfo`, `ffprobe_meta`, `parse_probe`), P3 adds frame↔seconds, `sample_times`, PyAV `probe_video`/`iter_frames`; config schema extended (`features.flow/hands/clip` blocks replace `features.flow_width`, new `label.classes` mapping; `signals.dense_fps` = 4.0, see D1 note) · —
 - 2026-11-12 · DA · P3 · Review fixes (B took over on request): `iter_frames` samples relative to the stream start time (offset-video test); contract test that `run.sh` still writes valid fallback JSON when cv2 can't load; D1 (PyAV) and `dense_fps` 4.0 approved; P3 log lines now cite #17 · #17
 - 2026-11-12 · PK · P3 · CI fixes: PyAV pinned to 18.0.0 (19.x has no Python 3.11 wheels); `video_io` imports OpenCV lazily so `run.sh`'s fallback path loads no OpenCV; `test_run_sh_never_opens_manifest_or_ground_truth` (P1) now ignores files inside the Python installation, which tripped it with library names (`torch/jit/annotations.py`, `cv2/data/`), while still checking every other path · #17
 - 2026-11-12 · PK · P3 · Merged `main` (P1) into `p3/video-io-signals`: P1 owns `video_io` probing (`ProbeInfo`, `ffprobe_meta`, `parse_probe`), P3 adds frame↔seconds, `sample_times`, PyAV `probe_video`/`iter_frames`; config schema extended (`features.flow/hands/clip` blocks replace `features.flow_width`, new `label.classes` mapping; `signals.dense_fps` = 4.0, see D1 note) · #17
@@ -430,9 +443,24 @@ Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 - 2026-11-11 · DA · P2 · Baselines (uniform, random), GT oracle (coverage + F1), `rewind_eval.score` CLI and the first 6 leaderboard rows; P2 done: coverage ceiling 0.724, uniform 0.338 (46.7% of oracle) on report · #14
 - 2026-11-11 · DA · P2 · Ground truth: `tools/fetch_annotations.sh` (pinned, hashed), EPIC loader (class id → kit key; raw verbs ignored), FPVSum loader (native frames, `Binary_score`, `Jumping__` name quirk), `configs/splits.yaml` via `tools/make_splits.py` (20 duration-matched EPIC train videos; 5 FPVSum folds); F1 takes a GT mask; scipy for eval · #13
 - 2026-11-11 · DA · P2 · Metrics as pure functions: coverage (any-overlap / fraction, < 4 s ignored, budget penalty), mAP (highest-tIoU greedy matching, interpolated AP, 5 thresholds), frame F1 (exact top 15%), label accuracy; 31 hand-computed + property tests, 19/19 deliberate bugs caught · #12
-- 2026-11-11 · DA · P5 · Clustering (union-find on tIoU + pair/embedding match; weighted top-k pair dists, temperature), candidate windows + capture model, expected-coverage selector on the merged union (formula corrected); GT-derived clusters on all 138 val videos: coverage 0.742, slowest 0.6 s · #15
 - 2026-11-11 · DA · process · Review agents: every session runs a background review sub-agent that polls PRs (`tools/pr_watch.py`), reviews the other person's PRs and reports to the main agent, which posts the review and merges (CLAUDE.md §5); approved by prakartii · #7
 - 2026-11-11 · DA · P1 · Skeleton: pyproject, pinned requirements, CI, constants, types, strict config loader + default.yaml, import-boundary tests (source scan, config scan, runtime import check); 69 tests, checked against deliberate bugs; review fixes: NaN/inf and duplicate keys rejected, more range checks, hash of the loaded config · #6
+- 2026-11-11 · PK · P3 · EPIC download stalled at 11/138: data.bris intermittently serves a SHA-1-signed CA, rejected by OpenSSL's default security level (`CA signature digest algorithm too weak`). `download_videos.py` now uses a verified TLS context at security level 1 (chain + hostname still checked; files still MD5-checked) and backs off between retries · —
+- 2026-11-12 · PK · P4 · Merged P3 (with `main`/P1) into `p4/actionformer`: P1's `types.py`/`constants.py` replace the stand-ins; pairing uses P1's `pairing.top_k`/`eps` (values from P1: alpha 1.0, eps 1.0, max 2000 actions) + new `pairing.score_power` and `zeroshot` config; `tests/contract/test_actionformer_boundary.py` keeps inference off ActionFormer's dataset loaders · #18
+- 2026-11-11 · PK · P4 · Released features in (MD5 ok); coverage 138/138; imported the 10 downloaded videos; end-to-end action chain runs on real features (data-tier tests pass) · #18
+- 2026-11-11 · PK · P4 · `tools/fetch_released_features.py`: Google Drive throttled the 6.5 GB archive to ~25 KiB/s; switched to the README's Box mirror with parallel ranges · #18
+- 2026-11-11 · PK · P4 · `detect/fallback_zeroshot.py` + `zeroshot` config · #18
+- 2026-11-11 · PK · P3/P4 · **Bug fixed:** OpenCV decoded < 1 s of EPIC GoPro files without error (regression test `tests/integration/test_decode_epic.py`). Decoding moved to PyAV (open question D1 for B), `iter_frames` raises `DecodeError` on early end, flow/hands/clip cache versions bumped to v2 (old entries ignored), and caching now decodes each video once for all three features: 63 s compute per video minute for flow+hands+CLIP on one EPIC video · —
+- 2026-11-11 · PK · P4 · `detect/actionformer.py` (CPU, EMA weights, released feature timing); ActionFormer utils import lazily (no pandas at runtime); EPIC video download paused so the 6.5 GB features archive gets the bandwidth · #18
+- 2026-11-11 · PK · P4 · `detect/pairing.py` (+ `types.py`, `constants.py` from the spec), `tools/build_vn_prior.py` (train-only, leakage guard); NMS numpy port so ActionFormer runs without a compiler · #18
+- 2026-11-11 · PK · P4 · Checkpoints fetched (`tools/fetch_weights.sh`, SHA-256 pinned); leakage check passed · #18
+- 2026-11-11 · PK · P4 · Started P4 on `p4/actionformer`; vendored ActionFormer `61ea7eb` (MIT); fetching released EPIC checkpoints · #18
+- 2026-11-11 · PK · P3 · **Bug fixed:** OpenCV decoded < 1 s of EPIC GoPro files without error (regression test `tests/integration/test_decode_epic.py`). Decoding moved to PyAV (open question D1), `iter_frames` raises `DecodeError` on early end, flow/hands/clip cache versions bumped to v2, caching decodes each video once for all three features (54–63 s compute per video minute for flow+hands+CLIP on EPIC). Commits cherry-picked from `p4/actionformer`, where they were first made · —
+- 2026-11-11 · PK · P3 · `tools/cache_features.py`; first throughput numbers (provisional, on battery); EPIC download parallelized (6 connections) · —
+- 2026-11-11 · PK · P3 · `features/hands.py` (MediaPipe) and `features/clip.py` (open_clip); `tools/fetch_weights.sh`; licenses in ARCHITECTURE §10; data-tier tests for both models; FPVSum 49/49 downloaded, durations within ±0.5 s · —
+- 2026-11-11 · PK · P3 · `tools/download_videos.py` (EPIC direct + resumable + MD5; FPVSum via the official id list); downloads of the 187 videos started · —
+- 2026-11-11 · PK · P3 · `video_io` (frame ↔ seconds, ffprobe parsing, decoding at a target fps), versioned fingerprint-keyed `features/cache`, Farneback `features/flow` (global vs residual motion), signal-only `routing`; 70 tests, each mutation-checked · —
+- 2026-11-11 · PK · P3 · Started P3 on `p3/video-io-signals`; minimal scaffolding note for B · —
 - 2026-11-11 · PK · P3 · EPIC download stalled at 11/138: data.bris intermittently serves a SHA-1-signed CA, rejected by OpenSSL's default security level (`CA signature digest algorithm too weak`). `download_videos.py` now uses a verified TLS context at security level 1 (chain + hostname still checked; files still MD5-checked) and backs off between retries · #17
 - 2026-11-11 · PK · P3 · **Bug fixed:** OpenCV decoded < 1 s of EPIC GoPro files without error (regression test `tests/integration/test_decode_epic.py`). Decoding moved to PyAV (open question D1), `iter_frames` raises `DecodeError` on early end, flow/hands/clip cache versions bumped to v2, caching decodes each video once for all three features (54–63 s compute per video minute for flow+hands+CLIP on EPIC). Commits cherry-picked from `p4/actionformer`, where they were first made · #17
 - 2026-11-11 · PK · P3 · `tools/cache_features.py`; first throughput numbers (provisional, on battery); EPIC download parallelized (6 connections) · #17
