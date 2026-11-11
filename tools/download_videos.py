@@ -40,6 +40,7 @@ import subprocess
 import sys
 import urllib.error
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import cv2
@@ -147,56 +148,77 @@ def fetch_resumable(url: str, part: Path, label: str) -> None:
                     next_report += 0.25
 
 
-def download_epic(ids: list[str], root: Path, scripts: Path, retries: int = 5) -> None:
+def epic_target(root: Path, vid: str) -> Path:
+    return root / "EPIC-KITCHENS" / vid.split("_")[0] / "videos" / f"{vid}.MP4"
+
+
+def download_one_epic(
+    vid: str, label: str, url: str, expected: str | None, root: Path, retries: int
+) -> bool:
+    """Download + verify one video; True when a verified (or unlisted) file is in place."""
+    target = epic_target(root, vid)
+    ok_marker = target.with_name(target.name + ".md5ok")
+    part = target.with_name(target.name + ".part")
+    if target.exists() and ok_marker.exists():
+        print(f"{label}: exists (verified)", flush=True)
+        return True
+    if target.exists():
+        # Unverified file, e.g. a partial left by the official script, which writes
+        # straight to the final name. Keep it if it checks out, else resume from it.
+        if expected and md5_file(target) == expected:
+            ok_marker.touch()
+            print(f"{label}: exists (md5 ok)", flush=True)
+            return True
+        print(f"{label}: existing file fails MD5, resuming it", flush=True)
+        os.replace(target, part)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    print(f"{label}: downloading {url}", flush=True)
+    for attempt in range(1, retries + 1):
+        try:
+            fetch_resumable(url, part, label)
+            break
+        except (urllib.error.URLError, OSError) as e:
+            print(f"{label}: attempt {attempt} failed ({e}); resuming", flush=True)
+    else:
+        print(f"{label}: FAILED after {retries} attempts", flush=True)
+        return False
+    if expected and md5_file(part) != expected:
+        print(f"{label}: MD5 MISMATCH, deleting partial file", flush=True)
+        part.unlink()
+        return False
+    os.replace(part, target)
+    if expected:
+        ok_marker.touch()
+    print(f"{label}: done{' (md5 ok)' if expected else ' (no md5 listed)'}", flush=True)
+    return True
+
+
+def download_epic(
+    ids: list[str], root: Path, scripts: Path, out_dir: Path, workers: int, retries: int = 5
+) -> None:
+    """Download in parallel. The server gives ~0.5 MiB/s per connection, so several
+    connections are needed to fill a home link (measured: 1 -> 0.57, 4 -> 1.8,
+    8 -> 2.1, 16 -> 2.3 MiB/s). Each finished video is linked into `out_dir` at once."""
     data = scripts / "data"
     splits55 = {r["video_id"]: r["split"] for r in _read_csv(data / "epic_55_splits.csv")}
     md5s = {(r["version"], r["file_remote_path"]): r["md5"] for r in _read_csv(data / "md5.csv")}
-    for i, vid in enumerate(ids, 1):
-        label = f"[epic {i}/{len(ids)}] {vid}"
+
+    def job(i: int, vid: str) -> None:
         base, parts, version = epic_remote(vid, splits55)
-        target = root / "EPIC-KITCHENS" / vid.split("_")[0] / "videos" / f"{vid}.MP4"
-        ok_marker = target.with_name(target.name + ".md5ok")
-        part = target.with_name(target.name + ".part")
-        expected = md5s.get((version, "/".join(parts)))
-        if target.exists() and ok_marker.exists():
-            print(f"{label}: exists (verified)", flush=True)
-            continue
-        if target.exists():
-            # Unverified file, e.g. a partial left by the official script, which
-            # writes straight to the final name. Keep it if it checks out, else
-            # resume from it.
-            if expected and md5_file(target) == expected:
-                ok_marker.touch()
-                print(f"{label}: exists (md5 ok)", flush=True)
-                continue
-            print(f"{label}: existing file fails MD5, resuming it", flush=True)
-            os.replace(target, part)
-        target.parent.mkdir(parents=True, exist_ok=True)
         url = "/".join([base, *parts])
-        print(f"{label}: downloading {url}", flush=True)
-        for attempt in range(1, retries + 1):
-            try:
-                fetch_resumable(url, part, label)
-                break
-            except (urllib.error.URLError, OSError) as e:
-                print(f"{label}: attempt {attempt} failed ({e}); resuming", flush=True)
-        else:
-            print(f"{label}: FAILED after {retries} attempts", flush=True)
-            continue
-        if expected and md5_file(part) != expected:
-            print(f"{label}: MD5 MISMATCH, deleting partial file", flush=True)
-            part.unlink()
-            continue
-        os.replace(part, target)
-        if expected:
-            ok_marker.touch()
-        print(f"{label}: done{' (md5 ok)' if expected else ' (no md5 listed)'}", flush=True)
+        expected = md5s.get((version, "/".join(parts)))
+        if download_one_epic(vid, f"[epic {i}/{len(ids)}] {vid}", url, expected, root, retries):
+            link_epic([vid], root, out_dir)
+
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        for f in [pool.submit(job, i, vid) for i, vid in enumerate(ids, 1)]:
+            f.result()
 
 
 def link_epic(ids: list[str], root: Path, out_dir: Path) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     for vid in ids:
-        src = root / "EPIC-KITCHENS" / vid.split("_")[0] / "videos" / f"{vid}.MP4"
+        src = epic_target(root, vid)
         dst = out_dir / f"{vid}.mp4"
         if src.exists() and not dst.exists():
             os.link(src, dst)
@@ -231,6 +253,7 @@ def main() -> None:
     ap.add_argument("--root", type=Path, required=True, help="data root, e.g. D:/rewind-data")
     ap.add_argument("--epic-scripts", type=Path, help="clone of epic-kitchens-download-scripts")
     ap.add_argument("--only", choices=["fpvsum", "epic", "link"], action="append")
+    ap.add_argument("--workers", type=int, default=6, help="parallel EPIC downloads")
     args = ap.parse_args()
 
     steps = args.only or ["fpvsum", "epic", "link"]
@@ -242,7 +265,13 @@ def main() -> None:
     if "epic" in steps:
         if args.epic_scripts is None:
             ap.error("--epic-scripts is required for the epic step")
-        download_epic(list(by_dataset["epic_kitchens_100"]), args.root, args.epic_scripts)
+        download_epic(
+            list(by_dataset["epic_kitchens_100"]),
+            args.root,
+            args.epic_scripts,
+            out_dir,
+            args.workers,
+        )
     if "link" in steps:
         link_epic(list(by_dataset["epic_kitchens_100"]), args.root, out_dir)
     report(by_dataset, out_dir)
