@@ -185,7 +185,7 @@ are blank.)
 
 - [x] `cluster.py`
 - [x] `select/candidates.py` (both capture rules)
-- [x] `select/coverage.py` (expected-coverage lazy greedy, new-seconds cost, fragment check)
+- [x] `select/coverage.py` (expected-coverage lazy greedy, new-seconds cost; no fragment check needed, every component holds a whole window)
 - [ ] `select/hedge.py`
 - [ ] Label-dedup baseline selector (for the ablation and the kill rule)
 - [ ] Wire into `pipeline.py` (EPIC route → `highlights[]`)
@@ -345,6 +345,7 @@ Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 - 2026-11-12 · DA · P1 · Review fixes on the pipeline: salvage valid parts before the full fallback, output files 0644, infinite durations rejected; tests for each · #10
 - 2026-11-12 · DA · P1 · Review fixes on post-processing/output: budget on the written (2-decimal) duration, action times clamped into [0, T] and non-finite actions dropped, 4.0 s highlight for 3.5–4 s videos; tests for best-value placement, trim tie-break, merged value · #9
 - 2026-11-12 · DA · P2 · Review fixes on scoring: oracle = better of greedy and uniform (counterexample pinned), tune scores FPVSum only per `--fold`, invalid `--pred` files score 0, metric θ moved to `eval.capture_theta`, random baseline seeded by video id; leaderboard rows regenerated · #14
+- 2026-11-12 · DA · P5 · Review fixes on the selector: windows next to each pick re-scored (counterexample pinned), coverage looked up only in nearby components (2000 proposals: 11.2 s → 1.4 s), candidate ends clamped to T; tests for filled gaps, confidence, values; perf tests marked `slow`. Correction to the #15 log line: the 0.742 coverage was measured on `report` (a check, no tuning); the tune numbers are in the P5 result block · #15
 - 2026-11-12 · DA · P1 · Review fixes on the validator: strict mode compares exactly (no float slack), huge integers and non-UTF-8 files no longer crash it; tests for short videos with two highlights, negative label score, the skiing example · #8
 - 2026-11-11 · DA · P1 · `run.sh`, `rewind.cli`, `rewind.pipeline` (validate-or-fallback, atomic write), `video_io.ffprobe_meta`, `utils.seed_all`; contract tests on synthetic 30 s/12 s videos (validity, no `kit/`, filename independence, determinism, audit hook on file opens, failure → fallback, env team ID); ffmpeg in CI · #10
 - 2026-11-11 · DA · P1 · Post-processing, fallback and `output.py` (`to_document`, deterministic `dumps`); `SHORT_VIDEO_T` corrected to 4.05 / 0.15 = 27.0 s; unit + Hypothesis property tests (any input → valid highlights; fallback passes strict validation for T in 5–2000 s) · #9

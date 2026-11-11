@@ -13,8 +13,10 @@ one action whose pair is drawn from p_c:
 (U + w: the union after adding window w and merging.)
 
 Greedy by gain / cost with lazy re-evaluation (a popped entry from before the last
-pick is re-scored and pushed back). A window that doesn't fit the budget when popped is
-dropped. Stops when the heap is empty.
+pick is re-scored and pushed back). Windows next to each pick are re-scored at once,
+because their cost can drop (overlap) and their gain rise (filled gaps), which plain
+lazy evaluation misses. A window that doesn't fit the budget when popped is dropped
+(a later refresh can bring it back). Stops when the heap is empty.
 """
 
 import bisect
@@ -42,16 +44,35 @@ def merge_union(segs: list[Segment], w: Segment, merge_gap: float) -> list[Segme
 
     Same rule as postprocess._merge, so the union is exactly what will be emitted.
     """
+    return _merge_with(segs, w, merge_gap)[0]
+
+
+def _merge_with(
+    segs: list[Segment], w: Segment, merge_gap: float
+) -> tuple[list[Segment], int, float]:
+    """merge_union plus the merged component's index and the seconds it adds."""
     gap = max(merge_gap, 0.01)
     s, e = w
     out: list[Segment] = []
+    absorbed = 0.0
+    idx = -1
     for a, b in segs:
-        if s - b >= gap or a - e >= gap:
+        if s - b >= gap:
+            out.append((a, b))
+        elif a - e >= gap:
+            if idx < 0:
+                idx = len(out)
+                out.append((s, e))
             out.append((a, b))
         else:
             s, e = min(s, a), max(e, b)
-    out.append((s, e))
-    return sorted(out)
+            absorbed += b - a
+    if idx < 0:
+        idx = len(out)
+        out.append((s, e))
+    else:
+        out[idx] = (s, e)
+    return out, idx, (e - s) - absorbed
 
 
 def covered_seconds(segs: Sequence[Segment], span: Segment) -> float:
@@ -96,6 +117,9 @@ def select_windows(
     order = sorted(range(len(clusters)), key=lambda i: spans[i][0])
     starts = [spans[i][0] for i in order]
     max_span = max((e - s for s, e in spans), default=0.0)
+    max_len = max(lengths)
+    gap_r = max(merge_gap, 0.01)
+    win_starts = [w[0] for w in windows]
 
     union: list[Segment] = []
     total = 0.0
@@ -109,14 +133,21 @@ def select_windows(
         return [order[k] for k in range(a, b) if spans[order[k]][1] > lo]
 
     def evaluate(w: Segment) -> tuple[float, float, list[Segment], dict[int, float]]:
-        new_union = merge_union(union, w, merge_gap)
-        new_total = sum(b - a for a, b in new_union)
-        comp = next(seg for seg in new_union if seg[0] <= w[0] and w[1] <= seg[1])
+        new_union, k, added = _merge_with(union, w, merge_gap)
+        comp = new_union[k]
+        # Only components within one span length of the changed one can touch an
+        # affected cluster; summing over all of U made long videos 4x slower.
+        k0, k1 = k, k + 1
+        while k0 > 0 and new_union[k0 - 1][1] > comp[0] - max_span:
+            k0 -= 1
+        while k1 < len(new_union) and new_union[k1][0] < comp[1] + max_span:
+            k1 += 1
+        near = new_union[k0:k1]
         new_caps = {}
         ratio: dict[Pair, float] = defaultdict(lambda: 1.0)
         for c in affected(comp[0], comp[1]):
             span = spans[c]
-            nc = capture_prob(covered_seconds(new_union, span), span[1] - span[0], rule, theta, tau)
+            nc = capture_prob(covered_seconds(near, span), span[1] - span[0], rule, theta, tau)
             if nc <= cap[c] + _EPS:
                 continue
             new_caps[c] = nc
@@ -127,7 +158,7 @@ def select_windows(
         gain = sum(p_miss[pair] * (1.0 - r) for pair, r in ratio.items())
         # Round away float noise (32.05 - 28.0 = 4.049999…) so equal choices tie
         # exactly and the earliest window wins, deterministically.
-        return round(gain, 12), round(new_total - total, 9), new_union, new_caps
+        return round(gain, 12), round(added, 9), new_union, new_caps
 
     version = [0] * len(windows)
     heap: list[tuple[float, int, int]] = []
@@ -163,6 +194,15 @@ def select_windows(
             cap[c] = nc
         union, total = new_union, total + cost
         picks += 1
+        # Windows next to the changed component can now be cheaper (they overlap it) or
+        # gain more (filled gaps), so their stale keys may be too LOW for lazy greedy.
+        # Re-score them now (review of #15: without this, a worse window was picked).
+        comp = next(seg for seg in union if seg[0] <= windows[i][0] and windows[i][1] <= seg[1])
+        lo = bisect.bisect_left(win_starts, comp[0] - max_len - gap_r)
+        hi = bisect.bisect_right(win_starts, comp[1] + gap_r)
+        for j in range(lo, hi):
+            fresh[j] = picks
+            push(j)
 
     values = tuple(
         sum(cap[c] for c in affected(s, e) if covered_seconds([(s, e)], spans[c]) > 0)

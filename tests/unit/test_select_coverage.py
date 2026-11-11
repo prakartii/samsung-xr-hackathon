@@ -122,3 +122,82 @@ def test_select_respects_zero_budget():
     sel = select_windows([cl(0, (10.0, 11.0), {A: 1.0})], 100.0, budget=0.0, lengths=[4.05], **SEL)
 
     assert sel.segments == ()
+
+
+# --- review fixes (PR #15) ------------------------------------------------------
+
+
+def test_select_refreshes_windows_next_to_a_pick():
+    # Review counterexample (T = 60, budget 10, windows 4.05/5/6). Exact greedy reaches
+    # E = 4.19 with (14.0, 19.55) and (39.5, 43.55); without re-scoring the windows next
+    # to each pick, lazy greedy got stuck at (14.0, 20.0) with E = 2.82.
+    bx, az, by, bz, ax = ("b", "x"), ("a", "z"), ("b", "y"), ("b", "z"), ("a", "x")
+    cs = [
+        cl(0, (41.73164349674044, 42.43692632367619), {bx: 1.0}),
+        cl(1, (19.391035784961026, 20.446903132139127), {bx: 0.6272, az: 0.3728}),
+        cl(2, (18.23540441877319, 20.865554309026862), {by: 0.8209, bz: 0.1791}),
+        cl(3, (58.973937967211754, 60.0), {az: 0.4091, ax: 0.5909}),
+        cl(4, (27.526684172830002, 28.185507657374448), {bz: 1.0}),
+        cl(5, (43.253991900805715, 45.6926693726914), {ax: 1.0}),
+        cl(6, (11.198987270633276, 14.077557123934433), {bz: 1.0}),
+    ]
+
+    sel = select_windows(cs, 60.0, budget=10.0, lengths=[4.05, 5.0, 6.0], **SEL)
+
+    assert sel.expected >= 4.19 - 1e-2
+
+
+def test_select_values_count_expected_captured_clusters_per_segment():
+    # One window over A and B: both clusters captured with probability 1 → value 2.
+    clusters = [cl(0, (10.0, 11.0), {A: 1.0}), cl(1, (12.0, 13.0), {B: 1.0})]
+
+    sel = select_windows(clusters, 100.0, budget=4.05, lengths=[4.05], **SEL)
+
+    assert sel.values == (2.0,)
+
+
+def test_candidate_windows_touching_the_span_are_excluded():
+    # 4.0 s windows on a 0.25 s grid around (10, 11): start 6.0 ends exactly at 10
+    # (touching, zero overlap) → excluded; the first is 6.25.
+    w = candidate_windows(20.0, [4.0], 0.25, [(10.0, 11.0)])
+
+    assert w[0] == (6.25, 10.25)
+
+
+def test_select_counts_clusters_inside_a_filled_gap():
+    # merge_gap 100: every window merges, so the union fills the stretch between picks.
+    # The cluster at (20, 20.1) repeats pair a (no gain of its own) and is captured only
+    # through the filled gap; its capture must still be recorded: value 3, not 2.
+    a, b = ("a", "x"), ("b", "x")
+    cs = [
+        cl(0, (10.0, 10.1), {a: 1.0}),
+        cl(1, (20.0, 20.1), {a: 1.0}),
+        cl(2, (30.0, 30.1), {b: 1.0}),
+    ]
+    kw = {**SEL, "merge_gap": 100.0}
+
+    sel = select_windows(cs, 100.0, budget=40.0, lengths=[4.05], **kw)
+
+    assert sel.segments == ((6.0, 30.05),)
+    assert sel.values == (3.0,)
+
+
+def test_select_fraction_rule_state_matches_from_scratch_on_a_long_cluster():
+    # One long cluster (0, 20) under the fraction rule: its capture grows with every
+    # window added over it (they end up merged into (0, 12.05)). The incremental state
+    # must equal a from-scratch evaluation of the chosen segments.
+    cs = [cl(0, (0.0, 20.0), {A: 1.0})]
+    kw = {**SEL, "rule": "fraction"}
+
+    sel = select_windows(cs, 40.0, budget=12.15, lengths=[4.05], **kw)
+
+    assert sel.expected == pytest.approx(
+        expected_coverage(cs, sel.segments, rule="fraction", theta=0.5, tau=0.05), abs=1e-9
+    )
+
+
+def test_candidate_windows_never_end_past_the_video():
+    # T just under 2000 by float noise: no window may end at 2000.0 > T.
+    T = 1999.9999999999998
+
+    assert all(e <= T for _, e in candidate_windows(T, [5.0, 6.0], 1.0, [(1990.0, T)]))

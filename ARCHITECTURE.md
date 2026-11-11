@@ -260,10 +260,11 @@ detections:
 
 For lengths `L ∈ cfg.select.window_lengths` (default `[4.05, 5.0, 6.0]`) and starts on
 a grid of `cfg.select.stride` (default 0.5 s), keep windows inside `[0, T]` that
-overlap ≥ 1 cluster span. Precompute a sparse matrix `cap[w, c] ∈ [0, 1]`:
+overlap ≥ 1 cluster span (window ends clamped to `≤ T`). A cluster's capture
+probability is computed from how many seconds of its span the union covers:
 
-- `any_overlap` rule: `cap = 1` if the window and the cluster span overlap.
-- `fraction` rule: `cap = sigmoid((overlap / span_len − θ) / τ)` with θ, τ in config.
+- `any_overlap` rule: `cap = 1` if the union overlaps the span at all.
+- `fraction` rule: `cap = sigmoid((covered / span_len − θ) / τ)` with θ, τ in config.
 
 The rule is `cfg.select.capture_rule` **[verify Q4]**; the default is `any_overlap`.
 
@@ -287,19 +288,25 @@ one cluster counted as two independent chances to catch the same action. Correct
 see `PROGRESS.md` Decisions.)
 
 Lazy greedy with a max-heap of priorities; gains and costs are rounded (1e-12, 1e-9)
-so equal choices tie exactly and the earliest window wins. Every union component
+so equal choices tie exactly and the earliest window wins. After each pick, the windows
+next to the changed component are re-scored at once: their cost can drop (overlap) and
+their gain rise (filled gaps), which plain lazy evaluation misses (a review
+counterexample is a pinned test). Every union component
 contains a whole window, so it is ≥ 4.05 s (no fragment check needed). A window that
 would push the total over `(1 − h) · B` (`B = cfg.select.budget_frac · T`, `h` the
-hedge share) is dropped. Stop when the heap is empty. The coverage term alone is monotone submodular, and tests
-check monotonicity and diminishing returns (`CLAUDE.md` §7.2). **We claim no
+hedge share) is dropped. Stop when the heap is empty. Under `any_overlap`, E as a
+function of a set of segments is monotone submodular, and tests check monotonicity and
+diminishing returns (`CLAUDE.md` §7.2). Under `fraction` it is not (the sigmoid is convex
+below θ), and union merging makes the window-level objective slightly non-submodular. **We claim no
 approximation guarantee for the full procedure:** cost-ratio greedy under a budget,
 the ≥ 4 s and fragment rules, the hedge reserve and post-processing all break the
 conditions for one. Quality is measured empirically as **% of oracle coverage** (§9.5);
 that is the number we report in the deck.
 
 Complexity: windows ≈ 3 · T / 0.5, so ~12k for a 33-minute video; clusters per
-window are few. Measured on GT-derived clusters: 0.6 s for the slowest val video
-(1822 s); must stay under 2 s.
+window are few. Each evaluation only looks at union components within one span length
+of the change. Measured: 1.4 s for 2000 random proposals with top-5 pairs on a 2000 s
+video (the actions cap; `slow` test), 0.6 s on GT-derived clusters; must stay under 2 s.
 
 ### 5.5 Hedge windows (`select/hedge.py`)
 

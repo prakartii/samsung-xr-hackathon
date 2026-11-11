@@ -97,3 +97,13 @@ def test_cluster_pair_dist_is_read_only():
 
     with pytest.raises(TypeError):
         c.pair_dist[("x", "y")] = 1.0
+
+
+def test_cluster_confidence_is_the_max_member_score_in_any_order():
+    # The more confident member comes first: confidence must still be 0.9, not the last.
+    a = prop(0, 10, ("cut", "onion", 0.9))
+    b = prop(1, 10, ("cut", "onion", 0.4))
+
+    (c,) = cluster_proposals([a, b], **KW)
+
+    assert c.confidence == pytest.approx(0.9, abs=1e-12)

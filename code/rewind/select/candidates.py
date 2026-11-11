@@ -25,8 +25,9 @@ def candidate_windows(
             hi = min(last, math.ceil(e / stride) - 1)
             for i in range(lo, hi + 1):
                 start = round(i * stride, 6)
-                if start < e - _EPS and start + length > s + _EPS:
-                    out.add((start, round(start + length, 6)))
+                end = round(start + length, 6)
+                if start < e - _EPS and end > s + _EPS and end <= duration:
+                    out.add((start, end))
     return sorted(out)
 
 
