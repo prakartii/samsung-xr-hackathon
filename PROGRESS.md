@@ -20,7 +20,7 @@ Who is A and who is B: **A = prakartii**, **B = Daksh Arora (DA)**.
 | P3 | Video I/O, signals, feature cache | A | Nov 10–12 | in progress | Flow, hands and CLIP cached for all 187 + `tune` videos |
 | P4 | Action detection → `actions[]` | A | Nov 11–13 | in progress | mAP measured on `tune` and `report`; beats the zero-shot fallback |
 | P5 | Clustering + EPIC coverage selector | B | Nov 12–14 | not started | EPIC coverage > uniform; % of oracle reported; ablation done |
-| P6 | FPVSum route: importance, segments, label | A | Nov 13–15 | not started | F1 > uniform on FPVSum CV; label accuracy reported |
+| P6 | FPVSum route: importance, segments, label | A | Nov 13–15 | in progress | F1 > uniform on FPVSum CV; label accuracy reported |
 | P7 | Integration, tuning, ablations | A + B | Nov 15–16 | not started | All 187 outputs from raw MP4 pass validation; tuned config committed; floors set |
 | P8 | Packaging, demo, deck | B (pkg) + A (demo) | Nov 16–17 | not started | Fresh clone + Docker reproduces one video; demo video + deck done |
 | P9 | Submission | A + B | Nov 18 | not started | Submitted via Google Form before 11:59 PM IST |
@@ -231,7 +231,7 @@ package: `validate.py`. Remaining: send the email, set the team ID.
 ---
 
 ### P6 — FPVSum route: importance, segments, label
-**Owner:** A · **Planned:** Nov 13–15 · **Status:** not started · **Depends on:** P3, P2 (F1 scorer)
+**Owner:** A (prakartii) · **Planned:** Nov 13–15 · **Status:** in progress (started 2026-11-11 while P4 waits on data; branch `p6/fpvsum-importance`, stacked on `p4/actionformer`) · **Depends on:** P3, P2 (F1 scorer)
 
 - [ ] `select/importance.py` (proxy, shots, windows of 4.05–10 s)
 - [ ] `label/` (EPIC → cooking; FPVSum CLIP zero-shot with a prompt ensemble)
@@ -365,6 +365,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-11 · PK · P6 · Started P6 on `p6/fpvsum-importance` (P4 is blocked on the features download) · —
 - 2026-11-11 · PK · P4 · `tools/fetch_released_features.py`: Google Drive throttled the 6.5 GB archive to ~25 KiB/s; switched to the README's Box mirror with parallel ranges · —
 - 2026-11-11 · PK · P4 · `detect/fallback_zeroshot.py` + `zeroshot` config · —
 - 2026-11-11 · PK · P3/P4 · **Bug fixed:** OpenCV decoded < 1 s of EPIC GoPro files without error (regression test `tests/integration/test_decode_epic.py`). Decoding moved to PyAV (open question D1 for B), `iter_frames` raises `DecodeError` on early end, flow/hands/clip cache versions bumped to v2 (old entries ignored), and caching now decodes each video once for all three features: 63 s compute per video minute for flow+hands+CLIP on one EPIC video · —
