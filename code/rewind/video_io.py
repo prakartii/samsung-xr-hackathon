@@ -82,6 +82,12 @@ def parse_probe(info: dict, where: str = "<probe>") -> ProbeInfo:
 # at any real frame rate (1/240 s), so it never moves a timestamp to the next frame.
 _FRAME_EPS = 1e-6
 
+# How far past the last video frame a requested sample may fall and still get that
+# frame. Container durations (which include audio) can run a few hundredths of a
+# second past the video stream (EPIC P08_09: 0.03 s). Real truncation is seconds to
+# minutes short (OpenCV stopped after 0.7 s of 174 s), so 0.25 s still catches it.
+_END_SLACK_SEC = 0.25
+
 
 def parse_rate(rate: str) -> float:
     """Parse a rate string ("30000/1001", "25/1", "25") into frames per second."""
@@ -232,7 +238,7 @@ def iter_frames(
         if prev is None:
             raise DecodeError(f"no video frames decoded from {path}")
         # remaining targets inside the last frame's display interval get the last frame
-        while idx < n and times[idx] <= prev[0] + frame_dur + _FRAME_EPS:
+        while idx < n and times[idx] <= prev[0] + frame_dur + _END_SLACK_SEC:
             yield float(times[idx]), image(prev[1])
             idx += 1
         if idx < n:
