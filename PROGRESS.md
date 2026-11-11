@@ -133,9 +133,10 @@ package: `validate.py`. Remaining: send the email, set the team ID.
 - integration (`data`): signals on one real video have the expected shapes, and the timestamps span `[0, T]`
 
 **Notes so far (2026-11-11, PK):**
-- Decoding uses OpenCV (`cv2.VideoCapture`), sequential grab/retrieve on the shared
-  `sample_times` grid; `duration_sec` and `fps` always come from ffprobe so every
-  signal agrees on the timestamps. The default test suite needs no ffmpeg on PATH.
+- Decoding uses PyAV (FFmpeg libraries bundled in the wheel): first video stream only,
+  threaded, each sample gets the last frame with presentation time <= t on the shared
+  `sample_times` grid; a stream that ends early raises `DecodeError`. (OpenCV was
+  used first and silently truncated EPIC files; see D1.) No ffmpeg on PATH needed.
 - Global motion = |median flow vector| (camera ego-motion); residual = mean |flow − median|
   (hands/objects). Frame 0 copies frame 1's value. Both z-scored per video.
 - Routing returns `unknown` when |P(cooking) − thr| < `min_conf` and keeps the mean
@@ -322,7 +323,7 @@ package: `validate.py`. Remaining: send the email, set the team ID.
 | Q9 | May `run.sh` read `manifest.csv`? Scoring only on the 187 videos? | — | 2026-11-11, kit §6: a hidden subset of the 187 is scored; re-runs happen in an isolated environment | Closed by decision: inference doesn't read the manifest |
 | Q10 | The example `skiing_03.json` uses label `skiing`, but `supported_classes.json` has `ski`. Which is correct? | | | We use `ski` (the vocabulary file) |
 | Q11 | What is our team ID? The kit examples use `T07`. | | | |
-| D1 | **A → B:** switch video metadata + decoding from ffprobe/OpenCV to PyAV (`av==19.0.2`)? OpenCV silently stopped after 44 of 10,418 frames on EPIC GoPro files (audio + 3 data streams); PyAV decodes them fully, 2.5× faster (threaded), by presentation time, and needs no ffmpeg binary. Implemented on `p4/actionformer` (`video_io.iter_frames`, `probe_video`); `ffprobe_meta` kept | 2026-11-11, PROGRESS (PK) | | If B agrees: ARCHITECTURE.md §3.1 `video_io` row and §4 ("ffprobe") updated in the merge PR |
+| D1 | **A → B:** switch video metadata + decoding from ffprobe/OpenCV to PyAV (`av==19.0.2`)? OpenCV silently stopped after 44 of 10,418 frames on EPIC GoPro files (audio + 3 data streams); PyAV decodes them fully, 2.5× faster (threaded), by presentation time, and needs no ffmpeg binary. Implemented in `video_io.iter_frames` / `probe_video`; `ffprobe_meta` kept | 2026-11-11, PROGRESS (PK) | | If B agrees: ARCHITECTURE.md §3.1 `video_io` row and §4 ("ffprobe") updated in the merge PR |
 | K1 | Do the second-hand kit rules (`ARCHITECTURE.md` §7) match our own kit copy? | — | 2026-11-11: yes, all of R1–R13 | `ARCHITECTURE.md` §7 now cites `kit/` |
 
 **Email draft (to prism@samsung.com, subject "Track 4 — questions on the student package"):**
@@ -374,6 +375,7 @@ Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 - 2026-11-11 · PK · P4 · `detect/pairing.py` (+ `types.py`, `constants.py` from the spec), `tools/build_vn_prior.py` (train-only, leakage guard); NMS numpy port so ActionFormer runs without a compiler · —
 - 2026-11-11 · PK · P4 · Checkpoints fetched (`tools/fetch_weights.sh`, SHA-256 pinned); leakage check passed · —
 - 2026-11-11 · PK · P4 · Started P4 on `p4/actionformer`; vendored ActionFormer `61ea7eb` (MIT); fetching released EPIC checkpoints · —
+- 2026-11-11 · PK · P3 · **Bug fixed:** OpenCV decoded < 1 s of EPIC GoPro files without error (regression test `tests/integration/test_decode_epic.py`). Decoding moved to PyAV (open question D1), `iter_frames` raises `DecodeError` on early end, flow/hands/clip cache versions bumped to v2, caching decodes each video once for all three features (54–63 s compute per video minute for flow+hands+CLIP on EPIC). Commits cherry-picked from `p4/actionformer`, where they were first made · —
 - 2026-11-11 · PK · P3 · `tools/cache_features.py`; first throughput numbers (provisional, on battery); EPIC download parallelized (6 connections) · —
 - 2026-11-11 · PK · P3 · `features/hands.py` (MediaPipe) and `features/clip.py` (open_clip); `tools/fetch_weights.sh`; licenses in ARCHITECTURE §10; data-tier tests for both models; FPVSum 49/49 downloaded, durations within ±0.5 s · —
 - 2026-11-11 · PK · P3 · `tools/download_videos.py` (EPIC direct + resumable + MD5; FPVSum via the official id list); downloads of the 187 videos started · —
