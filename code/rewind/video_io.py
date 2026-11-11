@@ -4,6 +4,7 @@ P1 has metadata only; P3 (A) adds frame decoding.
 """
 
 import json
+import math
 import subprocess
 from dataclasses import dataclass
 from fractions import Fraction
@@ -55,8 +56,8 @@ def parse_probe(info: dict, where: str = "<probe>") -> ProbeInfo:
         duration = float(raw)
     except (TypeError, ValueError) as exc:
         raise VideoError(f"{where}: no usable duration ({raw!r})") from exc
-    if not duration > 0:
-        raise VideoError(f"{where}: duration {duration} is not positive")
+    if not (math.isfinite(duration) and duration > 0):
+        raise VideoError(f"{where}: duration {duration} is not a positive finite number")
     try:
         fps = float(Fraction(st.get("avg_frame_rate") or "0/1"))
     except (ValueError, ZeroDivisionError):

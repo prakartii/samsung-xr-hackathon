@@ -36,6 +36,7 @@ def test_parse_probe_zero_frame_rate_denominator_gives_zero_fps():
         probe(fmt_dur=None, st_dur=None),
         probe(fmt_dur="N/A", st_dur=None),
         probe(fmt_dur="0"),
+        probe(fmt_dur="inf"),
     ],
 )
 def test_parse_probe_unusable_input_raises_video_error(info):

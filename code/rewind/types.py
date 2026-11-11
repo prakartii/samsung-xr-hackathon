@@ -16,7 +16,7 @@ Dataset = Literal["epic_kitchens_100", "fpvsum", "unknown"]
 
 @dataclass(frozen=True)
 class VideoMeta:
-    video_id: str  # filename stem; echoed into the JSON, never used for any decision
+    video_id: str  # the OUTPUT file's stem (R2); echoed into the JSON, never used for decisions
     path: Path
     duration_sec: float  # from ffprobe
     fps: float

@@ -200,8 +200,11 @@ and crossfades for the demo only), `timeline_html.py` (stretch).
    detector), pick the label by CLIP P(cooking) ≥ threshold, and select highlights
    with the route that label implies. A misrouted EPIC video must never lose its
    actions.
-5. `output.py` builds the dict → `schema.validate` → on errors, log them and write
-   `fallback.py` output instead (which is validated too).
+5. `output.py` builds the dict (action times clamped into `[0, T]`, non-finite actions
+   dropped) → strict `schema.validate`. On errors, **salvage**: drop actions with
+   out-of-vocabulary names, replace an unknown label with the fallback label, replace
+   highlights only if they are invalid on their own; validate again. Only if that
+   still fails, write the full `fallback.py` output (validated too).
 6. Any exception at any step → fallback output, error to stderr, exit code 0. The
    one exception: a video with no readable duration (missing, corrupt) gets no JSON
    and exit code 2, because R3 can't be satisfied without a duration.

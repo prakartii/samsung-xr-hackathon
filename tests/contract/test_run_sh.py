@@ -182,17 +182,47 @@ def test_pipeline_stage_exception_writes_valid_fallback(videos, tmp_path, caplog
     assert "detector exploded" in caplog.text
 
 
-def test_pipeline_invalid_stage_result_is_replaced_by_fallback(videos, tmp_path):
-    def invalid(_video, probe, video_id, cfg):
-        # A 2 s highlight: fails R11/R12, so the pipeline must not write it.
-        return VideoResult("T07", video_id, probe.duration_sec, ("cooking", 1.0), (), ((1.0, 3.0),))
+def test_pipeline_invalid_highlights_are_replaced_keeping_valid_label(videos, tmp_path):
+    def bad_highlights(_video, probe, video_id, cfg):
+        # A 2 s highlight fails R11/R12; the label and the action are fine.
+        acts = (((1.0, 3.0), "open", "fridge", 0.9),)
+        return VideoResult(
+            "T07", video_id, probe.duration_sec, ("cooking", 0.9), acts, ((1.0, 3.0),)
+        )
 
     out = tmp_path / "v.json"
-    run_video(videos[30], out, load_config(DEFAULT_CONFIG), team_id="T07", analyze=invalid)
+    run_video(videos[30], out, load_config(DEFAULT_CONFIG), team_id="T07", analyze=bad_highlights)
 
     doc = json.loads(out.read_text(encoding="utf-8"))
     assert strict_errors(out) == []
-    assert doc["label"]["name"] == "other"  # the fallback's label, not the stage's
+    assert doc["label"]["name"] == "cooking"  # kept
+    assert [a["verb"] for a in doc["actions"]] == ["open"]  # kept
+    assert [h["segment"] for h in doc["highlights"]] != [[1.0, 3.0]]  # replaced
+
+
+def test_pipeline_out_of_vocabulary_action_is_dropped_not_the_whole_result(videos, tmp_path):
+    def one_bad_verb(_video, probe, video_id, cfg):
+        acts = (((1.0, 3.0), "open", "fridge", 0.9), ((5.0, 7.0), "teleport", "fridge", 0.8))
+        return VideoResult(
+            "T07", video_id, probe.duration_sec, ("cooking", 0.9), acts, ((10.0, 14.05),)
+        )
+
+    out = tmp_path / "v.json"
+    run_video(videos[30], out, load_config(DEFAULT_CONFIG), team_id="T07", analyze=one_bad_verb)
+
+    doc = json.loads(out.read_text(encoding="utf-8"))
+    assert strict_errors(out) == []
+    assert [a["verb"] for a in doc["actions"]] == ["open"]
+    assert doc["highlights"] == [{"segment": [10.0, 14.05]}]
+    assert doc["label"]["name"] == "cooking"
+
+
+def test_run_sh_output_file_is_world_readable(videos, tmp_path):
+    out = tmp_path / "v.json"
+
+    run_sh(videos[30], out)
+
+    assert out.stat().st_mode & 0o777 == 0o644
 
 
 def test_pipeline_team_id_override_is_written(videos, tmp_path):

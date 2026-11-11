@@ -9,6 +9,7 @@ the validated fallback.
 import os
 import tempfile
 from collections.abc import Callable
+from dataclasses import replace
 from pathlib import Path
 
 from rewind.config import Config
@@ -40,12 +41,19 @@ def run_video(
     probe = ffprobe_meta(video)
     cfg = _with_team(cfg, team_id)
 
+    vocab = load_vocab()
     try:
         result = analyze(video, probe, video_id, cfg)
         doc = to_document(result)
-        errors, _ = validate(doc, load_vocab(), filename_stem=video_id, strict=True)
+        errors, _ = validate(doc, vocab, filename_stem=video_id, strict=True)
         if errors:
-            raise ValueError(f"{len(errors)} validation error(s): {errors[:3]}")
+            # Keep what is valid: drop bad actions, swap in fallback parts only where
+            # needed. One stray verb must not cost the video its highlights and label.
+            log.warning("salvaging %s: %s", video, errors[:3])
+            doc = to_document(_salvage(result, video_id, probe.duration_sec, cfg))
+            errors, _ = validate(doc, vocab, filename_stem=video_id, strict=True)
+            if errors:
+                raise ValueError(f"{len(errors)} validation error(s): {errors[:3]}")
     except Exception as exc:  # any stage failure → fallback (CLAUDE.md §6.7)
         log.error("analysis failed for %s, writing fallback: %s", video, exc)
         doc = to_document(_fallback(video_id, probe.duration_sec, cfg))
@@ -55,9 +63,25 @@ def run_video(
     _write_atomic(out, dumps(doc))
 
 
-def _with_team(cfg: Config, team_id: str) -> Config:
-    from dataclasses import replace
+def _salvage(result: VideoResult, video_id: str, duration: float, cfg: Config) -> VideoResult:
+    """The stage's result with each invalid part replaced (ARCHITECTURE.md §4 step 5).
 
+    Actions with out-of-vocabulary names are dropped (times are clamped by
+    ``to_document``); an unknown label becomes the fallback label; highlights that fail
+    validation on their own are replaced by the fallback's.
+    """
+    vocab = load_vocab()
+    fb = _fallback(video_id, duration, cfg)
+    actions = tuple(a for a in result.actions if a[1] in vocab.verbs and a[2] in vocab.nouns)
+    label = result.label if result.label[0] in vocab.labels else fb.label
+    trial = replace(result, team_id=cfg.team.team_id, video_id=video_id, duration_sec=duration,
+                    actions=(), label=fb.label)  # fmt: skip
+    errs, _ = validate(to_document(trial), vocab, filename_stem=video_id, strict=True)
+    highlights = result.highlights if not errs else fb.highlights
+    return replace(trial, actions=actions, label=label, highlights=highlights)
+
+
+def _with_team(cfg: Config, team_id: str) -> Config:
     return replace(cfg, team=replace(cfg.team, team_id=team_id))
 
 
@@ -76,6 +100,7 @@ def _write_atomic(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
     try:
+        os.fchmod(fd, 0o644)  # mkstemp makes 0600; the scorer may run as another user
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(text)
         os.replace(tmp, path)
