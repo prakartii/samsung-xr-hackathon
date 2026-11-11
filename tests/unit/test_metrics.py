@@ -212,3 +212,34 @@ def test_label_accuracy_missing_prediction_counts_as_wrong():
     gt = {"a": "ski", "b": "surfing", "c": "boxing"}
 
     assert label_accuracy(pred, gt) == pytest.approx(1 / 3, abs=1e-12)
+
+
+# --- review fixes (PR #12) ------------------------------------------------------
+
+
+def test_class_ap_ranks_predictions_by_score_descending():
+    # Ranked: FP (0.9) then TP (0.1). recall 0, 1; precision 0, .5
+    # → envelope .5, .5 → AP = 1 · .5 = 0.5 (ascending or unsorted gives 1.0).
+    preds = [("v", (0.0, 10.0), 0.1), ("v", (50.0, 60.0), 0.9)]
+
+    assert class_ap(preds, {"v": [(0.0, 10.0)]}, 0.5) == pytest.approx(0.5, abs=1e-12)
+
+
+def test_class_ap_tiou_equal_to_threshold_is_a_match():
+    # (0, 10) vs (5, 10): tIoU 5/10 = 0.5 exactly; ActivityNet counts ≥ threshold.
+    preds = [("v", (0.0, 10.0), 0.9)]
+
+    assert class_ap(preds, {"v": [(5.0, 10.0)]}, 0.5) == pytest.approx(1.0, abs=1e-12)
+
+
+def test_coverage_highlight_of_exactly_4s_counts():
+    # (9, 13) is exactly 4.0 s: not ignored; captures open/fridge → 1/3.
+    assert cov([(9.0, 13.0)]) == pytest.approx(1 / 3, abs=1e-12)
+
+
+def test_coverage_short_highlights_still_count_toward_the_budget():
+    # (8, 13) 5 s captures open/fridge (1/3). Three 3.9 s highlights capture nothing but
+    # add 11.7 s: total 16.7 s = 0.167·T → over = 0.017, penalty 1 − .017/.15 = .8867.
+    hl = [(8.0, 13.0), (20.0, 23.9), (30.0, 33.9), (60.0, 63.9)]
+
+    assert cov(hl) == pytest.approx(1 / 3 * (1 - 0.017 / 0.15), abs=1e-9)

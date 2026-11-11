@@ -63,3 +63,20 @@ def test_map_perfect_is_one_and_empty_is_zero(gt):
 def test_frame_f1_is_in_unit_interval(imp, hl):
     times = np.arange(len(imp), dtype=float)
     assert 0.0 <= frame_f1(times, np.array(imp), hl) <= 1.0
+
+
+@settings(max_examples=100, deadline=None)
+@given(gt_actions())
+def test_coverage_empty_is_zero_and_covering_every_action_is_one(gt):
+    # Every GT span padded to ≥ 4 s; no budget penalty (lam = 0) isolates capture.
+    padded = sorted((s, max(e, s + 4.0)) for (s, e), _, _ in gt)
+
+    assert coverage(gt, [], 200.0, rule="any_overlap") == 0.0
+    assert coverage(gt, padded, 200.0, rule="fraction", lam=0.0) == 1.0
+
+
+@settings(max_examples=100, deadline=None)
+@given(st.lists(st.floats(0.0, 1.0), min_size=20, max_size=200))
+def test_frame_f1_empty_prediction_is_zero(imp):
+    times = np.arange(len(imp), dtype=float)
+    assert frame_f1(times, np.array(imp), []) == 0.0
