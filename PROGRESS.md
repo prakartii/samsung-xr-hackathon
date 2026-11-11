@@ -233,8 +233,8 @@ package: `validate.py`. Remaining: send the email, set the team ID.
 ### P6 — FPVSum route: importance, segments, label
 **Owner:** A (prakartii) · **Planned:** Nov 13–15 · **Status:** in progress (started 2026-11-11 while P4 waits on data; branch `p6/fpvsum-importance`, stacked on `p4/actionformer`) · **Depends on:** P3, P2 (F1 scorer)
 
-- [ ] `select/importance.py` (proxy, shots, windows of 4.05–10 s)
-- [ ] `label/` (EPIC → cooking; FPVSum CLIP zero-shot with a prompt ensemble)
+- [x] `select/importance.py` (proxy, shots, windows of 4.05–10 s); unit + Hypothesis property tests (`tests/property/`)
+- [x] `label/` (EPIC → cooking; FPVSum CLIP zero-shot with a prompt ensemble); uncertain route per ARCHITECTURE.md §4
 - [ ] Wire the FPVSum route into `pipeline.py`
 - [ ] Tune importance weights on FPVSum CV folds (never on all 49 at once)
 - [ ] Check signal-router agreement with the manifest (target ≥ 95%); tune `routing.min_conf`
@@ -365,6 +365,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-11 · PK · P6 · `select/importance.py`, `label/`, `importance`/`label`/`select.budget_frac` config, shared Hypothesis strategies · —
 - 2026-11-11 · PK · P6 · Started P6 on `p6/fpvsum-importance` (P4 is blocked on the features download) · —
 - 2026-11-11 · PK · P4 · `tools/fetch_released_features.py`: Google Drive throttled the 6.5 GB archive to ~25 KiB/s; switched to the README's Box mirror with parallel ranges · —
 - 2026-11-11 · PK · P4 · `detect/fallback_zeroshot.py` + `zeroshot` config · —
