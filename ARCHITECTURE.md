@@ -123,7 +123,7 @@ to keys once, in `rewind/vocab.py`.
 
 | Module | Responsibility | Pure? |
 |---|---|---|
-| `constants.py` | Kit facts: `MIN_SEG=4.0`, `MIN_SEG_EMIT=4.05`, `SCORING_BUDGET=0.15`, `DURATION_TOL=0.5`, `MAX_ACTIONS=2000`, `SHORT_VIDEO_T=MIN_SEG/SCORING_BUDGET` (26.67 s), `TIME_DECIMALS=2`. Confirmed against `kit/TEAM_README.md`; every value cites its kit section in a comment | — |
+| `constants.py` | Kit facts: `MIN_SEG=4.0`, `MIN_SEG_EMIT=4.05`, `SCORING_BUDGET=0.15`, `DURATION_TOL=0.5`, `MAX_ACTIONS=2000`, `SHORT_VIDEO_T=MIN_SEG/SCORING_BUDGET` (26.67 s), `TIME_DECIMALS=2`, `END_TOL=0.5`, `REQUIRED_KEYS`, dataset names. Confirmed against `kit/TEAM_README.md`; every value cites its kit section in a comment | — |
 | `config.py` | Load and validate `configs/default.yaml` into typed dataclasses; `config_hash()` | yes |
 | `types.py` | §2 types | — |
 | `vocab.py` | Load kit classes; index ↔ key maps; verb–noun co-occurrence prior | load at edge, lookups pure |
@@ -515,10 +515,13 @@ Fill each row in before the model is used **[verify all]**.
 
 ## 11. Configuration (`configs/default.yaml`)
 
-Top-level sections mirror the modules: `team`, `signals`, `features`, `actions`,
-`pairing`, `cluster`, `calibration`, `select`, `hedge`, `post`, `importance`,
-`label`, `routing`, `eval`. Each key has a comment. `config_hash()` (sha1 of the
-canonical YAML) is written to every leaderboard row so results are reproducible.
+Top-level sections mirror the modules: `run` (seed), `team`, `signals`, `features`,
+`actions`, `pairing`, `cluster`, `calibration`, `select`, `hedge`, `post`,
+`importance`, `label`, `routing`, `eval`. Each key has a comment. The loader is
+strict: unknown keys, missing keys and wrong types are errors, and range checks tie
+values to the kit constants (e.g. `budget_frac ≤ 0.15`, every window ≥ 4.05 s).
+`config_hash()` (sha1 of the parsed config as canonical JSON, so comments and key
+order don't matter) is written to every leaderboard row so results are reproducible.
 
 ---
 

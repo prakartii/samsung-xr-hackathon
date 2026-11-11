@@ -1,0 +1,4 @@
+# Runtime dependencies for run.sh (pinned; part of the submission).
+# P3/P4 add opencv, mediapipe, open_clip, torch here when their code lands.
+numpy==2.4.6
+PyYAML==6.0.3

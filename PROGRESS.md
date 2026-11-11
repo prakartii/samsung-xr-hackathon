@@ -15,7 +15,7 @@ Who is A and who is B: **A = prakartii**, **B = Daksh Arora (DA)**.
 | Phase | Name | Owner | Planned | Status | Exit check |
 |---|---|---|---|---|---|
 | P0 | Kit & rules | B | Nov 10 | in progress | Kit committed in `kit/`; kit rules in `ARCHITECTURE.md` §7 confirmed or corrected; questions emailed |
-| P1 | Skeleton & submission contract | B | Nov 10–11 | not started | `run.sh` writes valid fallback JSON for all 187 videos; CI green |
+| P1 | Skeleton & submission contract | B | Nov 10–11 | in progress | `run.sh` writes valid fallback JSON for all 187 videos; CI green |
 | P2 | Evaluation harness | B | Nov 11–12 | not started | Leaderboard has uniform + oracle rows on `tune` and `report` |
 | P3 | Video I/O, signals, feature cache | A | Nov 10–12 | not started | Flow, hands and CLIP cached for all 187 + `tune` videos |
 | P4 | Action detection → `actions[]` | A | Nov 11–13 | not started | mAP measured on `tune` and `report`; beats the zero-shot fallback |
@@ -60,18 +60,19 @@ package: `validate.py`. Remaining: send the email, set the team ID.
 ---
 
 ### P1 — Skeleton & submission contract
-**Owner:** B · **Planned:** Nov 10–11 · **Status:** not started · **Depends on:** P0 (schema confirmed; can start on the second-hand rules)
+**Owner:** B · **Planned:** Nov 10–11 · **Status:** in progress (started 2026-11-11) · **Depends on:** P0 (schema confirmed)
 
-- [ ] `pyproject.toml` (ruff, pytest with `pythonpath = ["code"]`, markers `slow`, `data`, `gpu`), `requirements*.txt`, `.gitignore`
-- [ ] `configs/default.yaml` + `rewind/config.py` with `config_hash()`
-- [ ] `rewind/constants.py`, `rewind/types.py`, `rewind/vocab.py` (kit classes)
+- [x] `pyproject.toml` (ruff, pytest with `pythonpath = ["code"]`, markers `slow`, `data`, `gpu`), `requirements*.txt`, `.gitignore`
+- [x] `configs/default.yaml` + `rewind/config.py` with `config_hash()` (strict loader)
+- [x] `rewind/constants.py`, `rewind/types.py`
+- [ ] `rewind/vocab.py` (kit classes)
 - [ ] `rewind/schema.py` implementing R1–R13 + `rewind_eval/validate.py` CLI
 - [ ] `rewind/postprocess.py` (§5.6 of `ARCHITECTURE.md`)
 - [ ] `rewind/fallback.py` (uniform ≥ 4 s windows at 14.5%)
 - [ ] `rewind/output.py` (kit schema, 2-decimal rounding); `rewind/pipeline.py` (fallback-only for now), `rewind/cli.py`, `run.sh`
 - [ ] `post.short_video_mode` flag (`min_seg` / `within_budget`) in postprocess
 - [ ] `video_io.ffprobe_meta` (minimal; A extends it in P3)
-- [ ] GitHub Actions: ruff + `pytest` on every PR
+- [x] GitHub Actions: ruff + `pytest` on every PR
 - [ ] Run on all 187 videos → `python -m rewind_eval.validate --dir outputs/` passes
 
 **Exit check:** all 187 dummy outputs pass our validator (and the official one if available); CI green on `main`.
@@ -311,6 +312,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-11 · DA · P1 · Skeleton: pyproject, pinned requirements, CI, constants, types, strict config loader + default.yaml, import-boundary test; 42 tests, each checked against a deliberate bug · #6
 - 2026-11-11 · DA · P0 · Recorded roles (A = prakartii, B = DA); removed leftover GPU assumptions (P4 test marker, P7 latency, P8 Dockerfile) · #5
 - 2026-11-11 · DA · P0 · Teammate (prakartii) confirmed the v1.1 routing decision · #4
 - 2026-11-11 · DA · P0 · Committed the official kit to `kit/`; ARCHITECTURE v1.1 (signal-only routing, cache keyed by content fingerprint, one schema, 2 decimals, kit facts); answered Q6, Q9, K1; added Q10, Q11 and the email draft; removed superseded plans · #3
