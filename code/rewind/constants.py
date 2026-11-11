@@ -29,9 +29,11 @@ MAX_ACTIONS: Final[int] = 2000
 #: §3 note: "Timestamps should be in seconds (up to 2 decimal places)".
 TIME_DECIMALS: Final[int] = 2
 
-#: Below this duration a single MIN_SEG highlight exceeds the budget, so R11 and
-#: R13 cannot both hold (ARCHITECTURE.md §5.6). 4.0 / 0.15 = 26.67 s.
-SHORT_VIDEO_T: Final[float] = MIN_SEG / SCORING_BUDGET
+#: Below this duration the single highlight we emit (MIN_SEG_EMIT) exceeds the 15%
+#: budget, so R11 and R13 cannot both hold (ARCHITECTURE.md §5.6).
+#: 4.05 / 0.15 = 27.0 s. (Using MIN_SEG instead, 26.67 s, would leave 26.67–27.0 s
+#: videos with a 4.05 s highlight that is over budget yet not treated as short.)
+SHORT_VIDEO_T: Final[float] = MIN_SEG_EMIT / SCORING_BUDGET
 
 #: §3 "Both datasets use the exact same 6 top-level fields".
 REQUIRED_KEYS: Final[tuple[str, ...]] = (

@@ -125,7 +125,7 @@ to keys once, in `rewind/vocab.py`.
 
 | Module | Responsibility | Pure? |
 |---|---|---|
-| `constants.py` | Kit facts: `MIN_SEG=4.0`, `MIN_SEG_EMIT=4.05`, `SCORING_BUDGET=0.15`, `DURATION_TOL=0.5`, `MAX_ACTIONS=2000`, `SHORT_VIDEO_T=MIN_SEG/SCORING_BUDGET` (26.67 s), `TIME_DECIMALS=2`, `END_TOL=0.5`, `REQUIRED_KEYS`, dataset names. Confirmed against `kit/TEAM_README.md`; every value cites its kit section in a comment | — |
+| `constants.py` | Kit facts: `MIN_SEG=4.0`, `MIN_SEG_EMIT=4.05`, `SCORING_BUDGET=0.15`, `DURATION_TOL=0.5`, `MAX_ACTIONS=2000`, `SHORT_VIDEO_T=MIN_SEG_EMIT/SCORING_BUDGET` (27.0 s: the shortest video whose budget fits one emitted 4.05 s window), `TIME_DECIMALS=2`, `END_TOL=0.5`, `REQUIRED_KEYS`, dataset names. Confirmed against `kit/TEAM_README.md`; every value cites its kit section in a comment | — |
 | `config.py` | Load and validate `configs/default.yaml` into typed dataclasses; `config_hash()` | yes |
 | `types.py` | §2 types | — |
 | `vocab.py` | Kit classes from the bundled copy `rewind/resources/classes.json` (byte-identical to `kit/supported_classes.json`, so `run.sh` runs without `kit/`); index ↔ key maps; verb–noun co-occurrence prior | load at edge, lookups pure |
@@ -291,23 +291,31 @@ first, until the hedge budget `h · B` is used. The default `h` is 1/8, tuned la
 
 ### 5.6 Post-processing (`postprocess.py`), shared by both routes
 
-Input: any list of segments. Output satisfies every highlight rule in §7:
+`postprocess(segments, values, T, *, budget_frac, merge_gap, short_video_mode,
+profile=None)`. Input: any list of segments with one value each (higher = keep), and
+optionally a value profile over time `(t, v)`. Output satisfies every highlight rule
+in §7:
 
-1. Clamp to `[0, T]`; drop empty segments.
-2. Sort by start; merge segments that overlap or have a gap < `cfg.post.merge_gap` (0.5 s).
-3. Drop segments shorter than `MIN_SEG`. (Selectors should not produce them; this
-   is a safety net.)
+1. Clamp to `[0, T]`; drop empty and non-finite segments.
+2. Sort by start; merge segments that overlap, touch, or have a gap <
+   `max(cfg.post.merge_gap, 0.01 s)` (a smaller gap could round to touching). A merged
+   segment's value is the max of its parts.
+3. Drop segments shorter than `MIN_SEG_EMIT` (not just `MIN_SEG`: 4.01 s could round
+   to 3.99 s). Selectors should not produce them; this is a safety net.
 4. While total > `cfg.select.budget_frac · T`: shrink the lowest-value segment
-   (value passed in by the caller) from its lower-value end, never below
-   `MIN_SEG_EMIT`; if it is already at the minimum, drop it.
-5. **Short video** (`T < SHORT_VIDEO_T`; 3 EPIC videos: 11.13 s, 15.28 s, 25.16 s):
+   (ties: the later one) from its lower-value end per the profile (the start if there
+   is no profile), never below `MIN_SEG_EMIT`; if it is already at the minimum, drop it.
+5. **Short video** (`T < SHORT_VIDEO_T` = 4.05 / 0.15 = 27.0 s; 3 EPIC videos:
+   11.13 s, 15.28 s, 25.16 s):
    R11 (≥ 1 highlight of 4 s) and R13 (≤ 15%) cannot both hold. The kit makes R11
    pass/fail and R13 a warning with a soft coverage penalty, so we emit one segment of
    `min(MIN_SEG_EMIT, T)` at the best-value position (`cfg.post.short_video_mode:
    min_seg`). The alternative `within_budget` (one segment of `SCORING_BUDGET · T`)
    fails R11 and stays only as a flag for tests; never ship it.
-6. If the result is empty and `T ≥ MIN_SEG`: one `MIN_SEG_EMIT` window at the
-   highest-activity position.
+6. If the result is empty and `T ≥ MIN_SEG`: one `MIN_SEG_EMIT` window centred on
+   the best input segment from before step 4, else on the profile's peak, else on
+   `T/2`. This also covers `T` between 27.0 s and 27.93 s, where `budget_frac · T` is
+   below 4.05 s but the kit's 15% still fits one window.
 7. Round to 2 decimals (kit) *inside* the bounds (round start up and end down so that
    lengths stay ≥ `MIN_SEG`).
 
