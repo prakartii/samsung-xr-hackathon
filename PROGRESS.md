@@ -366,6 +366,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-11 · PK · P3 · EPIC download stalled at 11/138: data.bris intermittently serves a SHA-1-signed CA, rejected by OpenSSL's default security level (`CA signature digest algorithm too weak`). `download_videos.py` now uses a verified TLS context at security level 1 (chain + hostname still checked; files still MD5-checked) and backs off between retries · —
 - 2026-11-11 · PK · P4 · Released features in (MD5 ok); coverage 138/138; imported the 10 downloaded videos; end-to-end action chain runs on real features (data-tier tests pass) · —
 - 2026-11-11 · PK · P4 · `tools/fetch_released_features.py`: Google Drive throttled the 6.5 GB archive to ~25 KiB/s; switched to the README's Box mirror with parallel ranges · —
 - 2026-11-11 · PK · P4 · `detect/fallback_zeroshot.py` + `zeroshot` config · —
