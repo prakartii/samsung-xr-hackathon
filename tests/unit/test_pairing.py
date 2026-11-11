@@ -114,6 +114,31 @@ def test_pairing_same_span_verbs_give_one_proposal():
     assert props[0].verbs == (("take", 0.8), ("cut", 0.6))
 
 
+def test_pairing_confident_verb_without_noun_does_not_block_its_neighbour():
+    # Review of #18: take (0, 10) 0.9 and cut (2, 12) 0.5 overlap (tIoU 8/12 = .67).
+    # knife (4, 14) matches cut (8/12 = .67) but not take (6/14 = .43). take can't anchor
+    # (no noun); cut must still produce the action. The old "top verb of its group" rule
+    # skipped cut because take led the group, and returned nothing.
+    props = pair_proposals(
+        [((0.0, 10.0), "take", 0.9), ((2.0, 12.0), "cut", 0.5)],
+        [((4.0, 14.0), "knife", 0.8)],
+        PRIOR, VOCAB_V, VOCAB_N, P1,
+    )  # fmt: skip
+    assert [pr.segment for pr in props] == [(2.0, 12.0)]
+
+
+def test_pairing_chain_with_nounless_middle_verb_keeps_the_action():
+    # X (0, 10) 0.9 – Y (3, 13) 0.8 – Z (6, 16) 0.5: X–Y and Y–Z overlap (tIoU 7/13 = .54),
+    # X–Z don't (4/16 = .25). Only Z matches onion (7, 17) (9/11 = .82; Y 6/14 = .43).
+    # Z anchors (nothing anchored before it overlaps it) → one proposal on (6, 16).
+    props = pair_proposals(
+        [((0.0, 10.0), "take", 0.9), ((3.0, 13.0), "cut", 0.8), ((6.0, 16.0), "take", 0.5)],
+        [((7.0, 17.0), "onion", 0.7)],
+        PRIOR, VOCAB_V, VOCAB_N, P1,
+    )  # fmt: skip
+    assert [pr.segment for pr in props] == [(6.0, 16.0)]
+
+
 def test_pairing_identical_duplicate_detections_give_one_proposal():
     dets = [((0.0, 10.0), "take", 0.8), ((0.0, 10.0), "take", 0.8)]
     props = pair_proposals(dets, [((0.0, 10.0), "knife", 0.5)], PRIOR, VOCAB_V, VOCAB_N, P1)

@@ -228,8 +228,12 @@ only echoed into the JSON. A contract test renames the input and checks that onl
 ### 5.1 Pairing (`detect/pairing.py`)
 
 ActionFormer's EPIC models produce verb proposals and noun proposals separately.
-For each verb proposal, match noun proposals with tIoU ≥ `cfg.pairing.match_tiou`.
-For each matched pair of top-k verbs and top-k nouns:
+Greedy anchors: visit verb proposals by (probability desc, start, key); a verb anchors
+one proposal if it has a noun with tIoU ≥ `cfg.pairing.match_tiou` and doesn't overlap
+(same threshold) an anchor already emitted. So duplicate labels on one span give one
+proposal, and a confident verb without a matching noun never blocks an overlapping verb
+that has one. Each anchor's group is the verbs and nouns overlapping it; for each pair
+of its top-k verbs and top-k nouns:
 
 ```
 score(v, n) = p(v) · p(n) · prior(v, n)^α

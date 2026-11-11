@@ -35,14 +35,18 @@ class ZeroShotParams:
 
 
 def windows(duration: float, window_sec: float, stride_sec: float) -> list[tuple[float, float]]:
-    """[s, s + window] for s = 0, stride, ... while the window fits; one clipped window if
-    the video is shorter than a window."""
+    """[s, s + window] for s = 0, stride, ... while the window fits, plus one final window
+    ending exactly at T when the grid stops short of it (otherwise up to one stride at the
+    end would never be covered); one clipped window if the video is shorter than a window."""
     if window_sec <= 0 or stride_sec <= 0:
         raise ValueError("window and stride must be positive")
     if duration <= window_sec:
         return [(0.0, float(duration))]
     n = int(np.floor((duration - window_sec) / stride_sec + 1e-9)) + 1
-    return [(i * stride_sec, i * stride_sec + window_sec) for i in range(n)]
+    out = [(i * stride_sec, i * stride_sec + window_sec) for i in range(n)]
+    if out[-1][1] < duration - 1e-9:
+        out.append((float(duration) - window_sec, float(duration)))
+    return out
 
 
 def window_embeddings(

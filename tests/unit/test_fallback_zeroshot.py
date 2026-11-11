@@ -22,6 +22,14 @@ def test_windows_short_video_gets_one_clipped_window():
     assert windows(1.5, 2.0, 1.0) == [(0.0, 1.5)]
 
 
+def test_windows_end_exactly_at_the_video_end():
+    # T = 25, 8 s windows, stride 4: grid starts 0, 4, 8, 12, 16 (last ends at 24), so a
+    # final window (17, 25) covers the last second, which would otherwise never be seen.
+    w = windows(25.0, 8.0, 4.0)
+
+    assert w[-2:] == [(16.0, 24.0), (17.0, 25.0)]
+
+
 def test_window_embeddings_average_frames_inside():
     # frames at t = 0, 1, 2 with embeddings e0, e1, e2 (axes). Window [0, 2) holds
     # t = 0 and 1 -> mean (0.5, 0.5, 0) -> normalized (0.7071, 0.7071, 0)
