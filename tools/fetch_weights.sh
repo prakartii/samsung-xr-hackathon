@@ -47,6 +47,11 @@ GDRIVE_ZIPS=(
   "actionformer_epic_noun.pth.tar|1OTlxeiWj8JE9n1-LsRYogHmqgUdsE5PR|epic_slowfast_noun_reproduce/epoch_020.pth.tar|8d313a2dd69562bfb063cb1e3372ad056ee646283d1e32af95ff49318bf6bbf9"
 )
 PYTHON="${PYTHON:-python}"
+# SKIP_GDRIVE=1 fetches only the direct-URL weights above (e.g. the Kaggle feature
+# cache job, which needs hands + CLIP but not ActionFormer).
+if [[ "${SKIP_GDRIVE:-0}" == "1" ]]; then
+  GDRIVE_ZIPS=()
+fi
 
 for entry in "${GDRIVE_ZIPS[@]}"; do
   IFS='|' read -r name file_id member sha <<<"$entry"
