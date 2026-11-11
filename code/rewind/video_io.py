@@ -7,8 +7,13 @@ I/O edge.
 
 from __future__ import annotations
 
+import json
 import math
+import subprocess
+from dataclasses import dataclass
 from fractions import Fraction
+from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -56,3 +61,68 @@ def sample_times(duration_sec: float, target_fps: float) -> np.ndarray:
         raise ValueError(f"target fps must be positive, got {target_fps}")
     n = math.ceil(duration_sec * target_fps - _FRAME_EPS)
     return np.arange(n, dtype=np.float64) / target_fps
+
+
+# --- ffprobe (I/O edge) -------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class ProbeMeta:
+    """What ffprobe tells us about a video. `pipeline` builds `types.VideoMeta` from it."""
+
+    duration_sec: float
+    fps: float
+    width: int
+    height: int
+
+
+def parse_ffprobe(probe: dict[str, Any]) -> ProbeMeta:
+    """Extract duration, fps and size from `ffprobe -show_format -show_streams` JSON.
+
+    Duration: the container's `format.duration`, else the video stream's. FPS: the
+    stream's `avg_frame_rate` (true average, robust to variable frame rate), else
+    `r_frame_rate` when avg is missing or "0/0".
+    """
+    streams = [s for s in probe.get("streams", []) if s.get("codec_type") == "video"]
+    if not streams:
+        raise ValueError("no video stream in ffprobe output")
+    video = streams[0]
+
+    raw_duration = probe.get("format", {}).get("duration") or video.get("duration")
+    if raw_duration is None:
+        raise ValueError("ffprobe output has no duration")
+    duration = float(raw_duration)
+    if not math.isfinite(duration) or duration <= 0:
+        raise ValueError(f"invalid duration: {raw_duration!r}")
+
+    fps = None
+    for key in ("avg_frame_rate", "r_frame_rate"):
+        rate = video.get(key)
+        if rate and rate != "0/0":
+            fps = parse_rate(rate)
+            break
+    if fps is None:
+        raise ValueError("ffprobe output has no frame rate")
+
+    return ProbeMeta(
+        duration_sec=duration,
+        fps=fps,
+        width=int(video["width"]),
+        height=int(video["height"]),
+    )
+
+
+def ffprobe_meta(path: Path) -> ProbeMeta:
+    """Run ffprobe on `path` and parse its metadata. Needs `ffprobe` on PATH."""
+    cmd = [
+        "ffprobe",
+        "-v",
+        "error",
+        "-print_format",
+        "json",
+        "-show_format",
+        "-show_streams",
+        str(path),
+    ]
+    out = subprocess.run(cmd, check=True, capture_output=True, text=True).stdout
+    return parse_ffprobe(json.loads(out))
