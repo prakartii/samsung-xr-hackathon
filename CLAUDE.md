@@ -66,6 +66,7 @@ Full module map and interfaces: `ARCHITECTURE.md` §3–§5.
 # setup (Python 3.11, ffmpeg on PATH)
 python3.11 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt -r requirements-dev.txt
+export PYTHONPATH=code                      # for `python -m rewind…` / `rewind_eval…` (run.sh sets it itself)
 tools/fetch_weights.sh                      # downloads into weights/
 
 # checks — run all three before every push

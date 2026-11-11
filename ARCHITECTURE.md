@@ -149,8 +149,8 @@ to keys once, in `rewind/vocab.py`.
 | `schema.py` | `validate(doc, vocab, *, filename_stem, expected_duration, strict) -> (errors, warnings)` per §7; `run.sh` passes `strict=True` and no expected duration, the eval CLI passes the manifest duration | yes |
 | `output.py` | `VideoResult` → JSON dict in the kit schema (rounded to 2 decimals, sorted) | yes |
 | `fallback.py` | Safe output: uniform windows, empty actions, default label | yes |
-| `pipeline.py` | Wires M0–M6 for one video; catches exceptions → fallback | no |
-| `cli.py` | `python -m rewind.cli <video> <out>`; called by `run.sh` | no |
+| `pipeline.py` | `run_video(video, out, cfg, *, team_id, analyze)`: probe → `analyze` (the model stages; P1: the fallback) → `to_document` → strict validation → atomic write; any exception or validation error → validated fallback | no |
+| `cli.py` | `python -m rewind.cli <video> <out> [--config]`; called by `run.sh`. Exit 0 = valid JSON written (maybe the fallback); exit 2 = no readable duration, nothing written | no |
 | `utils.py` | `seed_all`, logging, timing | — |
 
 ### 3.2 `code/rewind_eval/` — evaluation (never imported by `rewind`)
@@ -184,9 +184,11 @@ and crossfades for the demo only), `timeline_html.py` (stretch).
 ./run.sh <video.mp4> <out.json>
 ```
 
-1. Activate the bundled environment if present, then
-   `python -m rewind.cli "$1" "$2" --config configs/default.yaml`.
+1. Use `./.venv/bin/python` if present, else `$PYTHON`, else `python3`; set
+   `PYTHONPATH=code`; run `python -m rewind.cli "$1" "$2" --config configs/default.yaml`.
 2. `cli` seeds everything, builds `VideoMeta` (ffprobe), routes the dataset.
+   `video_id` is the **output** file's stem (R2 requires it to match the JSON name);
+   the input file name is not used at all.
 3. Features: read from `cache/` if a valid versioned entry exists; else compute.
    (On a clean machine nothing is cached; everything is computed from the MP4.)
 4. EPIC route: detect → pairing → `actions[]`; cluster → coverage windows + hedge
@@ -200,7 +202,9 @@ and crossfades for the demo only), `timeline_html.py` (stretch).
    actions.
 5. `output.py` builds the dict → `schema.validate` → on errors, log them and write
    `fallback.py` output instead (which is validated too).
-6. Any exception at any step → fallback output, error to stderr, exit code 0.
+6. Any exception at any step → fallback output, error to stderr, exit code 0. The
+   one exception: a video with no readable duration (missing, corrupt) gets no JSON
+   and exit code 2, because R3 can't be satisfied without a duration.
 7. Write JSON atomically (temp file + rename).
 
 `TEAM_ID` comes from the `REWIND_TEAM_ID` env var, defaulting to `team.team_id` in
