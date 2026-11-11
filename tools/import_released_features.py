@@ -1,6 +1,8 @@
 """Import ActionFormer's released EPIC SlowFast features into the feature cache.
 
-    python tools/import_released_features.py --features-dir D:/rewind-data/actionformer/epic_kitchens/features
+    python tools/import_released_features.py --features-dir <dir with <video_id>.npz>
+
+e.g. --features-dir D:/rewind-data/actionformer/epic_kitchens/features
 
 For each `<video_id>.npz` (key `feats`, shape (K, 2304)) whose MP4 is in --videos,
 store it under the MP4's content fingerprint (ARCHITECTURE.md §8), so inference finds
@@ -89,9 +91,8 @@ def main() -> None:
         gap = alignment_gap_sec(len(feats), video_duration(mp4))
         if not gap <= args.max_gap:
             suspect += 1
-            print(
-                f"  ALIGNMENT? {vid}: {len(feats)} feats vs {video_duration(mp4):.1f} s (gap {gap:.1f} s)"
-            )
+            dur = video_duration(mp4)
+            print(f"  ALIGNMENT? {vid}: {len(feats)} feats vs {dur:.1f} s (gap {gap:.1f} s)")
         cache.put(fp, slowfast_entry(feats))
         imported += 1
     print(
