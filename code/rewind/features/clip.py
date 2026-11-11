@@ -102,27 +102,46 @@ def class_embeddings(
 # --- signals (I/O edge) -------------------------------------------------------------
 
 
+class ClipOnline:
+    """Incremental CLIP embeddings: `add` one (t, BGR frame) at a time, then `result`.
+
+    Frames are encoded in batches of `batch_size` as they arrive.
+    """
+
+    def __init__(self, encoder: Encoder, batch_size: int) -> None:
+        if batch_size < 1:
+            raise ValueError("batch_size must be >= 1")
+        self._encoder = encoder
+        self._batch_size = batch_size
+        self._times: list[float] = []
+        self._chunks: list[np.ndarray] = []
+        self._batch: list[np.ndarray] = []
+
+    def add(self, t: float, bgr: np.ndarray) -> None:
+        self._times.append(t)
+        self._batch.append(cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB))
+        if len(self._batch) == self._batch_size:
+            self._chunks.append(self._encoder.encode_images(self._batch))
+            self._batch = []
+
+    def result(self) -> dict[str, np.ndarray]:
+        if self._batch:
+            self._chunks.append(self._encoder.encode_images(self._batch))
+            self._batch = []
+        if not self._times:
+            raise ValueError("no frames decoded")
+        emb = l2_normalize(np.concatenate(self._chunks)).astype(np.float32)
+        return {"t": np.asarray(self._times, dtype=np.float64), "clip_emb": emb}
+
+
 def clip_signals(
     frames: Iterable[tuple[float, np.ndarray]], encoder: Encoder, batch_size: int
 ) -> dict[str, np.ndarray]:
     """{"t": (M,), "clip_emb": (M, D) float32, L2-normalized} for (t, BGR frame) pairs."""
-    if batch_size < 1:
-        raise ValueError("batch_size must be >= 1")
-    times: list[float] = []
-    chunks: list[np.ndarray] = []
-    batch: list[np.ndarray] = []
+    online = ClipOnline(encoder, batch_size)
     for t, bgr in frames:
-        times.append(t)
-        batch.append(cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB))
-        if len(batch) == batch_size:
-            chunks.append(encoder.encode_images(batch))
-            batch = []
-    if batch:
-        chunks.append(encoder.encode_images(batch))
-    if not times:
-        raise ValueError("no frames decoded")
-    emb = l2_normalize(np.concatenate(chunks)).astype(np.float32)
-    return {"t": np.asarray(times, dtype=np.float64), "clip_emb": emb}
+        online.add(t, bgr)
+    return online.result()
 
 
 class OpenClipEncoder:

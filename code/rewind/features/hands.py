@@ -59,19 +59,33 @@ def presence(scores: Sequence[float]) -> float:
     return float(np.clip(max(scores), 0.0, 1.0))
 
 
+class HandsOnline:
+    """Incremental hand presence: `add` one (t, BGR frame) at a time, then `result`."""
+
+    def __init__(self, scorer: HandScorer) -> None:
+        self._scorer = scorer
+        self._times: list[float] = []
+        self._values: list[float] = []
+
+    def add(self, t: float, bgr: np.ndarray) -> None:
+        rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
+        self._times.append(t)
+        self._values.append(presence(self._scorer(rgb, t)))
+
+    def result(self) -> dict[str, np.ndarray]:
+        if not self._times:
+            raise ValueError("no frames decoded")
+        return {"t": np.asarray(self._times, dtype=np.float64), "hands": np.asarray(self._values)}
+
+
 def hands_signals(
     frames: Iterable[tuple[float, np.ndarray]], scorer: HandScorer
 ) -> dict[str, np.ndarray]:
     """{"t": (N,), "hands": (N,)} for (t, BGR frame) pairs from `iter_frames`."""
-    times: list[float] = []
-    values: list[float] = []
+    online = HandsOnline(scorer)
     for t, bgr in frames:
-        rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
-        times.append(t)
-        values.append(presence(scorer(rgb, t)))
-    if not times:
-        raise ValueError("no frames decoded")
-    return {"t": np.asarray(times, dtype=np.float64), "hands": np.asarray(values)}
+        online.add(t, bgr)
+    return online.result()
 
 
 class MediaPipeHands:

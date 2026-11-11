@@ -16,11 +16,13 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterable
 from dataclasses import asdict, dataclass
 
 import cv2
 import numpy as np
+
+from rewind.video_io import resize_to_width
 
 # Bump when the algorithm changes in a way the parameters don't capture
 # (CLAUDE.md §6.8: change the extractor -> bump the version -> old caches ignored).
@@ -76,7 +78,10 @@ def motion_series(flows: Iterable[np.ndarray]) -> tuple[np.ndarray, np.ndarray]:
     predecessor, so it copies frame 1's value (avoids a fake dip at t = 0). No flows
     (a single frame) -> one zero.
     """
-    values = [decompose_flow(f) for f in flows]
+    return _series([decompose_flow(f) for f in flows])
+
+
+def _series(values: list[tuple[float, float]]) -> tuple[np.ndarray, np.ndarray]:
     if not values:
         return np.zeros(1), np.zeros(1)
     residual = np.array([values[0][0]] + [r for r, _ in values], dtype=np.float64)
@@ -99,25 +104,47 @@ def _farneback(prev_gray: np.ndarray, gray: np.ndarray, p: FlowParams) -> np.nda
     )
 
 
+class FlowOnline:
+    """Incremental flow signals: `add` one (t, BGR frame) at a time, then `result`.
+
+    Lets one decoding pass feed several features (tools/cache_features.py). Frames
+    wider than `p.width` are resized here, so callers may pass larger frames.
+    """
+
+    def __init__(self, p: FlowParams) -> None:
+        self._p = p
+        self._times: list[float] = []
+        self._values: list[tuple[float, float]] = []
+        self._prev: np.ndarray | None = None
+
+    def add(self, t: float, bgr: np.ndarray) -> None:
+        if bgr.shape[1] > self._p.width:
+            bgr = resize_to_width(bgr, self._p.width)
+        gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
+        if self._prev is not None:
+            self._values.append(decompose_flow(_farneback(self._prev, gray, self._p)))
+        self._prev = gray
+        self._times.append(t)
+
+    def raw(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        if not self._times:
+            raise ValueError("no frames decoded")
+        residual, global_ = _series(self._values)
+        return np.asarray(self._times, dtype=np.float64), residual, global_
+
+    def result(self) -> dict[str, np.ndarray]:
+        t, residual, global_ = self.raw()
+        return {"t": t, "flow": zscore(residual), "global_motion": zscore(global_)}
+
+
 def raw_motion(
     frames: Iterable[tuple[float, np.ndarray]], p: FlowParams
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """(t, residual, global) in pixels per sampled frame, before z-scoring."""
-    times: list[float] = []
-
-    def flows() -> Iterator[np.ndarray]:
-        prev = None
-        for t, frame in frames:
-            times.append(t)
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            if prev is not None:
-                yield _farneback(prev, gray, p)
-            prev = gray
-
-    residual, global_ = motion_series(flows())
-    if not times:
-        raise ValueError("no frames decoded")
-    return np.asarray(times, dtype=np.float64), residual, global_
+    online = FlowOnline(p)
+    for t, frame in frames:
+        online.add(t, frame)
+    return online.raw()
 
 
 def flow_signals(
@@ -125,12 +152,9 @@ def flow_signals(
 ) -> dict[str, np.ndarray]:
     """Z-scored residual and global motion for (t, BGR frame) pairs from `iter_frames`.
 
-    Frames should already be resized to `p.width` (pass `width=p.width` to
-    `iter_frames`). Returns {"t": (N,), "flow": (N,), "global_motion": (N,)}.
+    Returns {"t": (N,), "flow": (N,), "global_motion": (N,)}.
     """
-    t, residual, global_ = raw_motion(frames, p)
-    return {
-        "t": t,
-        "flow": zscore(residual),
-        "global_motion": zscore(global_),
-    }
+    online = FlowOnline(p)
+    for t, frame in frames:
+        online.add(t, frame)
+    return online.result()
