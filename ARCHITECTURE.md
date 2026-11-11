@@ -249,7 +249,9 @@ detections:
 
 1. Sort proposals by start time.
 2. Link two proposals if tIoU ≥ `cfg.cluster.tiou` **and** their top-1 pairs match or
-   the cosine similarity of the mean CLIP embedding over their spans ≥ `cfg.cluster.sim`.
+   the cosine similarity of the mean CLIP embedding over their spans ≥ `cfg.cluster.sim`
+   (embeddings optional; without them only the pair rule applies). Links are
+   transitive (union-find).
 3. Connected components → clusters. `pair_dist` = score-weighted sum of member
    top-k pair distributions, truncated to top `cfg.cluster.k` (default 5),
    renormalized to 1, then temperature-scaled with `cfg.calibration.temperature` (default 1.0).
@@ -258,35 +260,53 @@ detections:
 
 For lengths `L ∈ cfg.select.window_lengths` (default `[4.05, 5.0, 6.0]`) and starts on
 a grid of `cfg.select.stride` (default 0.5 s), keep windows inside `[0, T]` that
-overlap ≥ 1 cluster span. Precompute a sparse matrix `cap[w, c] ∈ [0, 1]`:
+overlap ≥ 1 cluster span (window ends clamped to `≤ T`). A cluster's capture
+probability is computed from how many seconds of its span the union covers:
 
-- `any_overlap` rule: `cap = 1` if the window and the cluster span overlap.
-- `fraction` rule: `cap = sigmoid((overlap / span_len − θ) / τ)` with θ, τ in config.
+- `any_overlap` rule: `cap = 1` if the union overlaps the span at all.
+- `fraction` rule: `cap = sigmoid((covered / span_len − θ) / τ)` with θ, τ in config.
 
 The rule is `cfg.select.capture_rule` **[verify Q4]**; the default is `any_overlap`.
 
 ### 5.4 Expected-coverage selection (`select/coverage.py`)
 
+State is the union `U` of selected windows, merged exactly as post-processing
+merges highlights (gaps < `max(merge_gap, 0.01 s)` filled), so the model scores what
+is emitted. Each cluster is one action whose pair is drawn from `p_c`; `cap_c(U)` is
+the capture probability given how much of its span `U` covers (§5.3).
+
 ```
-P_miss[pair]      = Π over selected windows w, clusters c:  (1 − cap[w,c] · p_c(pair))
-gain(w | S)       = Σ_pair P_miss[pair] · (1 − Π_c (1 − cap[w,c] · p_c(pair)))
-cost(w | S)       = seconds of w not already covered by ∪S
-priority(w | S)   = gain / max(cost, ε)        (cost == 0 → skip)
+P_miss[pair]      = Π_c (1 − p_c(pair) · cap_c(U))
+E(U)              = Σ_pair (1 − P_miss[pair])          expected distinct pairs captured
+gain(w | U)       = E(U + w) − E(U)
+cost(w | U)       = |U + w| − |U|                      new seconds, incl. filled gaps
+priority(w | U)   = gain / cost                        (gain or cost ≈ 0 → skip)
 ```
 
-Lazy greedy with a max-heap of priorities. Before accepting `w`, simulate the union
-and reject `w` if it would create any fragment < `MIN_SEG`, or push the total over
-`(1 − h) · B` where `B = cfg.select.budget_frac · T` (default 0.145) and `h` is the
-hedge share. Stop when no window fits. The coverage term alone is monotone submodular, and tests
-check monotonicity and diminishing returns (`CLAUDE.md` §7.2). **We claim no
+(v1.0 multiplied a miss factor per selected *window*, so two overlapping windows over
+one cluster counted as two independent chances to catch the same action. Corrected;
+see `PROGRESS.md` Decisions.)
+
+Lazy greedy with a max-heap of priorities; gains and costs are rounded (1e-12, 1e-9)
+so equal choices tie exactly and the earliest window wins. After each pick, the windows
+next to the changed component are re-scored at once: their cost can drop (overlap) and
+their gain rise (filled gaps), which plain lazy evaluation misses (a review
+counterexample is a pinned test). Every union component
+contains a whole window, so it is ≥ 4.05 s (no fragment check needed). A window that
+would push the total over `(1 − h) · B` (`B = cfg.select.budget_frac · T`, `h` the
+hedge share) is dropped. Stop when the heap is empty. Under `any_overlap`, E as a
+function of a set of segments is monotone submodular, and tests check monotonicity and
+diminishing returns (`CLAUDE.md` §7.2). Under `fraction` it is not (the sigmoid is convex
+below θ), and union merging makes the window-level objective slightly non-submodular. **We claim no
 approximation guarantee for the full procedure:** cost-ratio greedy under a budget,
 the ≥ 4 s and fragment rules, the hedge reserve and post-processing all break the
 conditions for one. Quality is measured empirically as **% of oracle coverage** (§9.5);
 that is the number we report in the deck.
 
 Complexity: windows ≈ 3 · T / 0.5, so ~12k for a 33-minute video; clusters per
-window are few. With lazy evaluation this runs in well under a second; it must stay
-under 2 s per video.
+window are few. Each evaluation only looks at union components within one span length
+of the change. Measured: 1.4 s for 2000 random proposals with top-5 pairs on a 2000 s
+video (the actions cap; `slow` test), 0.6 s on GT-derived clusters; must stay under 2 s.
 
 ### 5.5 Hedge windows (`select/hedge.py`)
 
