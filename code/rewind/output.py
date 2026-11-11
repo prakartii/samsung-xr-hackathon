@@ -5,6 +5,7 @@ decimals; scores to 4; actions sorted; actions that collapse under rounding drop
 """
 
 import json
+import math
 from typing import Any
 
 from rewind.constants import MAX_ACTIONS, TIME_DECIMALS
@@ -24,7 +25,10 @@ def _t(x: float) -> float:
 def to_document(result: VideoResult) -> dict[str, Any]:
     actions = []
     for (s, e), verb, noun, score in result.actions:
-        s2, e2 = _t(s), _t(e)
+        if not (math.isfinite(s) and math.isfinite(e) and math.isfinite(score)):
+            continue
+        # Clamp to [0, T] before rounding, so one stray action can't break R6.
+        s2, e2 = _t(max(0.0, s)), _t(min(e, result.duration_sec))
         if s2 < e2:
             actions.append(
                 {"segment": [s2, e2], "verb": verb, "noun": noun, "score": _score(score)}

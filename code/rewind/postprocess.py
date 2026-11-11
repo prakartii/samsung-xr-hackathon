@@ -19,6 +19,7 @@ from typing import Literal
 import numpy as np
 
 from rewind.constants import (
+    END_TOL,
     MIN_SEG,
     MIN_SEG_EMIT,
     SCORING_BUDGET,
@@ -54,8 +55,10 @@ def postprocess(
         raise ValueError(f"{len(segments)} segments but {len(values)} values")
     T = float(duration)
     if T < MIN_SEG:
-        # No valid highlight exists (R11 needs 4 s). Emit the whole video; the
-        # validator will flag it and the caller's fallback handles it.
+        # The kit allows ends up to T + 0.5 s, so one 4.0 s highlight is still valid for
+        # T ≥ 3.5 s. Below that no valid output exists; emit the whole video.
+        if T + END_TOL >= MIN_SEG:
+            return ((0.0, MIN_SEG),)
         return ((0.0, _floor(T)),) if T > 0 else ()
 
     items = _clamp(segments, values, T)
@@ -66,7 +69,9 @@ def postprocess(
     # Drop anything shorter than MIN_SEG_EMIT, not just MIN_SEG: a 4.01 s segment could
     # round to 3.99 s. MIN_SEG_EMIT survives inward rounding (≥ 4.03 s).
     items = [(s, e, v) for s, e, v in items if e - s >= MIN_SEG_EMIT - _EPS]
-    kept = _trim_to_budget(items, budget_frac * T, profile)
+    # Budget on the duration as written (2 decimals; _floor(T) ≤ round(T, 2)), so the
+    # validator's 15% check on `duration_sec` can't fail by rounding.
+    kept = _trim_to_budget(items, budget_frac * _floor(T), profile)
     if not kept:
         # Nothing fits the budget (or nothing came in): one MIN_SEG_EMIT window at the
         # best candidate seen before trimming, else at the profile peak or the middle.

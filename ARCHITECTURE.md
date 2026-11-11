@@ -302,7 +302,8 @@ in §7:
    segment's value is the max of its parts.
 3. Drop segments shorter than `MIN_SEG_EMIT` (not just `MIN_SEG`: 4.01 s could round
    to 3.99 s). Selectors should not produce them; this is a safety net.
-4. While total > `cfg.select.budget_frac · T`: shrink the lowest-value segment
+4. While total > `cfg.select.budget_frac · T′` (T′ = T floored to 2 decimals, the
+   duration as written, so rounding can't break R13): shrink the lowest-value segment
    (ties: the later one) from its lower-value end per the profile (the start if there
    is no profile), never below `MIN_SEG_EMIT`; if it is already at the minimum, drop it.
 5. **Short video** (`T < SHORT_VIDEO_T` = 4.05 / 0.15 = 27.0 s; 3 EPIC videos:

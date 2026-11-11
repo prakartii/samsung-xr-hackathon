@@ -127,3 +127,38 @@ def test_postprocess_non_finite_segment_is_ignored():
 def test_postprocess_values_length_mismatch_raises():
     with pytest.raises(ValueError, match="2 segments but 1 values"):
         run([(1.0, 6.0), (10.0, 15.0)], [1.0])
+
+
+def test_postprocess_short_video_centres_on_the_highest_value_segment():
+    # T = 12: (1, 2) has value .1, (8, 9) has .9 → centre 8.5: (6.475, 10.525) →
+    # (6.48, 10.52).
+    assert run([(1.0, 2.0), (8.0, 9.0)], [0.1, 0.9], duration=12.0) == ((6.48, 10.52),)
+
+
+def test_postprocess_trim_tie_goes_to_the_later_segment():
+    # Equal values: the later segment (40, 50) is trimmed by the excess 20 - 14.5 = 5.5
+    # from its start (no profile) → (45.5, 50).
+    assert run([(10.0, 20.0), (40.0, 50.0)], [1.0, 1.0]) == ((10.0, 20.0), (45.5, 50.0))
+
+
+def test_postprocess_merged_segment_keeps_the_max_value():
+    # (10, 15) v .1 and (14, 18) v .9 merge into (10, 18) with value .9; (40, 50) v .5
+    # is now the lowest and absorbs the excess 18 - 14.5 = 3.5 → (43.5, 50).
+    result = run([(10.0, 15.0), (14.0, 18.0), (40.0, 50.0)], [0.1, 0.9, 0.5])
+
+    assert result == ((10.0, 18.0), (43.5, 50.0))
+
+
+def test_postprocess_budget_uses_the_written_duration():
+    # T = 36.534 is written as 36.53; at budget_frac 0.15 the cap is 0.15 · 36.53 =
+    # 5.4795 s, not 0.15 · 36.534 = 5.4801 s. (0, 20) is trimmed to (14.5205, 20) →
+    # (14.53, 20.0), 5.47 s, which passes the validator's check on 36.53.
+    result = run([(0.0, 20.0)], duration=36.534, budget_frac=0.15)
+
+    assert result == ((14.53, 20.0),)
+    assert 20.0 - 14.53 <= 0.15 * 36.53
+
+
+def test_postprocess_video_between_3_5_and_4_s_gets_a_4_s_highlight():
+    # Kit: ends may reach T + 0.5, so for T = 3.8 one (0, 4.0) highlight is valid.
+    assert run([], duration=3.8) == ((0.0, 4.0),)

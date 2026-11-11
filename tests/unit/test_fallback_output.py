@@ -86,7 +86,7 @@ def test_to_document_clamps_and_rounds_scores(raw, clamped):
 def test_to_document_caps_actions_at_2000_keeping_highest_scores():
     actions = tuple(((float(i), i + 1.0), "cut", "onion", i / 3000) for i in range(2001))
 
-    doc = to_document(make_result(actions=actions))
+    doc = to_document(make_result(duration_sec=3000.0, actions=actions))
 
     assert len(doc["actions"]) == 2000
     assert min(a["score"] for a in doc["actions"]) == pytest.approx(round(1 / 3000, 4), abs=1e-12)
@@ -100,3 +100,21 @@ def test_dumps_is_deterministic_json_with_trailing_newline():
     assert text == dumps(to_document(make_result()))
     assert text.endswith("}\n")
     assert json.loads(text) == doc
+
+
+def test_to_document_clamps_action_times_into_the_video():
+    # (-0.006, 3.0) would round to -0.01 (R6 fails); (98.0, 130.0) ends past T = 100.004.
+    actions = (((-0.006, 3.0), "cut", "onion", 0.5), ((98.0, 130.0), "wash", "knife", 0.4))
+
+    segs = [a["segment"] for a in to_document(make_result(actions=actions))["actions"]]
+
+    assert segs == [[0.0, 3.0], [98.0, 100.0]]
+
+
+def test_to_document_drops_non_finite_actions():
+    actions = (
+        ((float("nan"), 3.0), "cut", "onion", 0.5),
+        ((1.0, 2.0), "cut", "onion", float("inf")),
+    )
+
+    assert to_document(make_result(actions=actions))["actions"] == []
