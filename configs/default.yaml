@@ -1,0 +1,24 @@
+# REWIND configuration. Every tunable number lives here, nowhere else (CLAUDE.md §6.3).
+# Kit facts (4.0 s minimum, 15% budget, ...) are NOT here: see rewind/constants.py.
+#
+# P3 (A) adds only the sections it uses: signals, features, routing.
+# B adds team, actions, pairing, cluster, calibration, select, hedge, post, importance,
+# label, eval in P1 (ARCHITECTURE.md §11).
+
+signals:
+  dense_fps: 4.0          # rate of flow + hands signals (ARCHITECTURE.md §2: 2-4 fps)
+  clip_fps: 1.0           # rate of CLIP image embeddings (ARCHITECTURE.md §2)
+
+features:
+  flow:
+    width: 160            # frames are resized to this width before Farneback (§10)
+    pyr_scale: 0.5        # Farneback: image scale between pyramid levels
+    levels: 3             # Farneback: number of pyramid levels
+    winsize: 15           # Farneback: averaging window size (pixels)
+    iterations: 3         # Farneback: iterations per pyramid level
+    poly_n: 5             # Farneback: pixel neighbourhood for the polynomial expansion
+    poly_sigma: 1.2       # Farneback: Gaussian sigma for the polynomial expansion
+
+routing:
+  cooking_thr: 0.5        # mean CLIP P(cooking) >= this -> EPIC route (tuned in P6)
+  min_conf: 0.1           # |P(cooking) - cooking_thr| below this -> uncertain route (tuned in P6)
