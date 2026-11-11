@@ -128,7 +128,7 @@ to keys once, in `rewind/vocab.py`.
 | `constants.py` | Kit facts: `MIN_SEG=4.0`, `MIN_SEG_EMIT=4.05`, `SCORING_BUDGET=0.15`, `DURATION_TOL=0.5`, `MAX_ACTIONS=2000`, `SHORT_VIDEO_T=MIN_SEG/SCORING_BUDGET` (26.67 s), `TIME_DECIMALS=2`, `END_TOL=0.5`, `REQUIRED_KEYS`, dataset names. Confirmed against `kit/TEAM_README.md`; every value cites its kit section in a comment | — |
 | `config.py` | Load and validate `configs/default.yaml` into typed dataclasses; `config_hash()` | yes |
 | `types.py` | §2 types | — |
-| `vocab.py` | Load kit classes; index ↔ key maps; verb–noun co-occurrence prior | load at edge, lookups pure |
+| `vocab.py` | Kit classes from the bundled copy `rewind/resources/classes.json` (byte-identical to `kit/supported_classes.json`, so `run.sh` runs without `kit/`); index ↔ key maps; verb–noun co-occurrence prior | load at edge, lookups pure |
 | `video_io.py` | ffprobe metadata; frame decoding at a target fps; frame ↔ seconds | no |
 | `routing.py` | Dataset routing from video signals only (§6.1) | yes, given inputs |
 | `features/flow.py` | Farneback flow at low resolution → residual + global motion | no |
@@ -146,7 +146,7 @@ to keys once, in `rewind/vocab.py`.
 | `select/importance.py` | FPVSum importance proxy + segment selection (§6.2) | yes |
 | `postprocess.py` | Sort, merge, enforce ≥ 4 s, budget trim, clamp (§5.6) | yes |
 | `label/` | EPIC → `cooking`; FPVSum → CLIP zero-shot (§6.3) | scoring pure |
-| `schema.py` | `validate(result_dict, expected_duration: float \| None) -> (errors, warnings)` per §7; `run.sh` passes `None`, the eval CLI passes the manifest duration | yes |
+| `schema.py` | `validate(doc, vocab, *, filename_stem, expected_duration, strict) -> (errors, warnings)` per §7; `run.sh` passes `strict=True` and no expected duration, the eval CLI passes the manifest duration | yes |
 | `output.py` | `VideoResult` → JSON dict in the kit schema (rounded to 2 decimals, sorted) | yes |
 | `fallback.py` | Safe output: uniform windows, empty actions, default label | yes |
 | `pipeline.py` | Wires M0–M6 for one video; catches exceptions → fallback | no |
@@ -167,7 +167,7 @@ to keys once, in `rewind/vocab.py`.
 | `oracle.py` | Greedy max coverage using GT spans + same window rules (§9.5) |
 | `baselines.py` | Uniform windows; random windows (seeded) |
 | `score.py` | CLI: score a prediction dir on a split; append to `results/leaderboard.csv` |
-| `validate.py` | CLI wrapper around `rewind.schema.validate` for a directory; checks durations and the 187 ids against `kit/manifest.csv` |
+| `validate.py` | CLI over `rewind.schema.validate` for a directory: durations against `kit/manifest.csv`, one file per manifest video, same `team_id` everywhere; `--kit-only` for kit severities |
 
 ### 3.3 `tools/`
 
@@ -391,14 +391,18 @@ arrives, our validator is the reference.
 | R7 | Each action: `verb`, `noun` strings in the kit vocabulary | error / warning if out of vocabulary |
 | R8 | Each action: `score` finite in [0, 1] | error |
 | R9 | `highlights` non-empty list; each `segment` valid as in R6 | error |
-| R10 | Highlights sorted by start and non-overlapping | error |
+| R10 | Highlights sorted by start and strictly non-overlapping (touching, `end == next start`, counts as overlap) | error |
 | R11 | At least one highlight ≥ 4.0 s | error |
 | R12 | Highlights < 4.0 s are ignored in scoring | warning (we treat it as error) |
 | R13 | Total highlight duration ≤ 15% of `duration_sec` | warning (soft penalty) |
+| R14 | Timestamps have at most 2 decimal places (kit: "should") | warning |
 
-Our validator treats R12 as an error, and R13 as an error except for short videos
-under `short_video_mode: min_seg`, so that we never ship something that loses points
-silently.
+`strict=True` (what `run.sh` uses) also rejects what would lose points silently: R12,
+R14, unknown names under R4/R7, and R13, except for a short video (`T < SHORT_VIDEO_T`)
+whose only highlight is at most `MIN_SEG_EMIT` long; it also compares lengths and
+bounds exactly (no float slack), as a plain `end - start >= 4.0` check would.
+`strict=False` follows the kit's severities with a 1e-9 slack, except that unexpected
+keys are always errors (conservative: the kit only requires the six to be present).
 
 Timestamps have at most 2 decimal places (kit). Any invalid or missing file scores
 0 on every metric for that video (kit §4).
