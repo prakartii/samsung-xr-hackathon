@@ -38,6 +38,16 @@ def test_iter_frames_raises_when_video_ends_early(video_10fps_3s):
         list(iter_frames(video_10fps_3s, duration_sec=5.0, target_fps=2.0))
 
 
+def test_iter_frames_container_slightly_longer_than_video_is_not_an_error(video_10fps_3s):
+    # Regression (Kaggle, EPIC P08_09): the container duration (from audio) ran 0.03 s
+    # past the last video frame and iter_frames raised "1 short". Here: frames cover
+    # [0, 3.0) s; duration 3.15 at 7 fps asks for t = 22/7 = 3.1429 s, 0.143 s past
+    # the end -> within the end slack, so it gets the last frame (k = 29).
+    out = list(iter_frames(video_10fps_3s, duration_sec=3.15, target_fps=7.0))
+    assert len(out) == 23  # ceil(3.15 * 7) = ceil(22.05) = 23 samples
+    assert frame_index(out[-1][1]) == 29
+
+
 def test_iter_frames_last_sample_inside_last_frame_is_kept(video_10fps_3s):
     # Duration 3.0 s at 4 fps: t = 0 .. 2.75; frame 29 is shown during [2.9, 3.0),
     # so t = 2.75 gets frame 27 and nothing raises.
