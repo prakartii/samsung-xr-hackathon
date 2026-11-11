@@ -1,10 +1,7 @@
-"""Core data types (ARCHITECTURE.md §2). All frozen; times are float seconds.
+"""Core data types shared by every stage (ARCHITECTURE.md §2).
 
-Transcribed verbatim from ARCHITECTURE.md §2 so P4 (pairing) and P5 (clustering) can
-share them before P1 lands; B owns this module in P1.
+All times are float seconds. Segments are (start, end) with 0 <= start < end <= T.
 """
-
-from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -13,31 +10,32 @@ from typing import Literal
 
 import numpy as np
 
-Segment = tuple[float, float]  # (start, end), 0 <= start < end <= T
+Segment = tuple[float, float]
+Dataset = Literal["epic_kitchens_100", "fpvsum", "unknown"]
 
 
 @dataclass(frozen=True)
 class VideoMeta:
-    video_id: str  # filename stem; echoed into the JSON, never used for any decision
+    video_id: str  # the OUTPUT file's stem (R2); echoed into the JSON, never used for decisions
     path: Path
-    duration_sec: float  # from ffprobe (the eval validator checks it against the manifest)
+    duration_sec: float  # from ffprobe
     fps: float
     width: int
     height: int
-    dataset: Literal["epic_kitchens_100", "fpvsum", "unknown"]
+    dataset: Dataset  # decided by routing.py from video content only
     route_conf: float  # signal-router margin; below cfg.routing.min_conf = uncertain
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, eq=False)
 class Signals:
-    t_dense: np.ndarray  # (N,) timestamps at dense rate (cfg.signals.dense_fps, 2-4 fps)
+    t_dense: np.ndarray  # (N,) timestamps at cfg.signals.dense_fps
     flow: np.ndarray  # (N,) residual-motion magnitude, z-scored per video
     global_motion: np.ndarray  # (N,) camera-motion magnitude, z-scored per video
     hands: np.ndarray  # (N,) hand-presence probability in [0, 1]
-    t_clip: np.ndarray  # (M,) timestamps at 1 fps
+    t_clip: np.ndarray  # (M,) timestamps at cfg.signals.clip_fps
     clip_emb: np.ndarray  # (M, D) L2-normalized CLIP image embeddings
     slowfast: np.ndarray | None  # (K, F) ActionFormer input features (EPIC route only)
-    t_slowfast: np.ndarray | None
+    t_slowfast: np.ndarray | None  # (K,) timestamps of the slowfast features
 
 
 @dataclass(frozen=True)
@@ -63,5 +61,5 @@ class VideoResult:
     video_id: str
     duration_sec: float
     label: tuple[str, float]  # (name, score)
-    actions: tuple[tuple[Segment, str, str, float], ...]
+    actions: tuple[tuple[Segment, str, str, float], ...]  # (segment, verb, noun, score)
     highlights: tuple[Segment, ...]

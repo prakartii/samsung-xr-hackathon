@@ -7,12 +7,13 @@ Needs: weights (tools/fetch_weights.sh), weights/vn_prior.npy
 """
 
 import json
+from dataclasses import asdict
 from pathlib import Path
 
 import numpy as np
 import pytest
-import yaml
 
+from rewind.config import load_config
 from rewind.constants import MAX_ACTIONS
 from rewind.detect.actionformer import ActionFormerDetector, ActionFormerParams
 from rewind.detect.pairing import PairingParams, VNPrior, pair_proposals, proposals_to_actions
@@ -24,7 +25,7 @@ pytestmark = pytest.mark.data
 
 REPO = Path(__file__).resolve().parents[2]
 VIDEO = REPO / "data" / "videos" / "P01_12.mp4"
-CFG = yaml.safe_load((REPO / "configs" / "default.yaml").read_text(encoding="utf-8"))
+CFG = load_config(REPO / "configs" / "default.yaml")
 KIT = json.loads((REPO / "kit" / "supported_classes.json").read_text(encoding="utf-8"))
 AF = REPO / "code" / "third_party" / "actionformer" / "configs"
 
@@ -54,14 +55,17 @@ def chain():
     nouns = detector("noun").detect(entry["feats"], duration)
     prior = VNPrior.from_counts(
         KIT["verbs"], KIT["nouns"], np.load(REPO / "weights" / "vn_prior.npy"),
-        CFG["pairing"]["prior_eps"],
+        CFG.pairing.eps,
     )  # fmt: skip
     proposals = pair_proposals(
-        verbs, nouns, prior, set(KIT["verbs"]), set(KIT["nouns"]), PairingParams(**CFG["pairing"])
+        verbs,
+        nouns,
+        prior,
+        set(KIT["verbs"]),
+        set(KIT["nouns"]),
+        PairingParams(**asdict(CFG.pairing)),
     )
-    actions = proposals_to_actions(
-        proposals, CFG["actions"]["max_per_video"], CFG["actions"]["min_score"]
-    )
+    actions = proposals_to_actions(proposals, CFG.actions.max_per_video, CFG.actions.min_score)
     return duration, verbs, nouns, actions
 
 
@@ -75,7 +79,7 @@ def test_epic_detectors_emit_detections_inside_the_video(chain):
 
 def test_epic_actions_are_valid_kit_actions(chain):
     duration, _, _, actions = chain
-    assert 1 <= len(actions) <= min(CFG["actions"]["max_per_video"], MAX_ACTIONS)
+    assert 1 <= len(actions) <= min(CFG.actions.max_per_video, MAX_ACTIONS)
     verbs, nouns = set(KIT["verbs"]), set(KIT["nouns"])
     for (s, e), v, n, score in actions:
         assert 0.0 <= s < e <= duration + 0.5  # kit R6

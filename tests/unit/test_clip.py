@@ -1,6 +1,7 @@
 """CLIP math and signal batching with a fake encoder (no torch in the default suite)."""
 
 import dataclasses
+from typing import ClassVar
 
 import numpy as np
 import pytest
@@ -90,7 +91,7 @@ class FakeEncoder:
     2-D direction, so different frames get different embeddings."""
 
     logit_scale = 100.0
-    _words = {"skiing": 0, "cooking": 1}
+    _words: ClassVar[dict[str, int]] = {"skiing": 0, "cooking": 1}
 
     def __init__(self):
         self.text_calls = []

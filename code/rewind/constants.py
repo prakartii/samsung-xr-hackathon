@@ -1,13 +1,51 @@
-"""Kit facts: rules from the official student kit, not tunable knobs (CLAUDE.md §6.3).
+"""Kit facts. These are rules, not knobs: they never go in the config.
 
-Values exactly as listed in ARCHITECTURE.md §3.1; each cites kit/TEAM_README.md.
-Tunable numbers live in configs/default.yaml instead.
+Source for every value: the official student package, ``kit/TEAM_README.md``
+(section numbers refer to that file).
 """
 
-MIN_SEG = 4.0  # §3, §4: highlights shorter than 4.0 s are ignored in scoring
-MIN_SEG_EMIT = 4.05  # emitted minimum: MIN_SEG plus float/rounding margin (ARCHITECTURE §5.6)
-SCORING_BUDGET = 0.15  # §1, §3: highlights total <= 15% of duration (warning, soft penalty)
-DURATION_TOL = 0.5  # §3: duration_sec within ±0.5 s of the manifest; segments may end at T + 0.5
-MAX_ACTIONS = 2000  # §3: actions[] holds 0-2000 items
-SHORT_VIDEO_T = MIN_SEG / SCORING_BUDGET  # 26.67 s: below this, 4 s and 15% conflict
-TIME_DECIMALS = 2  # §3 note: timestamps in seconds, up to 2 decimal places
+from typing import Final
+
+#: §3 "at least one segment >= 4.0 s"; §4 shorter segments are ignored in scoring.
+MIN_SEG: Final[float] = 4.0
+
+#: Length we emit for minimum-length windows. Not a kit value: a margin above
+#: MIN_SEG so that rounding to TIME_DECIMALS can never take a window below 4.0 s.
+MIN_SEG_EMIT: Final[float] = 4.05
+
+#: §3 "Target total length <= 15% of duration_sec" (a warning, with a soft
+#: coverage penalty, §4–§5).
+SCORING_BUDGET: Final[float] = 0.15
+
+#: §3 duration_sec "must be within ±0.5 s of the official manifest.csv duration".
+DURATION_TOL: Final[float] = 0.5
+
+#: §3 segments: "0 <= start < end <= duration_sec + 0.5".
+END_TOL: Final[float] = 0.5
+
+#: §3 actions: "0–2000 items".
+MAX_ACTIONS: Final[int] = 2000
+
+#: §3 note: "Timestamps should be in seconds (up to 2 decimal places)".
+TIME_DECIMALS: Final[int] = 2
+
+#: Below this duration the single highlight we emit (MIN_SEG_EMIT) exceeds the 15%
+#: budget, so R11 and R13 cannot both hold (ARCHITECTURE.md §5.6).
+#: 4.05 / 0.15 = 27.0 s. (Using MIN_SEG instead, 26.67 s, would leave 26.67–27.0 s
+#: videos with a 4.05 s highlight that is over budget yet not treated as short.)
+SHORT_VIDEO_T: Final[float] = MIN_SEG_EMIT / SCORING_BUDGET
+
+#: §3 "Both datasets use the exact same 6 top-level fields".
+REQUIRED_KEYS: Final[tuple[str, ...]] = (
+    "team_id",
+    "video_id",
+    "duration_sec",
+    "label",
+    "actions",
+    "highlights",
+)
+
+#: §1 manifest.csv `dataset` values. Used offline only; inference never reads the
+#: manifest (ARCHITECTURE.md §4, "Inference inputs").
+DATASET_EPIC: Final[str] = "epic_kitchens_100"
+DATASET_FPVSUM: Final[str] = "fpvsum"

@@ -1,11 +1,9 @@
-"""Video I/O: the only place frames are converted to seconds and back.
+"""Video metadata and decoding. The only place frames <-> seconds are converted.
 
-CLAUDE.md §6.4: time is float seconds everywhere; frame <-> seconds conversion lives
-only in this module. The conversion helpers are pure; probing and decoding (PyAV)
-are the I/O edge.
+CLAUDE.md §6.4: time is float seconds everywhere. P1 (B) added ffprobe metadata;
+P3 (A) adds frame/seconds conversion, the shared sampling grid and decoding with PyAV
+(PROGRESS.md D1: OpenCV stopped silently on EPIC GoPro files).
 """
-
-from __future__ import annotations
 
 import json
 import math
@@ -14,10 +12,71 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from fractions import Fraction
 from pathlib import Path
-from typing import Any
 
 import cv2
 import numpy as np
+
+
+class VideoError(RuntimeError):
+    """The video can't be read (missing, corrupt, no video stream)."""
+
+
+@dataclass(frozen=True)
+class ProbeInfo:
+    duration_sec: float
+    fps: float
+    width: int
+    height: int
+
+
+def ffprobe_meta(path: str | Path) -> ProbeInfo:
+    """Read duration, fps and size with ffprobe. Raises VideoError on failure."""
+    cmd = [
+        "ffprobe",
+        "-v",
+        "error",
+        "-select_streams",
+        "v:0",
+        "-show_entries",
+        "stream=width,height,avg_frame_rate,duration:format=duration",
+        "-of",
+        "json",
+        str(path),
+    ]
+    try:
+        out = subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=60)
+        info = json.loads(out.stdout)
+    except (OSError, subprocess.SubprocessError, json.JSONDecodeError) as exc:
+        raise VideoError(f"ffprobe failed on {path}: {exc}") from exc
+    return parse_probe(info, str(path))
+
+
+def parse_probe(info: dict, where: str = "<probe>") -> ProbeInfo:
+    """ProbeInfo from ffprobe's JSON. Pure. Prefers the container duration."""
+    streams = info.get("streams") or []
+    if not streams:
+        raise VideoError(f"{where}: no video stream")
+    st = streams[0]
+    raw = (info.get("format") or {}).get("duration") or st.get("duration")
+    try:
+        duration = float(raw)
+    except (TypeError, ValueError) as exc:
+        raise VideoError(f"{where}: no usable duration ({raw!r})") from exc
+    if not (math.isfinite(duration) and duration > 0):
+        raise VideoError(f"{where}: duration {duration} is not a positive finite number")
+    try:
+        fps = float(Fraction(st.get("avg_frame_rate") or "0/1"))
+    except (ValueError, ZeroDivisionError):
+        fps = 0.0
+    return ProbeInfo(
+        duration_sec=duration,
+        fps=fps,
+        width=int(st.get("width") or 0),
+        height=int(st.get("height") or 0),
+    )
+
+
+# --- frame <-> seconds (pure) -----------------------------------------------------
 
 # Absorbs float error when a timestamp sits exactly on a frame boundary, e.g.
 # 1001 / (30000/1001) * (30000/1001) evaluating to 1000.9999999. Far below one frame
@@ -26,7 +85,7 @@ _FRAME_EPS = 1e-6
 
 
 def parse_rate(rate: str) -> float:
-    """Parse an ffprobe rate string ("30000/1001", "25/1", "25") into frames per second."""
+    """Parse a rate string ("30000/1001", "25/1", "25") into frames per second."""
     value = float(Fraction(rate))
     if not math.isfinite(value) or value <= 0:
         raise ValueError(f"invalid frame rate: {rate!r}")
@@ -65,71 +124,6 @@ def sample_times(duration_sec: float, target_fps: float) -> np.ndarray:
     return np.arange(n, dtype=np.float64) / target_fps
 
 
-# --- ffprobe (I/O edge) -------------------------------------------------------------
-
-
-@dataclass(frozen=True)
-class ProbeMeta:
-    """What ffprobe tells us about a video. `pipeline` builds `types.VideoMeta` from it."""
-
-    duration_sec: float
-    fps: float
-    width: int
-    height: int
-
-
-def parse_ffprobe(probe: dict[str, Any]) -> ProbeMeta:
-    """Extract duration, fps and size from `ffprobe -show_format -show_streams` JSON.
-
-    Duration: the container's `format.duration`, else the video stream's. FPS: the
-    stream's `avg_frame_rate` (true average, robust to variable frame rate), else
-    `r_frame_rate` when avg is missing or "0/0".
-    """
-    streams = [s for s in probe.get("streams", []) if s.get("codec_type") == "video"]
-    if not streams:
-        raise ValueError("no video stream in ffprobe output")
-    video = streams[0]
-
-    raw_duration = probe.get("format", {}).get("duration") or video.get("duration")
-    if raw_duration is None:
-        raise ValueError("ffprobe output has no duration")
-    duration = float(raw_duration)
-    if not math.isfinite(duration) or duration <= 0:
-        raise ValueError(f"invalid duration: {raw_duration!r}")
-
-    fps = None
-    for key in ("avg_frame_rate", "r_frame_rate"):
-        rate = video.get(key)
-        if rate and rate != "0/0":
-            fps = parse_rate(rate)
-            break
-    if fps is None:
-        raise ValueError("ffprobe output has no frame rate")
-
-    return ProbeMeta(
-        duration_sec=duration,
-        fps=fps,
-        width=int(video["width"]),
-        height=int(video["height"]),
-    )
-
-
-def ffprobe_meta(path: Path) -> ProbeMeta:
-    """Run ffprobe on `path` and parse its metadata. Needs `ffprobe` on PATH."""
-    cmd = [
-        "ffprobe",
-        "-v",
-        "error",
-        "-print_format",
-        "json",
-        "-show_format",
-        "-show_streams",
-        str(path),
-    ]
-    out = subprocess.run(cmd, check=True, capture_output=True, text=True).stdout
-    return parse_ffprobe(json.loads(out))
-
-
 # --- decoding (I/O edge) ------------------------------------------------------------
 
 
@@ -146,20 +140,32 @@ class DecodeError(RuntimeError):
     """The decoder ended before the requested duration (truncated or unreadable file)."""
 
 
-def probe_video(path: Path) -> ProbeMeta:
-    """Duration, average fps and size via PyAV (same FFmpeg libraries as decoding)."""
+def probe_video(path: str | Path) -> ProbeInfo:
+    """ProbeInfo via PyAV (the FFmpeg libraries used for decoding; no ffprobe binary).
+
+    Same rules as `parse_probe`: container duration first, else the stream's; raises
+    VideoError when there is no video stream or no usable duration.
+    """
     import av
 
-    with av.open(str(path)) as container:
+    try:
+        container = av.open(str(path))
+    except (OSError, av.error.FFmpegError) as exc:
+        raise VideoError(f"cannot open {path}: {exc}") from exc
+    with container:
+        if not container.streams.video:
+            raise VideoError(f"{path}: no video stream")
         stream = container.streams.video[0]
         if container.duration is not None:
             duration = container.duration / 1_000_000  # microseconds
         elif stream.duration is not None:
             duration = float(stream.duration * stream.time_base)
         else:
-            raise ValueError(f"no duration in {path}")
-        fps = float(stream.average_rate or stream.base_rate)
-        return ProbeMeta(duration, fps, stream.codec_context.width, stream.codec_context.height)
+            raise VideoError(f"{path}: no usable duration")
+        if not (math.isfinite(duration) and duration > 0):
+            raise VideoError(f"{path}: duration {duration} is not a positive finite number")
+        fps = float(stream.average_rate or stream.base_rate or 0)
+        return ProbeInfo(duration, fps, stream.codec_context.width, stream.codec_context.height)
 
 
 def iter_frames(

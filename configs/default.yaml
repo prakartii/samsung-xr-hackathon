@@ -1,63 +1,103 @@
-# REWIND configuration. Every tunable number lives here, nowhere else (CLAUDE.md §6.3).
-# Kit facts (4.0 s minimum, 15% budget, ...) are NOT here: see rewind/constants.py.
-#
-# A adds the sections A's phases use: signals, features, routing, prompts (P3) and
-# actions, pairing (P4). B adds team, cluster, calibration, select, hedge, post,
-# importance, label, eval in P1 (ARCHITECTURE.md §11).
+# REWIND configuration. Every tunable number lives here (CLAUDE.md §6.3).
+# Kit rules (4.0 s minimum, 15% budget, ±0.5 s, 2000 actions) are in
+# code/rewind/constants.py, not here. Values marked "initial" are first guesses,
+# tuned on the `tune` split in the phase named.
+
+run:
+  seed: 0                  # seeds Python, numpy and torch for byte-identical output
+
+team:
+  team_id: TBD_Q11         # our assigned team ID (PROGRESS.md Q11); same in every file
+
+signals:
+  dense_fps: 4.0           # rate for flow and hand signals (2–4 fps); P3 chose 4 (finer hedge peaks), caches use it
+  clip_fps: 1.0            # rate for CLIP image embeddings
+
+features:
+  cache_dir: cache         # root of the versioned feature cache (ARCHITECTURE.md §8)
+  flow:                    # Farneback optical flow (features/flow.py)
+    width: 160             # frame width in px for Farneback flow
+    pyr_scale: 0.5         # image scale between pyramid levels
+    levels: 3              # number of pyramid levels
+    winsize: 15            # averaging window size, px
+    iterations: 3          # iterations per pyramid level
+    poly_n: 5              # pixel neighbourhood for the polynomial expansion
+    poly_sigma: 1.2        # Gaussian sigma for the polynomial expansion
+  hands:                   # MediaPipe Hand Landmarker (features/hands.py)
+    model: weights/hand_landmarker.task  # fetched by tools/fetch_weights.sh
+    width: 320             # frame width in px before detection
+    num_hands: 2           # max hands per frame (the wearer's two hands)
+    min_detection_conf: 0.3  # palm detector threshold; low, presence is a soft signal
+    min_presence_conf: 0.3   # landmark-model hand presence threshold
+    min_tracking_conf: 0.3   # below this, re-run palm detection instead of tracking
+  clip:                    # open_clip ViT-B/16, OpenAI weights (features/clip.py)
+    model: ViT-B-16        # open_clip architecture name (ARCHITECTURE.md §10)
+    weights: weights/clip_vit_b16_openai.safetensors  # fetched by tools/fetch_weights.sh
+    width: 448             # frame width in px before CLIP preprocessing
+    batch_size: 32         # images per forward pass (speed only, not in the cache version)
 
 actions:
-  max_per_video: 1000     # actions[] cap after pairing (kit hard limit 2000 lives in constants); tuned in P4
-  min_score: 0.0          # drop paired actions below this rescaled score; tuned in P4
+  max_per_video: 2000      # cap on actions[] per video (kit max 2000); initial, tuned in P4
+  min_score: 0.0           # drop actions below this score; initial, tuned in P4
 
-zeroshot:                 # detect/fallback_zeroshot.py (kill-rule + uncertain-route detector)
-  window_sec: 2.0         # sliding window length over 1 fps CLIP embeddings (REWIND_v2.3_plan §7)
-  stride_sec: 1.0         # window step
-  top_k: 3                # verb / noun classes emitted per window
+pairing:
+  match_tiou: 0.5          # min tIoU to pair a verb proposal with a noun proposal; initial, P4
+  top_k: 5                 # verbs and nouns kept per proposal when pairing
+  alpha: 1.0               # exponent on the verb–noun co-occurrence prior
+  eps: 1.0                 # additive smoothing for prior counts
+  score_power: 0.5         # fixed monotone rescale: (p_v * p_n * prior^alpha) ** power; P4
+
+zeroshot:                  # detect/fallback_zeroshot.py: kill-rule + uncertain-route detector (P4)
+  window_sec: 2.0          # sliding window over 1 fps CLIP embeddings (REWIND_v2.3_plan §7)
+  stride_sec: 1.0          # window step
+  top_k: 3                 # verb / noun classes emitted per window
   verb_template: "a first-person photo of hands that {} something."
   noun_template: "a first-person photo of a {}."
 
-pairing:                  # ARCHITECTURE.md §5.1
-  match_tiou: 0.5         # a noun detection pairs with a verb detection at tIoU >= this
-  k: 5                    # top-k verbs / nouns / pairs kept per proposal
-  alpha: 0.5              # exponent on the verb-noun co-occurrence prior
-  prior_eps: 0.5          # additive smoothing of train co-occurrence counts
-  score_power: 0.5        # fixed monotone rescale: score = (p_v * p_n * prior^alpha) ^ power
+cluster:
+  tiou: 0.3                # min tIoU to link two proposals; initial, P5
+  sim: 0.85                # min CLIP cosine similarity to link two proposals; initial, P5
+  k: 5                     # top pairs kept per cluster distribution
 
-signals:
-  dense_fps: 4.0          # rate of flow + hands signals (ARCHITECTURE.md §2: 2-4 fps)
-  clip_fps: 1.0           # rate of CLIP image embeddings (ARCHITECTURE.md §2)
+calibration:
+  temperature: 1.0         # temperature on cluster pair distributions (stretch S1)
 
-features:
-  flow:
-    width: 160            # frames are resized to this width before Farneback (§10)
-    pyr_scale: 0.5        # Farneback: image scale between pyramid levels
-    levels: 3             # Farneback: number of pyramid levels
-    winsize: 15           # Farneback: averaging window size (pixels)
-    iterations: 3         # Farneback: iterations per pyramid level
-    poly_n: 5             # Farneback: pixel neighbourhood for the polynomial expansion
-    poly_sigma: 1.2       # Farneback: Gaussian sigma for the polynomial expansion
-  hands:
-    model: weights/hand_landmarker.task  # MediaPipe Hand Landmarker (tools/fetch_weights.sh)
-    width: 320            # frames are resized to this width before detection
-    num_hands: 2          # max hands per frame (egocentric: the wearer's two hands)
-    min_detection_conf: 0.3   # palm detector threshold; low, since presence is a soft signal
-    min_presence_conf: 0.3    # landmark-model hand presence threshold
-    min_tracking_conf: 0.3    # below this, re-run palm detection instead of tracking
-  clip:
-    model: ViT-B-16       # open_clip architecture name (ARCHITECTURE.md §10)
-    weights: weights/clip_vit_b16_openai.safetensors  # OpenAI weights (tools/fetch_weights.sh)
-    width: 448            # frames are resized to this width before CLIP preprocessing
-    batch_size: 32        # images per forward pass (CPU memory vs speed)
+select:
+  window_lengths: [4.05, 5.0, 6.0]  # candidate window lengths in s; each >= 4.05
+  stride: 0.5              # candidate window start grid in s
+  budget_frac: 0.145       # highlight budget as a fraction of T (kit 0.15 minus a margin)
+  capture_rule: any_overlap  # any_overlap | fraction (PROGRESS.md Q4)
+  fraction_theta: 0.5      # fraction rule: overlap/span midpoint of the sigmoid
+  fraction_tau: 0.05       # fraction rule: sigmoid temperature
 
-# Zero-shot prompts shared by routing (P(cooking), ARCHITECTURE.md §6.1) and the
-# FPVSum label (§6.3). Each class embedding is the mean of its template embeddings
-# (prompt ensemble). First pass; P6 tunes phrases on FPVSum CV folds only.
-prompts:
-  templates:
-    - "a first-person video of {}."
-    - "a photo taken by a person {}."
-    - "a GoPro view while {}."
-  classes:                # kit label key -> phrase; `other` is never a CLIP class
+hedge:
+  share: 0.125             # fraction of the budget reserved for hedge windows; initial, P5
+  gap: 1.0                 # s kept clear around selected windows
+  strong: 0.8              # clusters at or above this confidence are masked out
+  min_spacing: 10.0        # min s between hedge window centres
+  w_flow: 1.0              # activity weight on z-scored flow
+  w_hands: 1.0             # activity weight on hand presence
+
+post:
+  merge_gap: 0.5           # merge highlights closer than this many s
+  short_video_mode: min_seg  # min_seg | within_budget (ARCHITECTURE.md §5.6); ship min_seg
+
+importance:
+  sigma: 2.0               # Gaussian smoothing of importance in s; initial, P6
+  shot_thr: 0.2            # CLIP change-point threshold for shot boundaries; initial, P6
+  w_flow: 1.0              # importance weight: residual flow
+  w_hands: 1.0             # importance weight: hand presence
+  w_global_motion: 0.5     # importance weight: camera motion
+  w_scene_change: 0.5      # importance weight: scene change
+  min_window: 4.05         # shortest FPVSum window in s (>= 4.05)
+  max_window: 10.0         # longest FPVSum window in s
+
+label:
+  prompts:                 # CLIP prompt templates; {} is the category name
+    - "a first-person video of {}"
+    - "a GoPro video of {}"
+    - "a photo of someone doing {}"
+  classes:                 # kit label -> CLIP phrase; routing (cooking) and the FPVSum label; initial, P6
     bike: "riding a bicycle"
     bikepolo: "playing bike polo"
     boxing: "boxing"
@@ -73,7 +113,13 @@ prompts:
     skate: "skateboarding"
     ski: "skiing"
     surfing: "surfing a wave"
+  n_keyframes: 8           # evenly spaced frames averaged for the label
+  other_thr: 0.2           # below this top probability on the uncertain route, label "other"
 
 routing:
-  cooking_thr: 0.5        # mean CLIP P(cooking) >= this -> EPIC route (tuned in P6)
-  min_conf: 0.1           # |P(cooking) - cooking_thr| below this -> uncertain route (tuned in P6)
+  cooking_thr: 0.5         # CLIP P(cooking scene) at or above this → EPIC route; initial, P6
+  min_conf: 0.1            # route margin below this → uncertain route; initial, P6
+
+eval:
+  f1_fps: 2.0              # sampling rate for frame-level F1
+  coverage_lambda: 1.0     # over-budget penalty slope in our coverage metric (Q8)

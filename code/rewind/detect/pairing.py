@@ -43,9 +43,9 @@ class PairingParams:
     """`pairing` in configs/default.yaml."""
 
     match_tiou: float
-    k: int
+    top_k: int
     alpha: float
-    prior_eps: float
+    eps: float
     score_power: float
 
 
@@ -66,7 +66,7 @@ class VNPrior:
         if counts.shape != (len(verbs), len(nouns)):
             raise ValueError(f"counts {counts.shape} != ({len(verbs)}, {len(nouns)})")
         if eps <= 0:
-            raise ValueError("prior_eps must be > 0 so unseen pairs keep a nonzero prior")
+            raise ValueError("pairing.eps must be > 0 so unseen pairs keep a nonzero prior")
         smoothed = counts + eps
         return cls(tuple(verbs), tuple(nouns), smoothed / smoothed.sum(axis=1, keepdims=True))
 
@@ -120,11 +120,11 @@ def pair_proposals(
         if noun_idx.size == 0:
             continue
         group = np.flatnonzero(vv[i])
-        verbs = _top_k(verb_dets, group, params.k)
+        verbs = _top_k(verb_dets, group, params.top_k)
         leaders = [j for j in group if verb_dets[j][1:] == verbs[0]]
         if i != min(leaders):
             continue  # another detection leads this group and anchors its proposal
-        nouns = _top_k(noun_dets, noun_idx, params.k)
+        nouns = _top_k(noun_dets, noun_idx, params.top_k)
         pairs = [
             (v, n, (pv * pn * prior.get(v, n) ** params.alpha) ** params.score_power)
             for v, pv in verbs
@@ -135,7 +135,7 @@ def pair_proposals(
         if not pairs:
             continue
         pairs.sort(key=lambda x: (-x[2], x[0], x[1]))
-        proposals.append(Proposal(seg, verbs, nouns, tuple(pairs[: params.k])))
+        proposals.append(Proposal(seg, verbs, nouns, tuple(pairs[: params.top_k])))
     proposals.sort(key=lambda pr: (pr.segment[0], pr.segment[1]))
     return proposals
 

@@ -62,7 +62,7 @@ def main() -> None:
         path = args.train_csv.with_name(f"EPIC_100_{kind}_classes.csv")
         with path.open(newline="", encoding="utf-8") as f:
             epic = [r["key"] for r in sorted(csv.DictReader(f), key=lambda r: int(r["id"]))]
-        if epic + ["other"] != kit_keys:
+        if [*epic, "other"] != kit_keys:
             raise SystemExit(f"{path.name} order differs from the kit's {kind}s + 'other'")
 
     counts = count_pairs(rows, len(verbs), len(nouns))

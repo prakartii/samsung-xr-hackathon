@@ -1,19 +1,22 @@
-# Large or licensed data: never committed (CLAUDE.md §6.9)
-data/
-cache/
-weights/
-
 # Python
-.venv/
 __pycache__/
 *.py[cod]
+.venv/
 *.egg-info/
 .pytest_cache/
 .ruff_cache/
 .hypothesis/
 
+# Large or licensed data (CLAUDE.md §6.9)
+/data/
+/cache/
+/weights/
+
+# Outputs are committed only at P9 (remove this line then)
+/outputs/
+
 # Editors / OS
-.vscode/
 .idea/
+.vscode/
 .DS_Store
 Thumbs.db
