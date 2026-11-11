@@ -1,0 +1,29 @@
+[project]
+name = "rewind"
+version = "0.1.0"
+description = "REWIND: action-aware video summarization (Samsung XR Hackathon 2026, Track 4)"
+requires-python = ">=3.11,<3.12"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["code/third_party", "*.md"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "NPY", "RUF"]
+# Typographic characters used in comments and docstrings across the project.
+allowed-confusables = ["–", "−", "×", "·"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["rewind", "rewind_eval"]
+
+[tool.pytest.ini_options]
+pythonpath = ["code"]
+testpaths = ["tests"]
+# Default run = fast suite. `pytest -m "slow or data or gpu"` overrides this -m.
+addopts = "--strict-markers -m 'not slow and not data and not gpu'"
+markers = [
+    "slow: takes more than a few seconds",
+    "data: needs files in data/ or cache/",
+    "gpu: needs a CUDA GPU",
+]
