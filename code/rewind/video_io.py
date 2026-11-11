@@ -13,7 +13,6 @@ from dataclasses import dataclass
 from fractions import Fraction
 from pathlib import Path
 
-import cv2
 import numpy as np
 
 
@@ -133,6 +132,8 @@ def resize_to_width(frame: np.ndarray, width: int) -> np.ndarray:
     if w == width:
         return frame
     height = max(2, 2 * round(h * width / w / 2))
+    import cv2  # lazy: run.sh's metadata/fallback path must not load OpenCV
+
     return cv2.resize(frame, (width, height), interpolation=cv2.INTER_AREA)
 
 
