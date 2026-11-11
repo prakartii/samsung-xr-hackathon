@@ -2,3 +2,5 @@
 pytest==9.2.0
 hypothesis==6.170.15
 ruff==0.17.4
+# Evaluation only (rewind_eval reads FPVSum's .mat ground truth); never needed by run.sh.
+scipy==1.17.1

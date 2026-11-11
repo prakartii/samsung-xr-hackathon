@@ -1,8 +1,8 @@
 """Frame-level highlight F1 for FPVSum (ARCHITECTURE.md §9.3). Pure.
 
-GT positives: the top ``top_frac`` of sampled frames by mean human importance, exactly
-ceil(top_frac · N) frames (ties broken by earlier time). Predicted positives: frames
-inside any highlight ≥ 4 s.
+Evaluated at the GT's native frame times. GT positives: the dataset's own top-15%
+highlight frames (``FpvGT.highlight``), or ``top_frames(score)`` for an exact-count
+variant. Predicted positives: frames inside any highlight ≥ 4 s.
 """
 
 import math
@@ -35,13 +35,9 @@ def highlight_mask(times: np.ndarray, highlights: Sequence[Segment]) -> np.ndarr
     return mask
 
 
-def frame_f1(
-    times: np.ndarray,
-    importance: np.ndarray,
-    highlights: Sequence[Segment],
-    top_frac: float = SCORING_BUDGET,
-) -> float:
-    gt = top_frames(importance, top_frac)
+def frame_f1(times: np.ndarray, gt_positive: np.ndarray, highlights: Sequence[Segment]) -> float:
+    """F1 of highlight frames against ``gt_positive`` (bool per frame); 0 if no TP."""
+    gt = np.asarray(gt_positive, dtype=bool)
     pred = highlight_mask(np.asarray(times, dtype=float), highlights)
     tp = int(np.sum(gt & pred))
     if tp == 0:
