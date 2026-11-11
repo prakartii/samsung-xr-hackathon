@@ -65,9 +65,9 @@ package: `validate.py`. Remaining: send the email, set the team ID.
 - [x] `pyproject.toml` (ruff, pytest with `pythonpath = ["code"]`, markers `slow`, `data`, `gpu`), `requirements*.txt`, `.gitignore`
 - [x] `configs/default.yaml` + `rewind/config.py` with `config_hash()` (strict loader)
 - [x] `rewind/constants.py`, `rewind/types.py`
-- [ ] `rewind/vocab.py` (kit classes)
+- [x] `rewind/vocab.py` (kit classes, bundled copy for runs without `kit/`)
 - [ ] `python -m rewind…` / `rewind_eval…` work outside pytest: `run.sh` and the docs set `PYTHONPATH=code` (or install the package)
-- [ ] `rewind/schema.py` implementing R1–R13 + `rewind_eval/validate.py` CLI
+- [x] `rewind/schema.py` implementing R1–R14 (strict and kit severities) + `rewind_eval/validate.py` CLI
 - [ ] `rewind/postprocess.py` (§5.6 of `ARCHITECTURE.md`)
 - [ ] `rewind/fallback.py` (uniform ≥ 4 s windows at 14.5%)
 - [ ] `rewind/output.py` (kit schema, 2-decimal rounding); `rewind/pipeline.py` (fallback-only for now), `rewind/cli.py`, `run.sh`
@@ -314,6 +314,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-11 · DA · P1 · Validator: `rewind/schema.py` (R1–R14, strict + kit severities), bundled class list (`rewind/vocab.py`), `rewind_eval.validate` directory CLI (manifest durations, missing files, team_id); 63 new tests, 21 of 22 deliberate bugs caught (1 harmless rewrite) · #8
 - 2026-11-11 · DA · process · Review agents: every session runs a background review sub-agent that polls PRs (`tools/pr_watch.py`), reviews the other person's PRs and reports to the main agent, which posts the review and merges (CLAUDE.md §5); approved by prakartii · #7
 - 2026-11-11 · DA · P1 · Skeleton: pyproject, pinned requirements, CI, constants, types, strict config loader + default.yaml, import-boundary tests (source scan, config scan, runtime import check); 69 tests, checked against deliberate bugs; review fixes: NaN/inf and duplicate keys rejected, more range checks, hash of the loaded config · #6
 - 2026-11-11 · DA · P0 · Recorded roles (A = prakartii, B = DA); removed leftover GPU assumptions (P4 test marker, P7 latency, P8 Dockerfile) · #5
