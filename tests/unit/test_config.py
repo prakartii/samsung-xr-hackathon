@@ -265,3 +265,48 @@ def test_config_hash_changes_when_a_value_changes(default_cfg_dict):
     default_cfg_dict["select"]["stride"] = 0.25
 
     assert config_hash(config_from_dict(default_cfg_dict)) != before
+
+
+# --- P3 additions: features.flow/hands/clip blocks, label.classes mapping ------------
+
+
+def test_config_label_classes_loads_as_str_mapping(default_cfg_dict):
+    cfg = config_from_dict(default_cfg_dict)
+
+    assert cfg.label.classes["ski"] == "skiing"
+    assert "cooking" in cfg.label.classes
+
+
+def test_config_label_classes_without_cooking_is_rejected(default_cfg_dict):
+    del default_cfg_dict["label"]["classes"]["cooking"]
+
+    with pytest.raises(ConfigError, match=r"label\.classes: must include 'cooking'"):
+        config_from_dict(default_cfg_dict)
+
+
+def test_config_label_classes_list_instead_of_mapping_is_rejected(default_cfg_dict):
+    default_cfg_dict["label"]["classes"] = ["ski", "cooking"]
+
+    with pytest.raises(ConfigError, match=r"label\.classes: expected a non-empty mapping"):
+        config_from_dict(default_cfg_dict)
+
+
+def test_config_label_classes_non_string_phrase_is_rejected_with_its_key(default_cfg_dict):
+    default_cfg_dict["label"]["classes"]["ski"] = 3
+
+    with pytest.raises(ConfigError, match=r"label\.classes\.ski: expected a non-empty string"):
+        config_from_dict(default_cfg_dict)
+
+
+def test_config_flow_width_zero_is_rejected(default_cfg_dict):
+    default_cfg_dict["features"]["flow"]["width"] = 0
+
+    with pytest.raises(ConfigError, match=r"features\.flow\.width: 0 must be > 0"):
+        config_from_dict(default_cfg_dict)
+
+
+def test_config_hands_threshold_above_one_is_rejected(default_cfg_dict):
+    default_cfg_dict["features"]["hands"]["min_presence_conf"] = 1.5
+
+    with pytest.raises(ConfigError, match=r"features\.hands\.min_presence_conf: 1\.5 must be"):
+        config_from_dict(default_cfg_dict)
