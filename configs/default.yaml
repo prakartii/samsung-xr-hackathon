@@ -10,12 +10,31 @@ team:
   team_id: TBD_Q11         # our assigned team ID (PROGRESS.md Q11); same in every file
 
 signals:
-  dense_fps: 3.0           # rate for flow and hand signals (2–4 fps)
+  dense_fps: 4.0           # rate for flow and hand signals (2–4 fps); P3 chose 4 (finer hedge peaks), caches use it
   clip_fps: 1.0            # rate for CLIP image embeddings
 
 features:
   cache_dir: cache         # root of the versioned feature cache (ARCHITECTURE.md §8)
-  flow_width: 160          # frame width in px for Farneback flow
+  flow:                    # Farneback optical flow (features/flow.py)
+    width: 160             # frame width in px for Farneback flow
+    pyr_scale: 0.5         # image scale between pyramid levels
+    levels: 3              # number of pyramid levels
+    winsize: 15            # averaging window size, px
+    iterations: 3          # iterations per pyramid level
+    poly_n: 5              # pixel neighbourhood for the polynomial expansion
+    poly_sigma: 1.2        # Gaussian sigma for the polynomial expansion
+  hands:                   # MediaPipe Hand Landmarker (features/hands.py)
+    model: weights/hand_landmarker.task  # fetched by tools/fetch_weights.sh
+    width: 320             # frame width in px before detection
+    num_hands: 2           # max hands per frame (the wearer's two hands)
+    min_detection_conf: 0.3  # palm detector threshold; low, presence is a soft signal
+    min_presence_conf: 0.3   # landmark-model hand presence threshold
+    min_tracking_conf: 0.3   # below this, re-run palm detection instead of tracking
+  clip:                    # open_clip ViT-B/16, OpenAI weights (features/clip.py)
+    model: ViT-B-16        # open_clip architecture name (ARCHITECTURE.md §10)
+    weights: weights/clip_vit_b16_openai.safetensors  # fetched by tools/fetch_weights.sh
+    width: 448             # frame width in px before CLIP preprocessing
+    batch_size: 32         # images per forward pass (speed only, not in the cache version)
 
 actions:
   max_per_video: 2000      # cap on actions[] per video (kit max 2000); initial, tuned in P4
@@ -70,6 +89,22 @@ label:
     - "a first-person video of {}"
     - "a GoPro video of {}"
     - "a photo of someone doing {}"
+  classes:                 # kit label -> CLIP phrase; routing (cooking) and the FPVSum label; initial, P6
+    bike: "riding a bicycle"
+    bikepolo: "playing bike polo"
+    boxing: "boxing"
+    cooking: "cooking in a kitchen"
+    horse: "riding a horse"
+    jumping: "skydiving or jumping"
+    longboarding: "riding a longboard"
+    motor: "riding a motorcycle"
+    parkour: "doing parkour"
+    plane: "flying a small plane"
+    rockclimbing: "rock climbing"
+    scuba: "scuba diving underwater"
+    skate: "skateboarding"
+    ski: "skiing"
+    surfing: "surfing a wave"
   n_keyframes: 8           # evenly spaced frames averaged for the label
   other_thr: 0.2           # below this top probability on the uncertain route, label "other"
 

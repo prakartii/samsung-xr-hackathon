@@ -17,7 +17,7 @@ Who is A and who is B: **A = prakartii**, **B = Daksh Arora (DA)**.
 | P0 | Kit & rules | B | Nov 10 | in progress | Kit committed in `kit/`; kit rules in `ARCHITECTURE.md` §7 confirmed or corrected; questions emailed |
 | P1 | Skeleton & submission contract | B | Nov 10–11 | in progress | `run.sh` writes valid fallback JSON for all 187 videos; CI green |
 | P2 | Evaluation harness | B | Nov 11–12 | done | Leaderboard has uniform + oracle rows on `tune` and `report` |
-| P3 | Video I/O, signals, feature cache | A | Nov 10–12 | not started | Flow, hands and CLIP cached for all 187 + `tune` videos |
+| P3 | Video I/O, signals, feature cache | A | Nov 10–12 | in progress | Flow, hands and CLIP cached for all 187 + `tune` videos |
 | P4 | Action detection → `actions[]` | A | Nov 11–13 | not started | mAP measured on `tune` and `report`; beats the zero-shot fallback |
 | P5 | Clustering + EPIC coverage selector | B | Nov 12–14 | in progress | EPIC coverage > uniform; % of oracle reported; ablation done |
 | P6 | FPVSum route: importance, segments, label | A | Nov 13–15 | not started | F1 > uniform on FPVSum CV; label accuracy reported |
@@ -134,13 +134,19 @@ are blank.)
 ---
 
 ### P3 — Video I/O, signals, feature cache
-**Owner:** A · **Planned:** Nov 10–12 · **Status:** not started · **Depends on:** — (P1 types; coordinate with B)
+**Owner:** A (prakartii) · **Planned:** Nov 10–12 · **Status:** in progress (started 2026-11-11, branch `p3/video-io-signals`) · **Depends on:** — (P1 types; coordinate with B)
 
-- [ ] Download the 187 videos into `data/videos/` + the `tune` videos
-- [ ] `video_io.py`: decoding at a target fps, frame ↔ seconds
-- [ ] `features/flow.py` (residual + global motion), `features/hands.py`, `features/clip.py`
-- [ ] `features/cache.py` (versioned, atomic) + `tools/cache_features.py` (longest first, resumable)
-- [ ] `routing.py` (video signals only; no manifest, no filename)
+> **Coordination note (resolved 2026-11-12):** P3 started before P1 and carried minimal
+> scaffolding; P1 has since merged and this branch was reconciled with `main` (P1 owns
+> probing via `ffprobe_meta`; P3 adds PyAV decoding).
+
+- [ ] Download the 187 videos into `data/videos/` + the `tune` videos — in progress (2026-11-11) with `tools/download_videos.py`; `tune` videos wait for B's `configs/splits.yaml`
+- [x] `video_io.py`: decoding at a target fps, frame ↔ seconds (also ffprobe parsing, so P1's `ffprobe_meta` item is covered)
+- [x] `features/flow.py` (residual + global motion)
+- [x] `features/hands.py` (MediaPipe Hand Landmarker), `features/clip.py` (open_clip ViT-B/16, prompt ensemble, zero-shot); weights via `tools/fetch_weights.sh` (SHA-256 pinned)
+- [x] `features/cache.py` (versioned, atomic)
+- [x] `tools/cache_features.py` (longest first, resumable; logs `cache/throughput.csv`)
+- [x] `routing.py` (video signals only; no manifest, no filename): pure decision from per-keyframe CLIP P(cooking); the CLIP prompts that produce it come with `features/clip.py`
 - [ ] Start caching on Nov 10; record throughput (seconds of compute per minute of video)
 
 **Exit check:** caches complete for all 187 + `tune`; throughput recorded below.
@@ -148,6 +154,41 @@ are blank.)
 - unit: frame ↔ seconds conversion at 25/30/59.94 fps; cache version mismatch → recompute; atomic write leaves no partial file; cache key is the content fingerprint (renamed file → cache hit)
 - unit: routing on fake CLIP scores (clear EPIC, clear FPVSum, uncertain margin)
 - integration (`data`): signals on one real video have the expected shapes, and the timestamps span `[0, T]`
+
+**Notes so far (2026-11-11, PK):**
+- Decoding uses PyAV (FFmpeg libraries bundled in the wheel): first video stream only,
+  threaded, each sample gets the last frame with presentation time <= t on the shared
+  `sample_times` grid; a stream that ends early raises `DecodeError`. (OpenCV was
+  used first and silently truncated EPIC files; see D1.) No ffmpeg on PATH needed.
+- Global motion = |median flow vector| (camera ego-motion); residual = mean |flow − median|
+  (hands/objects). Frame 0 copies frame 1's value. Both z-scored per video.
+- Routing returns `unknown` when |P(cooking) − thr| < `min_conf` and keeps the mean
+  P(cooking) so the uncertain-route rule (ARCHITECTURE.md §4) can still pick a side.
+- Videos: `python tools/download_videos.py --root <data root> --epic-scripts <clone of
+  epic-kitchens-download-scripts>`. EPIC comes straight from data.bris (URLs and MD5s
+  read from the official scripts' CSVs; resumable; MD5-verified). FPVSum comes from
+  YouTube via yt-dlp, which now needs a JS runtime (pip `deno`, pinned in
+  `requirements-dev.txt`); 360p progressive MP4. **FPVSum YouTube ids come from the
+  official `FPVSum_videolist.csv`, not the name:** 4 manifest ids
+  (`BikePolo_*_1/_3`) are YouTube videos with other ids.
+- Dependencies: `mediapipe` requires `opencv-contrib-python` by name, so we use that
+  instead of `opencv-python-headless` (two packages owning `cv2` break each other);
+  a Linux image needs `libgl1`. Torch is the CPU build from the PyTorch index.
+- Hands: presence = max handedness score of detected hands (0 if none), MediaPipe
+  VIDEO mode on the shared time grid.
+- CLIP smoke check (2026-11-11, first-pass prompts in `configs/default.yaml` →
+  `prompts`): mean P(cooking) ≤ 0.006 on 9 FPVSum videos (routing threshold 0.5);
+  zero-shot label top-1 right on 5 of 9 (Bike→motor, BikePolo→bike, Jumping→plane,
+  Plane→horse). Phrase tuning is P6 work, on CV folds only.
+- **Provisional throughput (2026-11-11, i7-13700H on battery, Balanced plan, so
+  throttled; re-measure on AC):** compute seconds per minute of video: flow 2.0,
+  hands 10.1, CLIP 45.2 (377 s FPVSum video). CLIP forward ≈ 0.4–0.8 s/image
+  (6 threads best; 14 threads slower). At these rates EPIC's 13.2 h of video would
+  need ~10 h for CLIP alone vs the ≤ 5 h target (ARCHITECTURE.md §12).
+- **EPIC download speed:** data.bris gives ~0.5 MiB/s per connection; 6 parallel
+  connections reach ~2.3 MiB/s on our link (≈ 20 h for 184 GB).
+- Local dev here runs Python 3.12 (CLAUDE.md says 3.11); `pyproject` targets ≥ 3.11 and
+  ruff checks against 3.11 syntax.
 
 **Result:** _fill in: throughput, total cache size, any videos that failed to decode._
 
@@ -320,6 +361,7 @@ edge fix. Hedges improved from 0.422 to 0.447 but still trail h = 0.)
 | Q9 | May `run.sh` read `manifest.csv`? Scoring only on the 187 videos? | — | 2026-11-11, kit §6: a hidden subset of the 187 is scored; re-runs happen in an isolated environment | Closed by decision: inference doesn't read the manifest |
 | Q10 | The example `skiing_03.json` uses label `skiing`, but `supported_classes.json` has `ski`. Which is correct? | | | We use `ski` (the vocabulary file) |
 | Q11 | What is our team ID? The kit examples use `T07`. | | | |
+| D1 | **A → B:** switch video metadata + decoding from ffprobe/OpenCV to PyAV (`av==18.0.0`, the newest with Python 3.11 wheels)? OpenCV silently stopped after 44 of 10,418 frames on EPIC GoPro files (audio + 3 data streams); PyAV decodes them fully, 2.5× faster (threaded), by presentation time, and needs no ffmpeg binary. Implemented in `video_io.iter_frames` / `probe_video`; `ffprobe_meta` kept | 2026-11-11, PROGRESS (PK) | 2026-11-12, DA: **approved** (decoding with PyAV; `run.sh` metadata stays on ffprobe) | ARCHITECTURE.md §3.1 `video_io` row updated in #17 |
 | K1 | Do the second-hand kit rules (`ARCHITECTURE.md` §7) match our own kit copy? | — | 2026-11-11: yes, all of R1–R13 | `ARCHITECTURE.md` §7 now cites `kit/` |
 
 **Email draft (to prism@samsung.com, subject "Track 4 — questions on the student package"):**
@@ -343,6 +385,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 | Date | Decision | Why | By |
 |---|---|---|---|
 | 2026-11-11 | `SHORT_VIDEO_T` = `MIN_SEG_EMIT / SCORING_BUDGET` = 27.0 s (was 4.0 / 0.15 = 26.67 s) | We emit 4.05 s windows; between 26.67 and 27.0 s one window is over 15% but wasn't treated as short, so strict validation would fail. No manifest video is in that range | DA (bug fix, no design change) |
+| 2026-11-12 | D1 approved: frames decoded with PyAV (`av==18.0.0`), metadata for `run.sh` stays on ffprobe; `signals.dense_fps` 3.0 → 4.0 | OpenCV silently truncated EPIC GoPro files after < 1 s; PyAV decodes them fully and faster. 4 fps gives finer motion/hand peaks and the P3 caches already use it | DA (B), on A's proposal |
 | 2026-11-12 | Invalid stage output is salvaged part by part before the full fallback (§4 step 5) | Review of #10: one out-of-vocabulary verb or one bad highlight discarded a video's whole result | DA (review fix) |
 | 2026-11-11 | `hedge.share` 0.125 → 0 | Simulated proposals on `tune`: the reserve cost ~0.08 coverage without an activity profile. Re-tune when P3's flow/hands exist | DA (tuning on `tune`) |
 | 2026-11-11 | Expected-coverage formula corrected (§5.4): `P_miss` uses each cluster's capture by the merged union, not a factor per window | The v1.0 formula counted overlapping windows over one cluster as independent chances to catch the same action, inflating gains. The fix also scores exactly what post-processing emits | DA (prakartii to confirm) |
@@ -367,6 +410,9 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-12 · DA · P3 · Review fixes (B took over on request): `iter_frames` samples relative to the stream start time (offset-video test); contract test that `run.sh` still writes valid fallback JSON when cv2 can't load; D1 (PyAV) and `dense_fps` 4.0 approved; P3 log lines now cite #17 · #17
+- 2026-11-12 · PK · P3 · CI fixes: PyAV pinned to 18.0.0 (19.x has no Python 3.11 wheels); `video_io` imports OpenCV lazily so `run.sh`'s fallback path loads no OpenCV; `test_run_sh_never_opens_manifest_or_ground_truth` (P1) now ignores files inside the Python installation, which tripped it with library names (`torch/jit/annotations.py`, `cv2/data/`), while still checking every other path · #17
+- 2026-11-12 · PK · P3 · Merged `main` (P1) into `p3/video-io-signals`: P1 owns `video_io` probing (`ProbeInfo`, `ffprobe_meta`, `parse_probe`), P3 adds frame↔seconds, `sample_times`, PyAV `probe_video`/`iter_frames`; config schema extended (`features.flow/hands/clip` blocks replace `features.flow_width`, new `label.classes` mapping; `signals.dense_fps` = 4.0, see D1 note) · #17
 - 2026-11-12 · DA · P1 · Review fixes on the pipeline: salvage valid parts before the full fallback, output files 0644, infinite durations rejected; tests for each · #10
 - 2026-11-12 · DA · P5 · Review fixes on hedge/selector entry: farthest-point hedges (they bunched), exact hedge count, short videos get the best single window, simulator can't invert segments, eval rows carry a config hash and use `eval.capture_theta`; `select_epic` property test; sim rows regenerated · #16
 - 2026-11-12 · DA · P1 · Review fixes on post-processing/output: budget on the written (2-decimal) duration, action times clamped into [0, T] and non-finite actions dropped, 4.0 s highlight for 3.5–4 s videos; tests for best-value placement, trim tie-break, merged value · #9
@@ -387,6 +433,13 @@ Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 - 2026-11-11 · DA · P5 · Clustering (union-find on tIoU + pair/embedding match; weighted top-k pair dists, temperature), candidate windows + capture model, expected-coverage selector on the merged union (formula corrected); GT-derived clusters on all 138 val videos: coverage 0.742, slowest 0.6 s · #15
 - 2026-11-11 · DA · process · Review agents: every session runs a background review sub-agent that polls PRs (`tools/pr_watch.py`), reviews the other person's PRs and reports to the main agent, which posts the review and merges (CLAUDE.md §5); approved by prakartii · #7
 - 2026-11-11 · DA · P1 · Skeleton: pyproject, pinned requirements, CI, constants, types, strict config loader + default.yaml, import-boundary tests (source scan, config scan, runtime import check); 69 tests, checked against deliberate bugs; review fixes: NaN/inf and duplicate keys rejected, more range checks, hash of the loaded config · #6
+- 2026-11-11 · PK · P3 · EPIC download stalled at 11/138: data.bris intermittently serves a SHA-1-signed CA, rejected by OpenSSL's default security level (`CA signature digest algorithm too weak`). `download_videos.py` now uses a verified TLS context at security level 1 (chain + hostname still checked; files still MD5-checked) and backs off between retries · #17
+- 2026-11-11 · PK · P3 · **Bug fixed:** OpenCV decoded < 1 s of EPIC GoPro files without error (regression test `tests/integration/test_decode_epic.py`). Decoding moved to PyAV (open question D1), `iter_frames` raises `DecodeError` on early end, flow/hands/clip cache versions bumped to v2, caching decodes each video once for all three features (54–63 s compute per video minute for flow+hands+CLIP on EPIC). Commits cherry-picked from `p4/actionformer`, where they were first made · #17
+- 2026-11-11 · PK · P3 · `tools/cache_features.py`; first throughput numbers (provisional, on battery); EPIC download parallelized (6 connections) · #17
+- 2026-11-11 · PK · P3 · `features/hands.py` (MediaPipe) and `features/clip.py` (open_clip); `tools/fetch_weights.sh`; licenses in ARCHITECTURE §10; data-tier tests for both models; FPVSum 49/49 downloaded, durations within ±0.5 s · #17
+- 2026-11-11 · PK · P3 · `tools/download_videos.py` (EPIC direct + resumable + MD5; FPVSum via the official id list); downloads of the 187 videos started · #17
+- 2026-11-11 · PK · P3 · `video_io` (frame ↔ seconds, ffprobe parsing, decoding at a target fps), versioned fingerprint-keyed `features/cache`, Farneback `features/flow` (global vs residual motion), signal-only `routing`; 70 tests, each mutation-checked · #17
+- 2026-11-11 · PK · P3 · Started P3 on `p3/video-io-signals`; minimal scaffolding note for B · #17
 - 2026-11-11 · DA · P0 · Recorded roles (A = prakartii, B = DA); removed leftover GPU assumptions (P4 test marker, P7 latency, P8 Dockerfile) · #5
 - 2026-11-11 · DA · P0 · Teammate (prakartii) confirmed the v1.1 routing decision · #4
 - 2026-11-11 · DA · P0 · Committed the official kit to `kit/`; ARCHITECTURE v1.1 (signal-only routing, cache keyed by content fingerprint, one schema, 2 decimals, kit facts); answered Q6, Q9, K1; added Q10, Q11 and the email draft; removed superseded plans · #3

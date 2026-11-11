@@ -18,7 +18,8 @@ allowed-confusables = ["–", "−", "×", "·"]
 known-first-party = ["rewind", "rewind_eval"]
 
 [tool.pytest.ini_options]
-pythonpath = ["code"]
+# "tests" lets tests share helpers (tests/fixtures/, tests/strategies.py).
+pythonpath = ["code", "tests"]
 testpaths = ["tests"]
 # Default run = fast suite. `pytest -m "slow or data or gpu"` overrides this -m.
 addopts = "--strict-markers -m 'not slow and not data and not gpu'"

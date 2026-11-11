@@ -39,9 +39,46 @@ class SignalsCfg:
 
 
 @dataclass(frozen=True)
+class FlowCfg:
+    """Farneback parameters (features/flow.py)."""
+
+    width: int
+    pyr_scale: float
+    levels: int
+    winsize: int
+    iterations: int
+    poly_n: int
+    poly_sigma: float
+
+
+@dataclass(frozen=True)
+class HandsCfg:
+    """MediaPipe Hand Landmarker (features/hands.py)."""
+
+    model: str
+    width: int
+    num_hands: int
+    min_detection_conf: float
+    min_presence_conf: float
+    min_tracking_conf: float
+
+
+@dataclass(frozen=True)
+class ClipCfg:
+    """open_clip image/text encoder (features/clip.py)."""
+
+    model: str
+    weights: str
+    width: int
+    batch_size: int
+
+
+@dataclass(frozen=True)
 class FeaturesCfg:
     cache_dir: str
-    flow_width: int
+    flow: FlowCfg
+    hands: HandsCfg
+    clip: ClipCfg
 
 
 @dataclass(frozen=True)
@@ -111,6 +148,7 @@ class ImportanceCfg:
 @dataclass(frozen=True)
 class LabelCfg:
     prompts: tuple[str, ...]
+    classes: dict[str, str]  # kit label -> CLIP phrase (routing + FPVSum label)
     n_keyframes: int
     other_thr: float
 
@@ -213,6 +251,14 @@ def _coerce(tp: Any, value: Any, path: str) -> Any:
         if value not in allowed:
             raise ConfigError(f"{path}: {value!r} is not one of {list(allowed)}")
         return value
+    if origin is dict:
+        key_tp, val_tp = typing.get_args(tp)
+        if not isinstance(value, dict) or not value:
+            raise ConfigError(f"{path}: expected a non-empty mapping, got {value!r}")
+        return {
+            _coerce(key_tp, k, f"{path}.<key>"): _coerce(val_tp, v, f"{path}.{k}")
+            for k, v in value.items()
+        }
     if origin is tuple:
         args = typing.get_args(tp)
         if len(args) != 2 or args[1] is not Ellipsis:
@@ -267,6 +313,8 @@ def _check_ranges(cfg: Config) -> None:
             f"importance.min_window/max_window: need {MIN_SEG_EMIT} <= "
             f"{imp.min_window} <= {imp.max_window}"
         )
+    if "cooking" not in cfg.label.classes:
+        raise ConfigError("label.classes: must include 'cooking' (routing scores P(cooking))")
     if not cfg.label.prompts:
         raise ConfigError("label.prompts: must not be empty")
     no_slot = [p for p in cfg.label.prompts if "{}" not in p]
@@ -281,6 +329,9 @@ def _check_ranges(cfg: Config) -> None:
         "label.other_thr": cfg.label.other_thr,
         "routing.cooking_thr": cfg.routing.cooking_thr,
         "routing.min_conf": cfg.routing.min_conf,
+        "features.hands.min_detection_conf": cfg.features.hands.min_detection_conf,
+        "features.hands.min_presence_conf": cfg.features.hands.min_presence_conf,
+        "features.hands.min_tracking_conf": cfg.features.hands.min_tracking_conf,
         "select.fraction_theta": s.fraction_theta,
         "eval.capture_theta": cfg.eval.capture_theta,
     }
@@ -294,7 +345,17 @@ def _check_ranges(cfg: Config) -> None:
         "select.stride": s.stride,
         "select.fraction_tau": s.fraction_tau,
         "importance.sigma": imp.sigma,
-        "features.flow_width": cfg.features.flow_width,
+        "features.flow.width": cfg.features.flow.width,
+        "features.flow.pyr_scale": cfg.features.flow.pyr_scale,
+        "features.flow.levels": cfg.features.flow.levels,
+        "features.flow.winsize": cfg.features.flow.winsize,
+        "features.flow.iterations": cfg.features.flow.iterations,
+        "features.flow.poly_n": cfg.features.flow.poly_n,
+        "features.flow.poly_sigma": cfg.features.flow.poly_sigma,
+        "features.hands.width": cfg.features.hands.width,
+        "features.hands.num_hands": cfg.features.hands.num_hands,
+        "features.clip.width": cfg.features.clip.width,
+        "features.clip.batch_size": cfg.features.clip.batch_size,
         "pairing.top_k": cfg.pairing.top_k,
         "pairing.eps": cfg.pairing.eps,
         "cluster.k": cfg.cluster.k,

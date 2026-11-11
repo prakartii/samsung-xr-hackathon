@@ -4,3 +4,6 @@ hypothesis==6.170.15
 ruff==0.17.4
 # Evaluation only (rewind_eval reads FPVSum's .mat ground truth); never needed by run.sh.
 scipy==1.17.1
+# Data tools (P3, A): tools/download_videos.py fetches FPVSum from YouTube.
+yt-dlp[default]==2026.10.26
+deno==2.9.8                   # JS runtime yt-dlp needs for YouTube format extraction
