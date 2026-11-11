@@ -21,6 +21,7 @@ Entries are keyed by content fingerprint, exactly as a local run would key them.
 
 import json
 import queue
+import shutil
 import subprocess
 import sys
 import tarfile
@@ -47,12 +48,19 @@ def setup() -> Path:
     # cv2, so install mediapipe without deps plus its small pure deps.
     sh("pip install -q av==19.0.2 open_clip_torch==4.2.2")
     sh("pip install -q --no-deps mediapipe==1.2.2")
-    sh("pip install -q absl-py flatbuffers sounddevice")
-    code_tar = next(Path("/kaggle/input").rglob("rewind-code.tar.gz"))
+    sh('pip install -q "absl-py~=2.3" "flatbuffers~=25.9" "sounddevice~=0.5"')
     repo = TMP / "repo"
-    repo.mkdir(parents=True, exist_ok=True)
-    with tarfile.open(code_tar) as tf:
-        tf.extractall(repo)
+    # Kaggle auto-extracts an uploaded .tar.gz into a read-only folder; older datasets
+    # may keep the archive. Accept both, and copy to a writable place (weights land
+    # in repo/weights).
+    tars = list(Path("/kaggle/input").rglob("rewind-code.tar.gz"))
+    if tars and tars[0].is_file():
+        repo.mkdir(parents=True, exist_ok=True)
+        with tarfile.open(tars[0]) as tf:
+            tf.extractall(repo)
+    else:
+        marker = next(Path("/kaggle/input").rglob("configs/default.yaml"))
+        shutil.copytree(marker.parents[1], repo, dirs_exist_ok=True)
     sh(f"cd {repo} && SKIP_GDRIVE=1 PYTHON={sys.executable} bash tools/fetch_weights.sh")
     return repo
 
