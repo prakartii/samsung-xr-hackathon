@@ -13,3 +13,7 @@
      `tests/unit/test_actionformer_nms.py` (hand cases + randomized inputs with ties).
   2. **`libs/utils/nms.py`**: `import nms_1d_cpu` now falls back to that port when
      the extension isn't built (3-line change at the import).
+  3. **`libs/utils/__init__.py`**: only `batched_nms` is imported eagerly; the other
+     exports (metrics, training utilities, post-processing) load lazily on first use.
+     The model imports `libs.utils`, and the eager imports required pandas and joblib,
+     which inference doesn't need and the runtime doesn't ship.
