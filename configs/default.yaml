@@ -1,9 +1,20 @@
 # REWIND configuration. Every tunable number lives here, nowhere else (CLAUDE.md §6.3).
 # Kit facts (4.0 s minimum, 15% budget, ...) are NOT here: see rewind/constants.py.
 #
-# P3 (A) adds only the sections it uses: signals, features, routing.
-# B adds team, actions, pairing, cluster, calibration, select, hedge, post, importance,
-# label, eval in P1 (ARCHITECTURE.md §11).
+# A adds the sections A's phases use: signals, features, routing, prompts (P3) and
+# actions, pairing (P4). B adds team, cluster, calibration, select, hedge, post,
+# importance, label, eval in P1 (ARCHITECTURE.md §11).
+
+actions:
+  max_per_video: 1000     # actions[] cap after pairing (kit hard limit 2000 lives in constants); tuned in P4
+  min_score: 0.0          # drop paired actions below this rescaled score; tuned in P4
+
+pairing:                  # ARCHITECTURE.md §5.1
+  match_tiou: 0.5         # a noun detection pairs with a verb detection at tIoU >= this
+  k: 5                    # top-k verbs / nouns / pairs kept per proposal
+  alpha: 0.5              # exponent on the verb-noun co-occurrence prior
+  prior_eps: 0.5          # additive smoothing of train co-occurrence counts
+  score_power: 0.5        # fixed monotone rescale: score = (p_v * p_n * prior^alpha) ^ power
 
 signals:
   dense_fps: 4.0          # rate of flow + hands signals (ARCHITECTURE.md §2: 2-4 fps)
