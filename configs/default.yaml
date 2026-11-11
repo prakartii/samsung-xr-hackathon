@@ -18,6 +18,13 @@ features:
     iterations: 3         # Farneback: iterations per pyramid level
     poly_n: 5             # Farneback: pixel neighbourhood for the polynomial expansion
     poly_sigma: 1.2       # Farneback: Gaussian sigma for the polynomial expansion
+  hands:
+    model: weights/hand_landmarker.task  # MediaPipe Hand Landmarker (tools/fetch_weights.sh)
+    width: 320            # frames are resized to this width before detection
+    num_hands: 2          # max hands per frame (egocentric: the wearer's two hands)
+    min_detection_conf: 0.3   # palm detector threshold; low, since presence is a soft signal
+    min_presence_conf: 0.3    # landmark-model hand presence threshold
+    min_tracking_conf: 0.3    # below this, re-run palm detection instead of tracking
 
 routing:
   cooking_thr: 0.5        # mean CLIP P(cooking) >= this -> EPIC route (tuned in P6)
