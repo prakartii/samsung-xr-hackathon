@@ -106,15 +106,18 @@ package: `validate.py`. Remaining: send the email, set the team ID.
 - property: metrics in [0, 1]; perfect prediction → 1.0; empty → 0.0; coverage never decreases when a highlight is added (within budget)
 - unit: GT loaders on a 5-row CSV fixture (class keys mapped correctly)
 
-**Result (2026-11-11):**
+**Result (2026-11-11; rows regenerated 2026-11-12 after review):**
 
 | Split | Run | Cov (any) | Cov (frac) | % oracle | mAP | F1 | Label | Weighted |
 |---|---|---|---|---|---|---|---|---|
-| tune | uniform | 0.358 | 0.178 | 49.4% | 0 | 0.163 | 0 | 0.184 |
-| tune | oracle | 0.725 | 0.361 | 100% | 1 | 0.708 | 1 | 0.817 |
+| tune | uniform | 0.358 | 0.178 | 49.4% | 0 | — | — | — |
+| tune | oracle | 0.725 | 0.361 | 100% | 1 | — | — | — |
 | report | uniform | 0.338 | 0.177 | 46.7% | 0 | 0.163 | 0 | 0.176 |
-| report | random | 0.317 | 0.186 | 43.8% | 0 | 0.146 | 0 | 0.164 |
+| report | random | 0.312 | 0.184 | 43.1% | 0 | 0.158 | 0 | 0.164 |
 | report | oracle | 0.724 | 0.330 | 100% | 1 | 0.708 | 1 | 0.817 |
+
+(Tune rows score FPVSum only per CV fold, `--fold k`; without one the FPVSum columns
+are blank.)
 
 - **Ceilings:** with 4.05 s windows at 14.5%, even perfect action knowledge captures
   only ~72% of distinct pairs (any-overlap) and reaches F1 ~0.71. Uniform already gets
@@ -125,6 +128,8 @@ package: `validate.py`. Remaining: send the email, set the team ID.
   (§9.3 updated); the oracle is a standalone greedy, not the §5.4 selector (§9.5 updated);
   FPVSum `tune` = CV folds over the same 49 videos (no separate tune videos exist).
 - Scoring all 187 videos takes 1–2.5 s.
+- **Short videos:** with the documented penalty, a single 4.05 s window scores 0 coverage
+  on P03_26 (T = 11.13 s) and at most 0.233 on P26_30, whatever the system does (Q4/Q8).
 
 ---
 
@@ -338,6 +343,7 @@ Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
 - 2026-11-12 · DA · P1 · Review fixes on the pipeline: salvage valid parts before the full fallback, output files 0644, infinite durations rejected; tests for each · #10
 - 2026-11-12 · DA · P1 · Review fixes on post-processing/output: budget on the written (2-decimal) duration, action times clamped into [0, T] and non-finite actions dropped, 4.0 s highlight for 3.5–4 s videos; tests for best-value placement, trim tie-break, merged value · #9
+- 2026-11-12 · DA · P2 · Review fixes on scoring: oracle = better of greedy and uniform (counterexample pinned), tune scores FPVSum only per `--fold`, invalid `--pred` files score 0, metric θ moved to `eval.capture_theta`, random baseline seeded by video id; leaderboard rows regenerated · #14
 - 2026-11-12 · DA · P1 · Review fixes on the validator: strict mode compares exactly (no float slack), huge integers and non-UTF-8 files no longer crash it; tests for short videos with two highlights, negative label score, the skiing example · #8
 - 2026-11-11 · DA · P1 · `run.sh`, `rewind.cli`, `rewind.pipeline` (validate-or-fallback, atomic write), `video_io.ffprobe_meta`, `utils.seed_all`; contract tests on synthetic 30 s/12 s videos (validity, no `kit/`, filename independence, determinism, audit hook on file opens, failure → fallback, env team ID); ffmpeg in CI · #10
 - 2026-11-11 · DA · P1 · Post-processing, fallback and `output.py` (`to_document`, deterministic `dumps`); `SHORT_VIDEO_T` corrected to 4.05 / 0.15 = 27.0 s; unit + Hypothesis property tests (any input → valid highlights; fallback passes strict validation for T in 5–2000 s) · #9
