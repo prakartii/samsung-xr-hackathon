@@ -122,7 +122,7 @@ package: `validate.py`. Remaining: send the email, set the team ID.
 - [x] `features/flow.py` (residual + global motion)
 - [x] `features/hands.py` (MediaPipe Hand Landmarker), `features/clip.py` (open_clip ViT-B/16, prompt ensemble, zero-shot); weights via `tools/fetch_weights.sh` (SHA-256 pinned)
 - [x] `features/cache.py` (versioned, atomic)
-- [ ] `tools/cache_features.py` (longest first, resumable)
+- [x] `tools/cache_features.py` (longest first, resumable; logs `cache/throughput.csv`)
 - [x] `routing.py` (video signals only; no manifest, no filename): pure decision from per-keyframe CLIP P(cooking); the CLIP prompts that produce it come with `features/clip.py`
 - [ ] Start caching on Nov 10; record throughput (seconds of compute per minute of video)
 
@@ -156,6 +156,13 @@ package: `validate.py`. Remaining: send the email, set the team ID.
   `prompts`): mean P(cooking) ≤ 0.006 on 9 FPVSum videos (routing threshold 0.5);
   zero-shot label top-1 right on 5 of 9 (Bike→motor, BikePolo→bike, Jumping→plane,
   Plane→horse). Phrase tuning is P6 work, on CV folds only.
+- **Provisional throughput (2026-11-11, i7-13700H on battery, Balanced plan, so
+  throttled; re-measure on AC):** compute seconds per minute of video: flow 2.0,
+  hands 10.1, CLIP 45.2 (377 s FPVSum video). CLIP forward ≈ 0.4–0.8 s/image
+  (6 threads best; 14 threads slower). At these rates EPIC's 13.2 h of video would
+  need ~10 h for CLIP alone vs the ≤ 5 h target (ARCHITECTURE.md §12).
+- **EPIC download speed:** data.bris gives ~0.5 MiB/s per connection; 6 parallel
+  connections reach ~2.3 MiB/s on our link (≈ 20 h for 184 GB).
 - Local dev here runs Python 3.12 (CLAUDE.md says 3.11); `pyproject` targets ≥ 3.11 and
   ruff checks against 3.11 syntax.
 
@@ -347,6 +354,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-11 · PK · P3 · `tools/cache_features.py`; first throughput numbers (provisional, on battery); EPIC download parallelized (6 connections) · —
 - 2026-11-11 · PK · P3 · `features/hands.py` (MediaPipe) and `features/clip.py` (open_clip); `tools/fetch_weights.sh`; licenses in ARCHITECTURE §10; data-tier tests for both models; FPVSum 49/49 downloaded, durations within ±0.5 s · —
 - 2026-11-11 · PK · P3 · `tools/download_videos.py` (EPIC direct + resumable + MD5; FPVSum via the official id list); downloads of the 187 videos started · —
 - 2026-11-11 · PK · P3 · `video_io` (frame ↔ seconds, ffprobe parsing, decoding at a target fps), versioned fingerprint-keyed `features/cache`, Farneback `features/flow` (global vs residual motion), signal-only `routing`; 70 tests, each mutation-checked · —
