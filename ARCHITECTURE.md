@@ -519,6 +519,7 @@ Fill each row in before the model is used **[verify all]**.
 | Hands | MediaPipe Hands | | | CPU |
 | Optical flow | OpenCV Farneback | — | Apache-2.0 (OpenCV) | Low resolution (160 px) |
 | Verb–noun prior | Counts from `EPIC_100_train.csv` | Built by tool | EPIC-KITCHENS license | Train split only |
+| GT annotations (eval only) | `epic-kitchens-100-annotations` @ `ea8b404`, `azuxmioy/fpvsum` @ `9af31f9` | `tools/fetch_annotations.sh` (sha256-checked) | EPIC: CC BY-NC 4.0; FPVSum: research use (no license file) | Never read by `rewind/` |
 
 ### 10.1 Feature strategy (CPU-first; neither team member has a GPU)
 
