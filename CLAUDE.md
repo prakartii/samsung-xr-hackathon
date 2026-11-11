@@ -166,6 +166,9 @@ The review agent never posts to GitHub, pushes, merges or edits a branch itself.
     checked (commands run, deliberate breakages caught).
   - Start the body with `Review by <A|B>'s review agent at <short sha>` so the author
     knows which commit was reviewed.
+  - GitHub doesn't allow approving or requesting changes on your own PR. When the
+    reviewing account also authored the PR (e.g. a self-review its person asked for),
+    post the same body with `gh pr comment` instead.
 - Don't push to the other person's branch unless they ask. Suggested fixes go in the
   review; the author's agent applies them.
 - Merge only when the PR is approved, CI is green on the head commit, there are no open
