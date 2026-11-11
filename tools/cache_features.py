@@ -15,8 +15,8 @@
 - Throughput (compute seconds per minute of video) is appended per video and feature
   to <cache>/throughput/<features>_<shard>.csv (one file per process) for PROGRESS.md.
 
-Metadata: ffprobe when it is on PATH (what run.sh uses); otherwise OpenCV's container
-metadata, logged as such. Offline tool: it never feeds the filename into features.
+Metadata and decoding: PyAV (rewind.video_io). Offline tool: it never feeds the
+filename into features.
 """
 
 from __future__ import annotations
@@ -24,13 +24,11 @@ from __future__ import annotations
 import argparse
 import csv
 import hashlib
-import shutil
 import sys
 import time
 import traceback
 from pathlib import Path
 
-import cv2
 import yaml
 
 REPO = Path(__file__).resolve().parents[1]
@@ -50,7 +48,7 @@ from rewind.features.hands import (  # noqa: E402
     hands_cache_version,
     hands_signals,
 )
-from rewind.video_io import ProbeMeta, ffprobe_meta, iter_frames  # noqa: E402
+from rewind.video_io import iter_frames, probe_video  # noqa: E402
 
 FEATURES = ("flow", "hands", "clip")
 
@@ -61,21 +59,6 @@ def sha256_file(path: Path) -> str:
         for chunk in iter(lambda: f.read(1 << 20), b""):
             h.update(chunk)
     return h.hexdigest()
-
-
-def probe(path: Path) -> tuple[ProbeMeta, str]:
-    if shutil.which("ffprobe"):
-        return ffprobe_meta(path), "ffprobe"
-    cap = cv2.VideoCapture(str(path))
-    try:
-        fps = cap.get(cv2.CAP_PROP_FPS)
-        n = cap.get(cv2.CAP_PROP_FRAME_COUNT)
-        w, h = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    finally:
-        cap.release()
-    if fps <= 0 or n <= 0:
-        raise OSError(f"cannot read metadata: {path}")
-    return ProbeMeta(duration_sec=n / fps, fps=fps, width=w, height=h), "opencv"
 
 
 def main() -> None:
@@ -124,7 +107,7 @@ def main() -> None:
     videos = []
     for p in sorted(args.videos.glob("*.mp4")):
         try:
-            meta, source = probe(p)
+            meta, source = probe_video(p), "pyav"
             videos.append((meta.duration_sec, p, meta, source))
         except OSError as e:
             print(f"skip {p.name}: {e}", flush=True)
@@ -153,17 +136,15 @@ def main() -> None:
 
                 def compute(feat=feat, path=path, meta=meta):
                     if feat == "flow":
-                        frames = iter_frames(
-                            path, meta.duration_sec, meta.fps, dense_fps, flow_p.width
-                        )
+                        frames = iter_frames(path, meta.duration_sec, dense_fps, flow_p.width)
                         return flow_signals(frames, flow_p)
                     if feat == "hands":
                         # A fresh landmarker per video: VIDEO mode needs timestamps
                         # that increase across calls, and each video restarts at 0.
                         with MediaPipeHands(hand_p, REPO) as scorer:
-                            frames = iter_frames(path, meta.duration_sec, meta.fps, dense_fps)
+                            frames = iter_frames(path, meta.duration_sec, dense_fps)
                             return hands_signals(frames, scorer)
-                    frames = iter_frames(path, meta.duration_sec, meta.fps, clip_fps)
+                    frames = iter_frames(path, meta.duration_sec, clip_fps)
                     return clip_signals(frames, models["clip"], clip_p.batch_size)
 
                 t0 = time.perf_counter()

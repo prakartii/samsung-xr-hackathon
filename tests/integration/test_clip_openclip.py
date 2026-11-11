@@ -6,7 +6,6 @@ routing check, FPVSum videos in data/videos (tools/download_videos.py).
 
 from pathlib import Path
 
-import cv2
 import numpy as np
 import pytest
 import yaml
@@ -18,7 +17,7 @@ from rewind.features.clip import (
     clip_signals,
     zero_shot_probs,
 )
-from rewind.video_io import iter_frames
+from rewind.video_io import iter_frames, probe_video
 
 pytestmark = pytest.mark.data
 
@@ -37,11 +36,8 @@ def encoder():
 
 
 def _keyframe_embeddings(encoder, video: Path, n: int = 8) -> np.ndarray:
-    cap = cv2.VideoCapture(str(video))
-    fps, frames = cap.get(cv2.CAP_PROP_FPS), cap.get(cv2.CAP_PROP_FRAME_COUNT)
-    cap.release()
-    duration = frames / fps
-    return clip_signals(iter_frames(video, duration, fps, n / duration), encoder, n)["clip_emb"]
+    duration = probe_video(video).duration_sec
+    return clip_signals(iter_frames(video, duration, n / duration), encoder, n)["clip_emb"]
 
 
 def test_openclip_embeddings_are_unit_float32(encoder):

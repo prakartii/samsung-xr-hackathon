@@ -6,7 +6,6 @@ needs data/videos/P01_11.mp4 (tools/download_videos.py). Skips when either is mi
 
 from pathlib import Path
 
-import cv2
 import numpy as np
 import pytest
 
@@ -46,10 +45,7 @@ def test_mediapipe_epic_kitchen_clip_mostly_shows_hands(scorer):
     # Over the first 30 s at 2 fps (60 frames), expect hands in at least half.
     if not EPIC_VIDEO.exists():
         pytest.skip(f"{EPIC_VIDEO} missing: run tools/download_videos.py")
-    cap = cv2.VideoCapture(str(EPIC_VIDEO))
-    fps = cap.get(cv2.CAP_PROP_FPS)  # EPIC is mostly 59.94, but not all videos
-    cap.release()
-    frames = iter_frames(EPIC_VIDEO, duration_sec=30.0, fps=fps, target_fps=2.0, width=640)
+    frames = iter_frames(EPIC_VIDEO, duration_sec=30.0, target_fps=2.0, width=640)
     out = hands_signals(frames, scorer)
     assert len(out["hands"]) == 60
     assert np.mean(out["hands"] > 0) >= 0.5
