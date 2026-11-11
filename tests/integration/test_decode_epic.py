@@ -15,7 +15,6 @@ pytestmark = pytest.mark.data
 
 VIDEO = Path(__file__).resolve().parents[2] / "data" / "videos" / "P01_12.mp4"
 DURATION = 173.81  # kit/manifest.csv
-FPS = 60000 / 1001  # P01_12 is 59.94 fps
 
 
 @pytest.fixture
@@ -27,6 +26,6 @@ def video():
 
 def test_decode_epic_gopro_file_reaches_the_end(video):
     # 1 fps over 173.81 s -> t = 0, 1, ..., 173 -> 174 samples, last at 173 s
-    times = [t for t, _ in iter_frames(video, DURATION, FPS, target_fps=1.0, width=64)]
+    times = [t for t, _ in iter_frames(video, DURATION, target_fps=1.0, width=64)]
     assert len(times) == 174
     assert times[-1] == pytest.approx(173.0, abs=1e-9)
