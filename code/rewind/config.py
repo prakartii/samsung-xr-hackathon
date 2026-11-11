@@ -123,7 +123,6 @@ class RoutingCfg:
 
 @dataclass(frozen=True)
 class EvalCfg:
-    f1_fps: float
     coverage_lambda: float
 
 
@@ -293,7 +292,6 @@ def _check_ranges(cfg: Config) -> None:
         "select.stride": s.stride,
         "select.fraction_tau": s.fraction_tau,
         "importance.sigma": imp.sigma,
-        "eval.f1_fps": cfg.eval.f1_fps,
         "features.flow_width": cfg.features.flow_width,
         "pairing.top_k": cfg.pairing.top_k,
         "pairing.eps": cfg.pairing.eps,

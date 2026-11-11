@@ -176,16 +176,16 @@ IMP[[10, 11, 12]] = 1.0  # top 15% of 20 = 3 frames: 10, 11, 12
 def test_frame_f1_partial_overlap():
     # (10, 14.05) → frames 10..14 = 5 predicted, 3 true positives.
     # P = 3/5, R = 3/3 → F1 = 2 · .6 · 1 / 1.6 = 0.75.
-    assert frame_f1(TIMES, IMP, [(10.0, 14.05)]) == pytest.approx(0.75, abs=1e-12)
+    assert frame_f1(TIMES, top_frames(IMP), [(10.0, 14.05)]) == pytest.approx(0.75, abs=1e-12)
 
 
 def test_frame_f1_highlight_under_4s_is_ignored():
-    assert frame_f1(TIMES, IMP, [(10.0, 13.0)]) == pytest.approx(0.0, abs=1e-12)
+    assert frame_f1(TIMES, top_frames(IMP), [(10.0, 13.0)]) == pytest.approx(0.0, abs=1e-12)
 
 
 def test_frame_f1_highlight_end_is_exclusive():
     # (6, 10) covers frames 6..9, not 10 → no true positives.
-    assert frame_f1(TIMES, IMP, [(6.0, 10.0)]) == pytest.approx(0.0, abs=1e-12)
+    assert frame_f1(TIMES, top_frames(IMP), [(6.0, 10.0)]) == pytest.approx(0.0, abs=1e-12)
 
 
 def test_frame_f1_perfect_is_one():
@@ -193,7 +193,7 @@ def test_frame_f1_perfect_is_one():
     imp = np.zeros(20)
     imp[[10, 11, 12, 13]] = 1.0
 
-    assert frame_f1(TIMES, imp, [(10.0, 14.0)], top_frac=0.2) == pytest.approx(1.0, abs=1e-12)
+    assert frame_f1(TIMES, top_frames(imp, 0.2), [(10.0, 14.0)]) == pytest.approx(1.0, abs=1e-12)
 
 
 def test_top_frames_count_rounds_up_and_ties_take_earlier_frames():

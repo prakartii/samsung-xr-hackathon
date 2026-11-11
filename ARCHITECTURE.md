@@ -479,10 +479,13 @@ predictions has AP 0; predictions of classes absent from the GT are ignored. mAP
 mean over classes, then over thresholds. Computed over all EPIC videos jointly.
 
 ### 9.3 Highlight F1 (FPVSum)
-Sample at `cfg.eval.f1_fps` (default 2 fps). GT positives = exactly ⌈0.15 · N⌉
-frames with the highest mean human importance (ties: earlier frames). Predicted
-positives = frames at times `t` with `start ≤ t < end` for a highlight ≥ 4.0 s. F1 per
-video (0 if no true positive), mean over videos.
+Evaluated at the GT's native frames (frame `i` of `N` at `i · T / N` s, T from the
+manifest). GT positives = FPVSum's own top-15% highlight frames (`Binary_score` in
+`gt_data.mat`; 15.1–27.1% of frames because of ties, > 18% on 6 videos, so recall is
+capped below 1 there at a 14.5% budget), the closest match to the kit's "top
+15% of human-annotated consensus importance frames". `top_frames(score)` gives an
+exact-count variant. Predicted positives = frames with `start ≤ t < end` for a
+highlight ≥ 4.0 s. F1 per video (0 if no true positive), mean over videos.
 
 ### 9.4 Label accuracy
 Exact match of `label.name` on FPVSum videos; a missing prediction counts as wrong.
@@ -517,6 +520,7 @@ Fill each row in before the model is used **[verify all]**.
 | Hands | MediaPipe Hands | | | CPU |
 | Optical flow | OpenCV Farneback | — | Apache-2.0 (OpenCV) | Low resolution (160 px) |
 | Verb–noun prior | Counts from `EPIC_100_train.csv` | Built by tool | EPIC-KITCHENS license | Train split only |
+| GT annotations (eval only) | `epic-kitchens-100-annotations` @ `ea8b404`, `azuxmioy/fpvsum` @ `9af31f9` | `tools/fetch_annotations.sh` (sha256-checked) | EPIC: CC BY-NC 4.0; FPVSum: research use (no license file) | Never read by `rewind/` |
 
 ### 10.1 Feature strategy (CPU-first; neither team member has a GPU)
 
