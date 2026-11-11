@@ -486,7 +486,7 @@ Fill each row in before the model is used **[verify all]**.
 | ActionFormer input | ActionFormer's released `epic_kitchens.tar.gz` (Box / Google Drive / BaiduYun; md5 `add9803756afd9a023bc9a9c547e0229`) | — | EPIC-KITCHENS license | SlowFast pretrained on EPIC-100 train; 32-frame clips at 30 fps, stride 16 → one feature per 16/30 ≈ 0.533 s |
 | Raw-MP4 feature extraction | The SlowFast extractor matching the above (EPIC-KITCHENS action recognition code) | | | Only needed for videos missing from the release and for `run.sh` on a clean machine |
 | CLIP | open_clip ViT-B/16 (OpenAI weights) | | | Label, scene change, routing, clustering similarity |
-| Hands | MediaPipe Hands | | | CPU |
+| Hands | MediaPipe Hand Landmarker (`mediapipe==1.2.2`, Tasks API, VIDEO mode) | `hand_landmarker.task` float16 v1 from storage.googleapis.com/mediapipe-models, SHA-256 pinned in `tools/fetch_weights.sh` | Apache-2.0 (library and model) | CPU. Presence = max handedness score of detected hands, 0 if none |
 | Optical flow | OpenCV Farneback | — | Apache-2.0 (OpenCV) | Low resolution (160 px) |
 | Verb–noun prior | Counts from `EPIC_100_train.csv` | Built by tool | EPIC-KITCHENS license | Train split only |
 
