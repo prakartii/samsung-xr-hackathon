@@ -39,23 +39,16 @@ def zscore(x: np.ndarray) -> np.ndarray:
     return (x - x.mean()) / std
 
 
-def motion_series(flows: Iterable[np.ndarray], n_frames: int) -> tuple[np.ndarray, np.ndarray]:
-    """Raw (residual, global) series of length `n_frames` from n_frames - 1 flow fields.
+def motion_series(flows: Iterable[np.ndarray]) -> tuple[np.ndarray, np.ndarray]:
+    """Raw (residual, global) series for k + 1 frames from k consecutive flow fields.
 
     Flow i describes frames i -> i+1 and is assigned to frame i+1. Frame 0 has no
-    predecessor, so it copies frame 1's value (avoids a fake dip at t = 0). One frame
-    → zeros.
+    predecessor, so it copies frame 1's value (avoids a fake dip at t = 0). No flows
+    (a single frame) -> one zero.
     """
-    residual = np.zeros(n_frames, dtype=np.float64)
-    global_ = np.zeros(n_frames, dtype=np.float64)
-    count = 0
-    for i, flow in enumerate(flows, start=1):
-        if i >= n_frames:
-            raise ValueError(f"got more than n_frames - 1 = {n_frames - 1} flow fields")
-        residual[i], global_[i] = decompose_flow(flow)
-        count += 1
-    if n_frames > 1:
-        if count != n_frames - 1:
-            raise ValueError(f"expected {n_frames - 1} flow fields, got {count}")
-        residual[0], global_[0] = residual[1], global_[1]
+    values = [decompose_flow(f) for f in flows]
+    if not values:
+        return np.zeros(1), np.zeros(1)
+    residual = np.array([values[0][0]] + [r for r, _ in values], dtype=np.float64)
+    global_ = np.array([values[0][1]] + [g for _, g in values], dtype=np.float64)
     return residual, global_

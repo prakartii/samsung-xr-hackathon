@@ -68,17 +68,13 @@ def test_motion_series_assigns_flow_to_later_frame_and_copies_first():
     # 3 frames, 2 flows: flow 0->1 is a pan of 5, flow 1->2 is still.
     # frame 1 = 5, frame 2 = 0, frame 0 copies frame 1 = 5.
     flows = [_uniform(4, 4, 3.0, 4.0), _uniform(4, 4, 0.0, 0.0)]
-    residual, global_ = motion_series(flows, n_frames=3)
+    residual, global_ = motion_series(flows)
     np.testing.assert_allclose(global_, [5.0, 5.0, 0.0], atol=1e-9)
     np.testing.assert_allclose(residual, [0.0, 0.0, 0.0], atol=1e-9)
 
 
 def test_motion_series_single_frame_is_zero():
-    residual, global_ = motion_series([], n_frames=1)
+    # No flows means one frame: one value, zero.
+    residual, global_ = motion_series([])
     np.testing.assert_array_equal(residual, [0.0])
     np.testing.assert_array_equal(global_, [0.0])
-
-
-def test_motion_series_wrong_flow_count_raises():
-    with pytest.raises(ValueError):
-        motion_series([_uniform(4, 4, 1.0, 0.0)], n_frames=3)
