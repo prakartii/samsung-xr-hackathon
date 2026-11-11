@@ -2,10 +2,9 @@
 
     python tools/cache_features.py                      # all videos in data/videos
     python tools/cache_features.py --features clip --limit 5
-    # parallel: one CLIP process + 4 flow/hands shards (see PROGRESS.md P3 notes)
-    python tools/cache_features.py --features clip --torch-threads 8
-    python tools/cache_features.py --features flow,hands --shard 0/4   # ... 3/4
+    python tools/cache_features.py --shard 0/2 --torch-threads 6   # + --shard 1/2
 
+- One decoding pass per video feeds every missing feature (flow, hands, CLIP).
 - Longest videos first (PROGRESS.md P3), so the slow ones start early.
 - Resumable: entries already in the cache at the current version are skipped
   (features/cache.py), so a stopped run just continues.
@@ -36,17 +35,17 @@ sys.path.insert(0, str(REPO / "code"))
 
 from rewind.features.cache import FeatureCache, content_fingerprint  # noqa: E402
 from rewind.features.clip import (  # noqa: E402
+    ClipOnline,
     ClipParams,
     OpenClipEncoder,
     clip_cache_version,
-    clip_signals,
 )
-from rewind.features.flow import FlowParams, flow_cache_version, flow_signals  # noqa: E402
+from rewind.features.flow import FlowOnline, FlowParams, flow_cache_version  # noqa: E402
 from rewind.features.hands import (  # noqa: E402
     HandParams,
+    HandsOnline,
     MediaPipeHands,
     hands_cache_version,
-    hands_signals,
 )
 from rewind.video_io import iter_frames, probe_video  # noqa: E402
 
@@ -116,6 +115,7 @@ def main() -> None:
     if args.limit:
         videos = videos[: args.limit]
 
+    cfg_bits = (dense_fps, clip_fps, flow_p, hand_p, clip_p)
     log_path = args.cache / "throughput" / f"{'-'.join(feats)}_{shard_i}of{shard_n}.csv"
     log_path.parent.mkdir(parents=True, exist_ok=True)
     new_log = not log_path.exists()
@@ -128,38 +128,70 @@ def main() -> None:
         for i, (duration, path, meta, source) in enumerate(videos, 1):
             fp = content_fingerprint(path)
             print(f"[{i}/{len(videos)}] {path.name} ({duration:.0f} s, meta={source})", flush=True)
-            for feat in feats:
-                cache = caches[feat]
-                if cache.get(fp) is not None:
-                    print(f"  {feat}: cached", flush=True)
-                    continue
+            missing = [f for f in feats if caches[f].get(fp) is None]
+            if not missing:
+                print("  all cached", flush=True)
+                continue
+            t0 = time.perf_counter()
+            try:
+                results = compute_single_pass(path, meta.duration_sec, missing, models, cfg_bits)
+            except Exception:
+                failed = "+".join(missing)
+                print(f"  {failed}: FAILED", traceback.format_exc(), sep="\n", flush=True)
+                continue
+            for feat, arrays in results.items():
+                caches[feat].put(fp, arrays)
+            dt = time.perf_counter() - t0
+            per_min = dt / (duration / 60)
+            label = "+".join(missing)
+            print(f"  {label}: {dt:.1f} s ({per_min:.1f} s per video minute)", flush=True)
+            log.writerow(
+                [path.name, label, f"{duration:.2f}", f"{dt:.2f}", f"{per_min:.2f}", source]
+            )
+            logf.flush()
 
-                def compute(feat=feat, path=path, meta=meta):
-                    if feat == "flow":
-                        frames = iter_frames(path, meta.duration_sec, dense_fps, flow_p.width)
-                        return flow_signals(frames, flow_p)
-                    if feat == "hands":
-                        # A fresh landmarker per video: VIDEO mode needs timestamps
-                        # that increase across calls, and each video restarts at 0.
-                        with MediaPipeHands(hand_p, REPO) as scorer:
-                            frames = iter_frames(path, meta.duration_sec, dense_fps)
-                            return hands_signals(frames, scorer)
-                    frames = iter_frames(path, meta.duration_sec, clip_fps)
-                    return clip_signals(frames, models["clip"], clip_p.batch_size)
 
-                t0 = time.perf_counter()
-                try:
-                    cache.get_or_compute(fp, compute)
-                except Exception:
-                    print(f"  {feat}: FAILED\n{traceback.format_exc()}", flush=True)
-                    continue
-                dt = time.perf_counter() - t0
-                per_min = dt / (duration / 60)
-                print(f"  {feat}: {dt:.1f} s ({per_min:.1f} s per video minute)", flush=True)
-                log.writerow(
-                    [path.name, feat, f"{duration:.2f}", f"{dt:.2f}", f"{per_min:.2f}", source]
-                )
-                logf.flush()
+def compute_single_pass(path, duration, missing, models, cfg_bits) -> dict:
+    """Decode once and feed every missing feature (ARCHITECTURE.md §12 budget).
+
+    Flow and hands use the dense grid; CLIP uses every r-th dense sample, where
+    r = dense_fps / clip_fps, with its own timestamps j / clip_fps (identical to
+    sample_times(T, clip_fps)). Frames are decoded at the widest size any feature
+    needs; each feature downsizes from there.
+    """
+    dense_fps, clip_fps, flow_p, hand_p, clip_p = cfg_bits
+    need_dense = bool({"flow", "hands"} & set(missing))
+    ratio = dense_fps / clip_fps
+    if need_dense and abs(ratio - round(ratio)) > 1e-9:
+        raise ValueError("signals.dense_fps must be a multiple of signals.clip_fps")
+    rate, step = (dense_fps, round(ratio)) if need_dense else (clip_fps, 1)
+    width = max(
+        [flow_p.width] * ("flow" in missing)
+        + [hand_p.width] * ("hands" in missing)
+        + [clip_p.width] * ("clip" in missing)
+    )
+    online = {}
+    hands_model = None
+    if "flow" in missing:
+        online["flow"] = FlowOnline(flow_p)
+    if "hands" in missing:
+        # A fresh landmarker per video: VIDEO mode needs increasing timestamps.
+        hands_model = MediaPipeHands(hand_p, REPO)
+        online["hands"] = HandsOnline(hands_model)
+    if "clip" in missing:
+        online["clip"] = ClipOnline(models["clip"], clip_p.batch_size)
+    try:
+        for k, (t, frame) in enumerate(iter_frames(path, duration, rate, width)):
+            if "flow" in online:
+                online["flow"].add(t, frame)
+            if "hands" in online:
+                online["hands"].add(t, frame)
+            if "clip" in online and k % step == 0:
+                online["clip"].add((k // step) / clip_fps, frame)
+    finally:
+        if hands_model is not None:
+            hands_model.close()
+    return {feat: o.result() for feat, o in online.items()}
 
 
 if __name__ == "__main__":
