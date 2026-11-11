@@ -491,10 +491,13 @@ highlight ≥ 4.0 s. F1 per video (0 if no true positive), mean over videos.
 Exact match of `label.name` on FPVSum videos; a missing prediction counts as wrong.
 
 ### 9.5 Oracle
-The same window rules (≥ 4.0 s, budget 0.145·T, non-overlapping) with clusters
-built from GT actions (one-hot pair distributions), selected with the same greedy
-as §5.4. This gives an upper reference for coverage. Report
-`system / oracle` as "% of oracle".
+Greedy over candidate windows built from the GT (`rewind_eval/oracle.py`): 4.05 s
+windows on a 0.5 s grid; repeatedly add the window with the most new gain per second
+that fits the budget (0.145·T, or one window for short videos) and is ≥ 0.01 s from
+every chosen window. Coverage oracle: gain = distinct GT pairs newly captured
+(any-overlap). F1 oracle: gain = GT highlight frames covered. Upper reference, not a
+proven optimum (property-tested ≥ uniform). Report `system / oracle` as "% of
+oracle". Measured ceilings (report split): coverage 0.724, F1 0.708.
 
 ### 9.6 Weighted total
 `0.40·coverage + 0.25·mAP + 0.25·F1 + 0.10·label_acc`. Computed per split for the
