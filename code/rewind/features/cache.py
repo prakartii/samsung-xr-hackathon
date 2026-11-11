@@ -18,6 +18,7 @@ import hashlib
 import json
 import os
 import tempfile
+import warnings
 from collections.abc import Callable, Mapping
 from pathlib import Path
 
@@ -113,13 +114,21 @@ class FeatureCache:
         return {k: np.asarray(v) for k, v in arrays.items()}
 
     def _record(self, fingerprint: str, keys: list[str]) -> None:
-        """Update meta.json (informational index). A version change resets the index."""
+        """Update meta.json (informational index). A version change resets the index.
+
+        Best effort: `get` never reads the index, so when parallel workers collide on
+        it (on Windows `os.replace` fails while another process has the file open),
+        the entry is already safely stored and we only warn.
+        """
         meta_path = self.dir / _META_NAME
-        meta: dict = {}
-        if meta_path.exists():
-            meta = json.loads(meta_path.read_text(encoding="utf-8"))
-        if meta.get("version") != self.version:
-            meta = {"version": self.version, "videos": {}}
-        meta["videos"][fingerprint] = {"keys": keys}
-        text = json.dumps(meta, indent=1, sort_keys=True)
-        _atomic_write_bytes(meta_path, lambda tmp: tmp.write_text(text, encoding="utf-8"))
+        try:
+            meta: dict = {}
+            if meta_path.exists():
+                meta = json.loads(meta_path.read_text(encoding="utf-8"))
+            if meta.get("version") != self.version:
+                meta = {"version": self.version, "videos": {}}
+            meta["videos"][fingerprint] = {"keys": keys}
+            text = json.dumps(meta, indent=1, sort_keys=True)
+            _atomic_write_bytes(meta_path, lambda tmp: tmp.write_text(text, encoding="utf-8"))
+        except (OSError, ValueError) as e:
+            warnings.warn(f"cache index {meta_path} not updated: {e}", RuntimeWarning, stacklevel=3)
