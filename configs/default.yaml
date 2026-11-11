@@ -9,6 +9,13 @@ actions:
   max_per_video: 1000     # actions[] cap after pairing (kit hard limit 2000 lives in constants); tuned in P4
   min_score: 0.0          # drop paired actions below this rescaled score; tuned in P4
 
+zeroshot:                 # detect/fallback_zeroshot.py (kill-rule + uncertain-route detector)
+  window_sec: 2.0         # sliding window length over 1 fps CLIP embeddings (REWIND_v2.3_plan §7)
+  stride_sec: 1.0         # window step
+  top_k: 3                # verb / noun classes emitted per window
+  verb_template: "a first-person photo of hands that {} something."
+  noun_template: "a first-person photo of a {}."
+
 pairing:                  # ARCHITECTURE.md §5.1
   match_tiou: 0.5         # a noun detection pairs with a verb detection at tIoU >= this
   k: 5                    # top-k verbs / nouns / pairs kept per proposal
