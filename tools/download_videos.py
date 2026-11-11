@@ -36,8 +36,10 @@ import argparse
 import csv
 import hashlib
 import os
+import ssl
 import subprocess
 import sys
+import time
 import urllib.error
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
@@ -54,6 +56,14 @@ FPVSUM_LIST_URL = (
     "9af31f9027ef2b3f5f34a39bf17df5b120a9cc25/crawler/FPVSum_videolist.csv"
 )
 DURATION_TOL = 0.5  # kit §3: duration within ±0.5 s of the manifest
+
+# data.bris.ac.uk sometimes serves a chain with a SHA-1-signed CA, which OpenSSL's
+# default security level 2 rejects ("CA signature digest algorithm too weak"; seen
+# 2026-11-11 mid-download). Level 1 accepts that signature while still verifying the
+# chain and the hostname (the official script disables verification entirely), and
+# every file is MD5-checked anyway.
+EPIC_TLS = ssl.create_default_context()
+EPIC_TLS.set_ciphers("DEFAULT@SECLEVEL=1")
 
 
 def read_manifest(path: Path) -> dict[str, dict[str, float]]:
@@ -129,7 +139,7 @@ def fetch_resumable(url: str, part: Path, label: str) -> None:
     done = part.stat().st_size if part.exists() else 0
     req = urllib.request.Request(url, headers={"Range": f"bytes={done}-"} if done else {})
     try:
-        resp = urllib.request.urlopen(req, timeout=60)
+        resp = urllib.request.urlopen(req, timeout=60, context=EPIC_TLS)
     except urllib.error.HTTPError as e:
         if e.code == 416:  # range starts at the end: already complete
             return
@@ -179,6 +189,7 @@ def download_one_epic(
             break
         except (urllib.error.URLError, OSError) as e:
             print(f"{label}: attempt {attempt} failed ({e}); resuming", flush=True)
+            time.sleep(min(60, 5 * attempt))  # back off; transient server/TLS errors
     else:
         print(f"{label}: FAILED after {retries} attempts", flush=True)
         return False
