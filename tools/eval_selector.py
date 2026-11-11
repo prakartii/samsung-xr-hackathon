@@ -31,10 +31,10 @@ def variants(cfg: Config) -> dict[str, tuple[Config, str]]:
             cfg, **{k: dataclasses.replace(getattr(cfg, k), **v) for k, v in sections.items()}
         )
 
-    h0 = {"share": 0.0}
+    h0, h125 = {"share": 0.0}, {"share": 0.125}
     return {
-        "expected": (cfg, "expected"),
-        "dedup": (cfg, "dedup"),
+        "expected h=0.125": (with_(cfg, hedge=h125), "expected"),
+        "dedup h=0.125": (with_(cfg, hedge=h125), "dedup"),
         "expected h=0": (with_(cfg, hedge=h0), "expected"),
         "expected h=0 T=2": (with_(cfg, hedge=h0, calibration={"temperature": 2.0}), "expected"),
         "expected h=0 T=4": (with_(cfg, hedge=h0, calibration={"temperature": 4.0}), "expected"),
