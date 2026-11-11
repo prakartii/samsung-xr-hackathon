@@ -2,7 +2,7 @@
 
 import itertools
 
-from hypothesis import given, settings
+from hypothesis import example, given, settings
 from hypothesis import strategies as st
 
 from rewind_eval.baselines import uniform_highlights
@@ -22,7 +22,22 @@ def video(draw):
     return T, gt
 
 
+# Found in review: greedy alone loses to uniform windows here (0.75 vs 1.0).
+COUNTEREXAMPLE = (
+    62.37,
+    [
+        ((15.67, 18.10), "v1", "x"),
+        ((17.52, 18.37), "v6", "x"),
+        ((45.70, 45.90), "v3", "x"),
+        ((40.45, 49.15), "v2", "x"),
+        ((32.28, 32.42), "v1", "x"),
+        ((29.08, 29.20), "v2", "x"),
+    ],
+)
+
+
 @settings(max_examples=150, deadline=None)
+@example(COUNTEREXAMPLE)
 @given(video())
 def test_coverage_oracle_is_valid_and_not_below_uniform(case):
     T, gt = case

@@ -91,8 +91,16 @@ def make_data():
     return EvalData(
         epic_gt={"E": [((10.0, 11.0), "cut", "onion"), ((50.0, 51.0), "wash", "knife")]},
         epic_dur={"E": 100.0},
-        # Background score 0.1 everywhere: the score is not the GT mask.
-        fpv_gt={"F": FpvGT(times=times, score=0.1 + 0.9 * hl, highlight=hl, label="ski")},
+        # The highest raw scores (frames 0-2) are NOT the GT highlight frames (10-12):
+        # F1 must use the GT mask, not anything derived from the score.
+        fpv_gt={
+            "F": FpvGT(
+                times=times,
+                score=np.isin(times, [0, 1, 2]).astype(float),
+                highlight=hl,
+                label="ski",
+            )
+        },
         fpv_dur={"F": 20.0},
     )
 
@@ -110,6 +118,8 @@ def test_compute_scores_hand_computed():
     )
 
     assert s["coverage_any"] == pytest.approx(0.5, abs=1e-12)
+    # fraction rule: (9, 13.05) covers all of (10, 11) ≥ .5 → cut/onion; not wash/knife.
+    assert s["coverage_frac"] == pytest.approx(0.5, abs=1e-12)
     assert s["pct_oracle"] == pytest.approx(0.5, abs=1e-12)  # 0.5 / 1.0
     assert s["map"] == pytest.approx(0.5, abs=1e-12)  # (1 + 0) / 2 at every threshold
     assert s["f1"] == pytest.approx(0.75, abs=1e-12)
@@ -138,3 +148,47 @@ def test_compute_scores_missing_predictions_score_zero():
     )
 
     assert all(v == pytest.approx(0.0, abs=1e-12) for v in s.values())
+
+
+def test_compute_scores_without_fpvsum_leaves_f1_label_and_total_blank():
+    data = make_data()
+    no_fpv = EvalData(data.epic_gt, data.epic_dur, {}, {})
+
+    s = compute_scores(no_fpv, {}, budget_frac=0.145, lam=1.0, theta=0.5, oracle_cov={"E": 1.0})
+
+    assert (s["f1"], s["label_acc"], s["weighted"]) == (None, None, None)
+
+
+def test_read_predictions_skips_invalid_and_malformed_files(tmp_path):
+    import json
+
+    from rewind_eval.score import read_predictions
+
+    def doc(vid, highlights, actions=()):
+        return {"team_id": "T07", "video_id": vid, "duration_sec": 100.0,
+                "label": {"name": "cooking", "score": 1.0}, "actions": list(actions),
+                "highlights": [{"segment": h} for h in highlights]}  # fmt: skip
+
+    (tmp_path / "ok.json").write_text(json.dumps(doc("ok", [[10.0, 14.05]])))
+    (tmp_path / "short.json").write_text(json.dumps(doc("short", [[10.0, 12.0]])))  # R11
+    bad_action = {"segment": [1.0, 2.0], "verb": "cut", "score": 0.5}  # no noun
+    (tmp_path / "bad.json").write_text(json.dumps(doc("bad", [[10.0, 14.05]], [bad_action])))
+    (tmp_path / "junk.json").write_text("{not json")
+
+    preds = read_predictions(tmp_path, ["ok", "short", "bad", "junk", "missing"])
+
+    assert list(preds) == ["ok"]
+    assert preds["ok"].highlights == [(10.0, 14.05)]
+
+
+def test_compute_scores_capture_rules_differ_on_a_grazing_highlight():
+    # (50.9, 54.95) overlaps wash/knife (50, 51) by 0.1 of 1 s: captured under any-overlap,
+    # not under the 0.5 fraction rule. Plus cut/onion fully: any = 2/2, frac = 1/2.
+    preds = {"E": Prediction([(9.0, 13.05), (50.9, 54.95)])}
+
+    s = compute_scores(
+        make_data(), preds, budget_frac=0.145, lam=1.0, theta=0.5, oracle_cov={"E": 1.0}
+    )
+
+    assert s["coverage_any"] == pytest.approx(1.0, abs=1e-12)
+    assert s["coverage_frac"] == pytest.approx(0.5, abs=1e-12)

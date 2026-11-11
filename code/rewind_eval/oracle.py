@@ -16,7 +16,8 @@ import numpy as np
 
 from rewind.constants import MIN_SEG_EMIT, SHORT_VIDEO_T
 from rewind.types import Segment
-from rewind_eval.coverage import CaptureRule, GTAction
+from rewind_eval.baselines import uniform_highlights
+from rewind_eval.coverage import CaptureRule, GTAction, coverage
 
 _GAP = 0.01  # chosen windows must be at least this far apart (no touching)
 
@@ -109,7 +110,13 @@ def coverage_oracle(
     def commit(i: int) -> None:
         have.update(caps[i])
 
-    return _greedy(windows, _budget(duration, budget_frac), gains, commit)
+    picked = _greedy(windows, _budget(duration, budget_frac), gains, commit)
+    # Greedy max coverage isn't guaranteed to beat a fixed layout (review of #14 found a
+    # case). Keep whichever of greedy and uniform windows captures more, so the oracle is
+    # never below the uniform baseline.
+    uniform = uniform_highlights(duration, budget_frac)
+    cov = lambda hl: coverage(gt, hl, duration, rule=rule, theta=theta) or 0.0  # noqa: E731
+    return uniform if cov(uniform) > cov(picked) else picked
 
 
 def f1_oracle(

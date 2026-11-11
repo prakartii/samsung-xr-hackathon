@@ -14,13 +14,16 @@ import datetime as dt
 import json
 import subprocess
 import sys
+import zlib
 from dataclasses import dataclass, field
 from pathlib import Path
 
 import numpy as np
 
 from rewind.config import config_hash, load_config
+from rewind.schema import validate
 from rewind.types import Segment
+from rewind.vocab import load_vocab
 from rewind_eval.baselines import random_highlights, uniform_highlights
 from rewind_eval.coverage import GTAction, coverage, mean_ignoring_none
 from rewind_eval.f1 import frame_f1
@@ -64,8 +67,12 @@ def compute_scores(
     lam: float,
     theta: float,
     oracle_cov: dict[str, float | None],
-) -> dict[str, float]:
-    """All leaderboard metrics. ``oracle_cov``: video_id → oracle coverage (any-overlap)."""
+) -> dict[str, float | None]:
+    """All leaderboard metrics. ``oracle_cov``: video_id → oracle coverage (any-overlap).
+
+    FPVSum metrics (F1, label) and the weighted total are None when the data has no
+    FPVSum videos (``tune`` without ``--fold``).
+    """
     empty = Prediction()
     cov_any, cov_frac = {}, {}
     for vid, gt in data.epic_gt.items():
@@ -84,15 +91,19 @@ def compute_scores(
         {v: p.label for v, p in preds.items() if p.label is not None},
         {v: g.label for v, g in data.fpv_gt.items()},
     )
-    scores = {
+    has_fpv = bool(data.fpv_gt)
+    scores: dict[str, float | None] = {
         "coverage_any": c_any,
         "coverage_frac": mean_ignoring_none(cov_frac.values()),
         "pct_oracle": c_any / c_oracle if c_oracle > 0 else 0.0,
         "map": m,
-        "f1": float(np.mean(f1s)) if f1s else 0.0,
-        "label_acc": label,
+        "f1": float(np.mean(f1s)) if has_fpv else None,
+        "label_acc": label if has_fpv else None,
     }
-    scores["weighted"] = sum(w * scores[k] for k, w in WEIGHTS.items())
+    parts = [scores[k] for k in WEIGHTS]
+    scores["weighted"] = (
+        None if None in parts else sum(w * scores[k] for k, w in WEIGHTS.items())  # type: ignore[operator]
+    )
     return scores
 
 
@@ -120,8 +131,11 @@ def baseline_predictions(data: EvalData, kind: str, budget_frac: float) -> dict[
         }
     if kind == "random":
         return {
-            v: Prediction(random_highlights(T, budget_frac, seed=i), label="other")
-            for i, (v, T) in enumerate(sorted(durations.items()))
+            # Seed from the video id, so a video gets the same windows in every split.
+            v: Prediction(
+                random_highlights(T, budget_frac, seed=zlib.crc32(v.encode())), label="other"
+            )
+            for v, T in sorted(durations.items())
         }
     if kind == "oracle":
         return oracle_predictions(data, budget_frac)
@@ -129,12 +143,22 @@ def baseline_predictions(data: EvalData, kind: str, budget_frac: float) -> dict[
 
 
 def read_predictions(pred_dir: Path, video_ids: list[str]) -> dict[str, Prediction]:
+    """Load prediction files. A file that is missing, unreadable or fails the kit's
+    validation (``strict=False``) scores as empty, i.e. 0 on every metric (kit §4)."""
+    vocab = load_vocab()
     out = {}
     for vid in video_ids:
         path = pred_dir / f"{vid}.json"
         if not path.exists():
             continue
-        doc = json.loads(path.read_text(encoding="utf-8"))
+        try:
+            doc = json.loads(path.read_text(encoding="utf-8"))
+            errors, _ = validate(doc, vocab, filename_stem=vid, strict=False)
+        except (OSError, ValueError) as exc:
+            errors = [f"unreadable: {exc}"]
+        if errors:
+            print(f"WARN {path.name}: invalid, scored as empty: {errors[:2]}", file=sys.stderr)
+            continue
         out[vid] = Prediction(
             highlights=[tuple(h["segment"]) for h in doc.get("highlights", [])],
             actions=[
@@ -146,7 +170,9 @@ def read_predictions(pred_dir: Path, video_ids: list[str]) -> dict[str, Predicti
     return out
 
 
-def load_eval_data(split: str) -> EvalData:
+def load_eval_data(split: str, fold: int | None = None) -> EvalData:
+    """GT for a split. FPVSum has no separate tune videos, so ``tune`` includes FPVSum
+    only for one held-out CV ``fold`` (CLAUDE.md §6.2); ``report`` has all 49."""
     s = load_splits()
     with open(ROOT / "kit" / "manifest.csv", encoding="utf-8", newline="") as f:
         manifest = {r["video_id"]: float(r["duration_sec"]) for r in csv.DictReader(f)}
@@ -163,8 +189,11 @@ def load_eval_data(split: str) -> EvalData:
         epic_dur = {v: info[v] for v in ids}
     else:
         raise ValueError(f"unknown split {split!r}")
-    # FPVSum has no separate tune videos: CV folds over the same 49 (CLAUDE.md §6.2).
-    fpv_dur = {v: manifest[v] for v in s.report_fpvsum}
+    if split == "report":
+        fpv_ids = list(s.report_fpvsum)
+    else:
+        fpv_ids = [v for v, k in s.fpvsum_folds.items() if fold is not None and k == fold]
+    fpv_dur = {v: manifest[v] for v in sorted(fpv_ids)}
     return EvalData(
         epic_gt={v: gt.get(v, []) for v in ids},
         epic_dur=epic_dur,
@@ -208,13 +237,16 @@ def main(argv: list[str] | None = None) -> int:
     src.add_argument("--pred", type=Path, help="directory of <video_id>.json")
     src.add_argument("--baseline", choices=["uniform", "random", "oracle"])
     ap.add_argument("--tag", required=True)
+    ap.add_argument("--fold", type=int, help="tune only: score this FPVSum CV fold")
     ap.add_argument("--config", type=Path, default=ROOT / "configs" / "default.yaml")
     ap.add_argument("--no-write", action="store_true", help="print only")
     args = ap.parse_args(argv)
 
     cfg = load_config(args.config)
-    budget, lam, theta = cfg.select.budget_frac, cfg.eval.coverage_lambda, cfg.select.fraction_theta
-    data = load_eval_data(args.split)
+    budget, lam, theta = cfg.select.budget_frac, cfg.eval.coverage_lambda, cfg.eval.capture_theta
+    if args.split == "report" and args.fold is not None:
+        ap.error("--fold applies to --split tune only")
+    data = load_eval_data(args.split, args.fold)
     if args.pred:
         preds = read_predictions(args.pred, [*data.epic_gt, *data.fpv_gt])
     else:
@@ -235,7 +267,7 @@ def main(argv: list[str] | None = None) -> int:
         "split": args.split,
         "n_epic": len(data.epic_gt),
         "n_fpvsum": len(data.fpv_gt),
-        **{k: f"{v:.4f}" for k, v in scores.items()},
+        **{k: "" if v is None else f"{v:.4f}" for k, v in scores.items()},
     }
     print(json.dumps(row, indent=1))
     if not args.no_write:

@@ -79,3 +79,4 @@ routing:
 
 eval:
   coverage_lambda: 1.0     # over-budget penalty slope in our coverage metric (Q8)
+  capture_theta: 0.5       # coverage metric's fraction rule: share of an action a highlight must cover (Q4)
