@@ -1,0 +1,19 @@
+# Large or licensed data: never committed (CLAUDE.md §6.9)
+data/
+cache/
+weights/
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.hypothesis/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
