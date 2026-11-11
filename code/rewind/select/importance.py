@@ -2,15 +2,15 @@
 
 Per dense timestep:
 
-    imp(t) = w_flow * z(flow) + w_hands * hands + w_global * z(global_motion)
-             + w_scene * z(scene_change)
+    imp(t) = w_flow * z(flow) + w_hands * hands + w_global_motion * z(global_motion)
+             + w_scene_change * z(scene_change)
 
 then Gaussian smoothing with sigma seconds. Scene change = 1 - cosine similarity of
 consecutive 1 fps CLIP embeddings, interpolated to the dense grid. (`flow` and
 `global_motion` arrive z-scored from features/flow.py.)
 
 Segments: shots start where scene change exceeds `shot_thr`. Inside each shot,
-windows of `min_len`..`max_len` s are scored by mean imp; the best non-overlapping
+windows of `min_window`..`max_window` s are scored by mean imp; the best non-overlapping
 windows are taken greedily until the budget is used. The result still goes through
 post-processing (§5.6), which owns merging, short videos and rounding.
 
@@ -20,6 +20,7 @@ Pure: arrays in, segments out. Weights are tuned on FPVSum CV folds only.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from itertools import pairwise
 
 import numpy as np
 
@@ -35,20 +36,20 @@ class ImportanceParams:
 
     w_flow: float
     w_hands: float
-    w_global: float
-    w_scene: float
+    w_global_motion: float
+    w_scene_change: float
     sigma: float
     shot_thr: float
-    min_len: float
-    max_len: float
+    min_window: float
+    max_window: float
     len_step: float
     stride: float
 
     def __post_init__(self) -> None:
-        if self.min_len < MIN_SEG_EMIT:
-            raise ValueError(f"importance.min_len must be >= {MIN_SEG_EMIT} (kit 4 s rule)")
-        if self.max_len < self.min_len or self.len_step <= 0 or self.stride <= 0:
-            raise ValueError("need max_len >= min_len and positive len_step / stride")
+        if self.min_window < MIN_SEG_EMIT:
+            raise ValueError(f"importance.min_window must be >= {MIN_SEG_EMIT} (kit 4 s rule)")
+        if self.max_window < self.min_window or self.len_step <= 0 or self.stride <= 0:
+            raise ValueError("need max_window >= min_window and positive len_step / stride")
 
 
 def clip_change(emb: np.ndarray) -> np.ndarray:
@@ -86,8 +87,8 @@ def importance_signal(
     raw = (
         p.w_flow * np.asarray(flow)
         + p.w_hands * np.asarray(hands)
-        + p.w_global * np.asarray(global_motion)
-        + p.w_scene * zscore(scene)
+        + p.w_global_motion * np.asarray(global_motion)
+        + p.w_scene_change * zscore(scene)
     )
     rate = 1.0 / np.median(np.diff(t_dense)) if len(t_dense) > 1 else 1.0
     return gaussian_smooth(raw, p.sigma * rate)
@@ -98,13 +99,13 @@ def shots(t_clip: np.ndarray, clip_emb: np.ndarray, duration: float, thr: float)
     change = clip_change(clip_emb)
     cuts = [float(t_clip[j]) for j in range(1, len(t_clip)) if change[j] > thr]
     bounds = [0.0, *[c for c in cuts if 0.0 < c < duration], float(duration)]
-    return [(a, b) for a, b in zip(bounds[:-1], bounds[1:], strict=True) if b > a]
+    return [(a, b) for a, b in pairwise(bounds) if b > a]
 
 
 def _candidates(span: Segment, p: ImportanceParams) -> list[Segment]:
     s0, e0 = span
     out = []
-    for length in np.arange(p.min_len, p.max_len + 1e-9, p.len_step):
+    for length in np.arange(p.min_window, p.max_window + 1e-9, p.len_step):
         for start in np.arange(s0, e0 - length + 1e-9, p.stride):
             out.append((float(start), float(start + length)))
     return out
@@ -120,8 +121,8 @@ def select_segments(
 ) -> list[Segment]:
     """Greedy best-mean-importance windows inside shots, non-overlapping, within budget.
 
-    If no shot is long enough for a min_len window, windows may span shots. If the
-    budget is below min_len (short video), returns the single best min_len window
+    If no shot is long enough for a min_window window, windows may span shots. If the
+    budget is below min_window (short video), returns the single best min_window window
     (post-processing applies the short-video rule).
     """
     t = np.asarray(t_dense)
@@ -129,7 +130,7 @@ def select_segments(
     cands = [c for span in shot_spans for c in _candidates(span, p)]
     if not cands:
         cands = _candidates((0.0, float(duration)), p)
-    if not cands:  # video shorter than min_len: post-processing decides
+    if not cands:  # video shorter than min_window: post-processing decides
         return []
 
     def score(seg: Segment) -> float:
@@ -137,7 +138,7 @@ def select_segments(
         return float(imp[inside].mean()) if inside.any() else -np.inf
 
     ranked = sorted(cands, key=lambda c: (-score(c), c[0], c[1] - c[0]))
-    if budget_sec < p.min_len:
+    if budget_sec < p.min_window:
         return [ranked[0]]
     chosen: list[Segment] = []
     used = 0.0
@@ -148,7 +149,7 @@ def select_segments(
             continue
         chosen.append((s, e))
         used += e - s
-        if budget_sec - used < p.min_len:
+        if budget_sec - used < p.min_window:
             break
     return sorted(chosen)
 

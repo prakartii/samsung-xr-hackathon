@@ -1,15 +1,15 @@
-# Runtime dependencies (part of the submission). Pinned.
+# Runtime dependencies for run.sh (pinned; part of the submission).
 # CPU-only PyTorch wheels (no GPU on the team; ARCHITECTURE.md §10.1).
 --extra-index-url https://download.pytorch.org/whl/cpu
-numpy==2.1.2
-pyyaml==6.0.2
-# OpenCV: the contrib build, because mediapipe depends on `opencv-contrib-python` by
-# name; installing it next to `opencv-python-headless` would give two packages that
-# both own the `cv2` module. On a bare Linux image it needs libgl1 (Dockerfile, P8).
+numpy==2.4.6
+PyYAML==6.0.3
+# P3 (A): OpenCV is the contrib build because mediapipe depends on
+# `opencv-contrib-python` by name; a second OpenCV package next to it would fight over
+# the `cv2` module. On a bare Linux image it needs libgl1 (Dockerfile, P8).
 opencv-contrib-python==4.10.0.84
 mediapipe==1.2.2
-# Video decoding: bundles FFmpeg, reads multi-stream GoPro files (OpenCV stops early on
-# them) with threaded decode and exact frame timestamps; also replaces ffprobe.
+# Video decoding: bundles FFmpeg, reads multi-stream GoPro files to the end (OpenCV
+# stopped silently on them), threaded, with exact frame timestamps (PROGRESS.md D1).
 av==19.0.2
 torch==2.15.0+cpu
 torchvision==0.29.2+cpu

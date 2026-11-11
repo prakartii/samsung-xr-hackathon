@@ -1,5 +1,7 @@
 """FPVSum importance proxy and segment selection (PROGRESS.md P6 tests)."""
 
+from itertools import pairwise
+
 import numpy as np
 import pytest
 
@@ -14,8 +16,8 @@ from rewind.select.importance import (
 )
 
 P = ImportanceParams(
-    w_flow=1.0, w_hands=0.0, w_global=0.0, w_scene=0.0, sigma=0.0,
-    shot_thr=0.5, min_len=4.05, max_len=6.05, len_step=1.0, stride=0.5,
+    w_flow=1.0, w_hands=0.0, w_global_motion=0.0, w_scene_change=0.0, sigma=0.0,
+    shot_thr=0.5, min_window=4.05, max_window=6.05, len_step=1.0, stride=0.5,
 )  # fmt: skip
 
 
@@ -89,7 +91,7 @@ def test_select_respects_budget_and_no_overlap():
     segs = select_segments(t, imp, [(0.0, 100.0)], 100.0, budget_sec=14.5, p=P)
     assert sum(e - s for s, e in segs) <= 14.5 + 1e-9
     assert all(e - s >= 4.05 - 1e-9 for s, e in segs)
-    assert all(a[1] <= b[0] for a, b in zip(segs, segs[1:], strict=False))
+    assert all(a[1] <= b[0] for a, b in pairwise(segs))
 
 
 def test_select_windows_stay_inside_their_shot():
@@ -102,7 +104,7 @@ def test_select_windows_stay_inside_their_shot():
 
 
 def test_select_short_budget_returns_single_best_window():
-    # budget 3 s < min_len: one min_len window (post-processing applies short-video rules)
+    # budget 3 s < min_window: one min_window window (post-processing applies short-video rules)
     t = _grid(20.0)
     imp = (t >= 15.0).astype(float)
     segs = select_segments(t, imp, [(0.0, 20.0)], 20.0, budget_sec=3.0, p=P)
@@ -110,7 +112,7 @@ def test_select_short_budget_returns_single_best_window():
     assert segs[0][0] >= 15.0 - 1e-9
 
 
-def test_params_reject_min_len_below_kit_minimum():
+def test_params_reject_min_window_below_kit_minimum():
     with pytest.raises(ValueError):
         ImportanceParams(1, 1, 1, 1, 1, 0.5, 4.0, 6.0, 1.0, 0.5)
 

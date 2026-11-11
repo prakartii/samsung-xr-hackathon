@@ -2,8 +2,8 @@
 
 import numpy as np
 import pytest
-
 from fixtures.videos import frame_index, write_index_video
+
 from rewind.video_io import DecodeError, iter_frames, probe_video, resize_to_width
 
 

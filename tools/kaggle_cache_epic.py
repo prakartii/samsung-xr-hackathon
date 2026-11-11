@@ -68,15 +68,15 @@ def setup() -> Path:
 def main() -> None:
     repo = setup()
     sys.path[:0] = [str(repo / "code"), str(repo / "tools")]
-    import cache_features as cf  # noqa: E402  (tools/, after setup)
-    import download_videos as dv  # noqa: E402
-    import yaml  # noqa: E402
+    import cache_features as cf
+    import download_videos as dv
+    import yaml
 
-    from rewind.features.cache import FeatureCache, content_fingerprint  # noqa: E402
-    from rewind.features.clip import ClipParams, OpenClipEncoder, clip_cache_version  # noqa: E402
-    from rewind.features.flow import FlowParams, flow_cache_version  # noqa: E402
-    from rewind.features.hands import HandParams, hands_cache_version  # noqa: E402
-    from rewind.video_io import probe_video  # noqa: E402
+    from rewind.features.cache import FeatureCache, content_fingerprint
+    from rewind.features.clip import ClipParams, OpenClipEncoder, clip_cache_version
+    from rewind.features.flow import FlowParams, flow_cache_version
+    from rewind.features.hands import HandParams, hands_cache_version
+    from rewind.video_io import probe_video
 
     cfg = yaml.safe_load((repo / "configs" / "default.yaml").read_text(encoding="utf-8"))
     dense, clip_fps = cfg["signals"]["dense_fps"], cfg["signals"]["clip_fps"]

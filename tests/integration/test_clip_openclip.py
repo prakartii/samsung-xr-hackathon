@@ -4,12 +4,13 @@ Needs weights/clip_vit_b16_openai.safetensors (tools/fetch_weights.sh) and, for 
 routing check, FPVSum videos in data/videos (tools/download_videos.py).
 """
 
+from dataclasses import asdict
 from pathlib import Path
 
 import numpy as np
 import pytest
-import yaml
 
+from rewind.config import load_config
 from rewind.features.clip import (
     ClipParams,
     OpenClipEncoder,
@@ -22,10 +23,10 @@ from rewind.video_io import iter_frames, probe_video
 pytestmark = pytest.mark.data
 
 REPO = Path(__file__).resolve().parents[2]
-CFG = yaml.safe_load((REPO / "configs" / "default.yaml").read_text(encoding="utf-8"))
-PARAMS = ClipParams(**CFG["features"]["clip"])
-CLASSES = CFG["prompts"]["classes"]
-TEMPLATES = CFG["prompts"]["templates"]
+CFG = load_config(REPO / "configs" / "default.yaml")
+PARAMS = ClipParams(**asdict(CFG.features.clip))
+CLASSES = CFG.label.classes
+TEMPLATES = CFG.label.prompts
 
 
 @pytest.fixture(scope="module")

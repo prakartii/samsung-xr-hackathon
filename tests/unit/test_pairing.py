@@ -18,7 +18,7 @@ VOCAB_V, VOCAB_N = set(VERBS), set(NOUNS)
 COUNTS = np.array([[3.0, 1.0], [0.0, 4.0]])
 PRIOR = VNPrior.from_counts(VERBS, NOUNS, COUNTS, eps=1.0)
 # Plain product: alpha 1, power 1, so scores are easy to hand-compute.
-P1 = PairingParams(match_tiou=0.5, k=5, alpha=1.0, prior_eps=1.0, score_power=1.0)
+P1 = PairingParams(match_tiou=0.5, top_k=5, alpha=1.0, eps=1.0, score_power=1.0)
 
 
 # --- prior --------------------------------------------------------------------------
@@ -121,7 +121,7 @@ def test_pairing_identical_duplicate_detections_give_one_proposal():
 
 
 def test_pairing_top_k_limits_pairs():
-    k1 = PairingParams(match_tiou=0.5, k=1, alpha=1.0, prior_eps=1.0, score_power=1.0)
+    k1 = PairingParams(match_tiou=0.5, top_k=1, alpha=1.0, eps=1.0, score_power=1.0)
     props = pair_proposals(
         [((0.0, 10.0), "take", 0.8), ((0.0, 10.0), "cut", 0.6)],
         [((0.0, 10.0), "knife", 0.5), ((0.0, 10.0), "onion", 0.4)],
@@ -140,7 +140,7 @@ def test_pairing_empty_inputs():
 def test_score_power_is_monotone_and_video_independent():
     # The same (p_v, p_n, prior) must give the same score in any video, and raising
     # p_v must never lower the score.
-    sq = PairingParams(match_tiou=0.5, k=5, alpha=0.5, prior_eps=1.0, score_power=0.5)
+    sq = PairingParams(match_tiou=0.5, top_k=5, alpha=0.5, eps=1.0, score_power=0.5)
 
     def score(pv, extra_dets=()):
         dets = [((0.0, 10.0), "take", pv), *extra_dets]
