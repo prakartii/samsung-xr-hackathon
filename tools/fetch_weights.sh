@@ -37,3 +37,36 @@ for entry in "${WEIGHTS[@]}"; do
   mv "$target.tmp" "$target"
   echo "ok       $name"
 done
+
+# ActionFormer EPIC-100 checkpoints (MIT; trained on EPIC train only, PROGRESS.md §4).
+# Released on Google Drive as zips (named .tar.gz) holding config, logs and
+# epoch_020.pth.tar; we keep only the checkpoint. Needs `gdown` (requirements-dev.txt).
+# name | Google Drive file id | member inside the zip | sha256 of the member
+GDRIVE_ZIPS=(
+  "actionformer_epic_verb.pth.tar|1Ta4ggKSj2YcszSrDbePlHe1ECF1CFKK4|epic_slowfast_verb_reproduce/epoch_020.pth.tar|88486434a71e1b17ac38dd4a93d9612612026be62d7a93a032a0953a30ac687b"
+  "actionformer_epic_noun.pth.tar|1OTlxeiWj8JE9n1-LsRYogHmqgUdsE5PR|epic_slowfast_noun_reproduce/epoch_020.pth.tar|8d313a2dd69562bfb063cb1e3372ad056ee646283d1e32af95ff49318bf6bbf9"
+)
+PYTHON="${PYTHON:-python}"
+
+for entry in "${GDRIVE_ZIPS[@]}"; do
+  IFS='|' read -r name file_id member sha <<<"$entry"
+  target="weights/$name"
+  if [[ -f "$target" && "$(sha256_of "$target")" == "$sha" ]]; then
+    echo "ok       $name"
+    continue
+  fi
+  echo "fetching $name"
+  "$PYTHON" -m gdown "$file_id" -O "$target.zip"
+  "$PYTHON" -c "import shutil, sys, zipfile
+with zipfile.ZipFile(sys.argv[1]) as z, z.open(sys.argv[2]) as src, open(sys.argv[3], 'wb') as dst:
+    shutil.copyfileobj(src, dst)" "$target.zip" "$member" "$target.tmp"
+  rm -f "$target.zip"
+  got="$(sha256_of "$target.tmp")"
+  if [[ "$got" != "$sha" ]]; then
+    rm -f "$target.tmp"
+    echo "SHA-256 mismatch for $name: expected $sha, got $got" >&2
+    exit 1
+  fi
+  mv "$target.tmp" "$target"
+  echo "ok       $name"
+done
