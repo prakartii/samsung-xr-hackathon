@@ -1,5 +1,8 @@
 """Decoding at a target fps on a tiny generated video (no ffmpeg, no data/)."""
 
+import shutil
+import subprocess
+
 import numpy as np
 import pytest
 from fixtures.videos import frame_index, write_index_video
@@ -66,3 +69,20 @@ def test_resize_to_width_keeps_even_height():
     assert resize_to_width(np.zeros((75, 100, 3), np.uint8), 160).shape[:2] == (120, 160)
     # 30x7 -> width 10: 7 * 10 / 30 = 2.33 -> nearest even = 2
     assert resize_to_width(np.zeros((7, 30, 3), np.uint8), 10).shape[:2] == (2, 10)
+
+
+@pytest.mark.skipif(shutil.which("ffmpeg") is None, reason="ffmpeg not on PATH")
+def test_iter_frames_ignores_a_nonzero_stream_start_time(video_10fps_3s, tmp_path):
+    # Same 30 frames, but the stream's timestamps start at 2.0 s. Sampling is relative
+    # to the stream start, so at 2 fps we still get frames 0, 5, ..., 25 (an absolute
+    # clock would give 0, 0, 0, 0, 0, 5: everything 2 s late).
+    off = tmp_path / "off.mkv"
+    subprocess.run(
+        ["ffmpeg", "-hide_banner", "-loglevel", "error", "-i", str(video_10fps_3s),
+         "-c", "copy", "-output_ts_offset", "2", "-y", str(off)],
+        check=True,
+    )  # fmt: skip
+
+    out = list(iter_frames(off, duration_sec=3.0, target_fps=2.0))
+
+    assert [frame_index(f) for _, f in out] == [0, 5, 10, 15, 20, 25]

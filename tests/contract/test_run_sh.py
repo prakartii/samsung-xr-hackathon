@@ -178,6 +178,29 @@ def test_run_sh_never_opens_manifest_or_ground_truth(videos, tmp_path):
 # --- in-process: failure paths (the analyze stage is the edge we fake) -------
 
 
+def test_run_sh_writes_fallback_when_opencv_cannot_load(videos, tmp_path):
+    # A bare Linux image without libGL can't import cv2. run.sh must still reach its
+    # fallback and write valid JSON (CLAUDE.md §6.7), so nothing on the path from the CLI
+    # to the fallback may import cv2 at module level.
+    fake = tmp_path / "fakecv2"
+    fake.mkdir()
+    (fake / "cv2.py").write_text(
+        'raise ImportError("libGL.so.1: cannot open shared object file")\n'
+    )
+    out = tmp_path / "v.json"
+    env = {**os.environ, "PYTHONPATH": f"{fake}{os.pathsep}{REPO_ROOT / 'code'}"}
+
+    proc = subprocess.run(
+        [sys.executable, "-m", "rewind.cli", str(videos[30]), str(out)],
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+
+    assert proc.returncode == 0, proc.stderr
+    assert strict_errors(out) == []
+
+
 def test_pipeline_stage_exception_writes_valid_fallback(videos, tmp_path, caplog):
     def broken(*_):
         raise RuntimeError("detector exploded")

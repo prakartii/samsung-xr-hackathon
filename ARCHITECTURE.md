@@ -129,7 +129,7 @@ to keys once, in `rewind/vocab.py`.
 | `config.py` | Load and validate `configs/default.yaml` into typed dataclasses; `config_hash()` | yes |
 | `types.py` | §2 types | — |
 | `vocab.py` | Kit classes from the bundled copy `rewind/resources/classes.json` (byte-identical to `kit/supported_classes.json`, so `run.sh` runs without `kit/`); index ↔ key maps; verb–noun co-occurrence prior | load at edge, lookups pure |
-| `video_io.py` | ffprobe metadata; frame decoding at a target fps; frame ↔ seconds | no |
+| `video_io.py` | Metadata: `ffprobe_meta` (used by `run.sh`) or PyAV `probe_video`. Frames: PyAV decode of the first video stream at a target fps by presentation time, relative to the stream start (D1); frame ↔ seconds | no |
 | `routing.py` | Dataset routing from video signals only (§6.1) | yes, given inputs |
 | `features/flow.py` | Farneback flow at low resolution → residual + global motion | no |
 | `features/hands.py` | MediaPipe hand presence | no |

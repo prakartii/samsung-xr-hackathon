@@ -198,6 +198,10 @@ def iter_frames(
         stream = container.streams.video[0]
         stream.thread_type = "AUTO"
         frame_dur = 1.0 / float(stream.average_rate or stream.base_rate or 30)
+        # Presentation times are absolute; the sample grid starts at 0. Without this a
+        # stream that starts at 2 s (e.g. -output_ts_offset, some GoPro remuxes) would
+        # be sampled 2 s late and silently misaligned with every action time.
+        t0 = float(stream.start_time * stream.time_base) if stream.start_time is not None else 0.0
         prev = None  # (time, av.VideoFrame)
         cached: tuple[object, np.ndarray] | None = None  # (frame, its image); holds a ref
 
@@ -214,7 +218,11 @@ def iter_frames(
             return img
 
         for frame in container.decode(stream):
-            ft = frame.time if frame.time is not None else (prev[0] + frame_dur if prev else 0.0)
+            ft = (
+                frame.time - t0
+                if frame.time is not None
+                else (prev[0] + frame_dur if prev else 0.0)
+            )
             while idx < n and ft > times[idx] + _FRAME_EPS:
                 yield float(times[idx]), image(prev[1] if prev is not None else frame)
                 idx += 1
