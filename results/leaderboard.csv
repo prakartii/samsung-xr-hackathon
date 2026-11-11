@@ -5,3 +5,19 @@ date,git_sha,tag,config_hash,split,n_epic,n_fpvsum,coverage_any,coverage_frac,pc
 2026-11-11,7e0bbc4,uniform baseline,3e75637c92,report,138,49,0.3380,0.1768,0.4669,0.0000,0.1626,0.0000,0.1759
 2026-11-11,7e0bbc4,random baseline,3e75637c92,report,138,49,0.3123,0.1836,0.4313,0.0000,0.1580,0.0000,0.1644
 2026-11-11,7e0bbc4,oracle baseline,3e75637c92,report,138,49,0.7240,0.3295,1.0000,1.0000,0.7084,1.0000,0.8167
+2026-11-11,00ecff0,P5 sim clean: expected h=0.125,3e75637c92,tune,20,0,0.6681,0.3423,0.9027,,,,
+2026-11-11,00ecff0,P5 sim clean: dedup h=0.125,3e75637c92,tune,20,0,0.6681,0.3423,0.9027,,,,
+2026-11-11,00ecff0,P5 sim clean: expected h=0,53e0518d89,tune,20,0,0.7438,0.3881,1.0050,,,,
+2026-11-11,00ecff0,P5 sim clean: expected h=0 T=2,a4fc4fc94e,tune,20,0,0.7438,0.3881,1.0050,,,,
+2026-11-11,00ecff0,P5 sim clean: expected h=0 T=4,2af6c00550,tune,20,0,0.7438,0.3881,1.0050,,,,
+2026-11-11,00ecff0,P5 sim clean: expected h=0 4.05,92ed9f5c44,tune,20,0,0.7209,0.3696,0.9741,,,,
+2026-11-11,00ecff0,P5 sim clean: dedup h=0,53e0518d89,tune,20,0,0.7438,0.3881,1.0050,,,,
+2026-11-11,00ecff0,P5 sim noisy: expected h=0.125,3e75637c92,tune,20,0,0.4465,0.2725,0.6033,,,,
+2026-11-11,00ecff0,P5 sim noisy: dedup h=0.125,3e75637c92,tune,20,0,0.4426,0.2711,0.5981,,,,
+2026-11-11,00ecff0,P5 sim noisy: expected h=0,53e0518d89,tune,20,0,0.4989,0.3227,0.6742,,,,
+2026-11-11,00ecff0,P5 sim noisy: expected h=0 T=2,a4fc4fc94e,tune,20,0,0.5023,0.3289,0.6788,,,,
+2026-11-11,00ecff0,P5 sim noisy: expected h=0 T=4,2af6c00550,tune,20,0,0.4991,0.3260,0.6744,,,,
+2026-11-11,00ecff0,P5 sim noisy: expected h=0 4.05,92ed9f5c44,tune,20,0,0.4948,0.3297,0.6686,,,,
+2026-11-11,00ecff0,P5 sim noisy: dedup h=0,53e0518d89,tune,20,0,0.5095,0.3231,0.6884,,,,
+2026-11-11,00ecff0,oracle baseline (window lengths 4.05/5/6),53e0518d89,tune,20,0,0.7401,0.3689,1.0000,1.0000,,,
+2026-11-11,00ecff0,oracle baseline (window lengths 4.05/5/6),53e0518d89,report,138,49,0.7374,0.3283,1.0000,1.0000,0.7178,1.0000,0.8244

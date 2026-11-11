@@ -71,7 +71,7 @@ select:
   fraction_tau: 0.05       # fraction rule: sigmoid temperature
 
 hedge:
-  share: 0.125             # fraction of the budget reserved for hedge windows; initial, P5
+  share: 0.0               # budget fraction for hedge windows; 0 until activity signals exist (P5 sim: 0.125 cost ~0.08 coverage)
   gap: 1.0                 # s kept clear around selected windows
   strong: 0.8              # clusters at or above this confidence are masked out
   min_spacing: 10.0        # min s between hedge window centres
