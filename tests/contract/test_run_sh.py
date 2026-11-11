@@ -9,6 +9,7 @@ import os
 import shutil
 import subprocess
 import sys
+import sysconfig
 from pathlib import Path
 
 import pytest
@@ -162,8 +163,15 @@ def test_run_sh_never_opens_manifest_or_ground_truth(videos, tmp_path):
     assert proc.returncode == 0, proc.stderr
     opened = [p.lower() for p in proc.stdout.splitlines()]
     forbidden = ("manifest", "annotation", "epic_100_", "/kit/", "/data/")
+    # Library files inside the Python installation are not inputs: torch ships
+    # `torch/jit/annotations.py`, OpenCV `cv2/data/`. Check everything else.
+    install = tuple(
+        str(Path(d)).lower()
+        for d in {sysconfig.get_paths()[k] for k in ("stdlib", "platstdlib", "purelib", "platlib")}
+    )
+    inputs = [p for p in opened if not str(Path(p)).lower().startswith(install)]
 
-    assert [p for p in opened if any(f in p for f in forbidden)] == []
+    assert [p for p in inputs if any(f in p for f in forbidden)] == []
     assert any(p.endswith("v.json") or ".v.json." in p for p in opened)  # hook works
 
 
