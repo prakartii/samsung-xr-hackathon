@@ -6,6 +6,7 @@ import pytest
 from rewind.select.importance import (
     ImportanceParams,
     clip_change,
+    fpvsum_segments,
     gaussian_smooth,
     importance_signal,
     select_segments,
@@ -112,3 +113,26 @@ def test_select_short_budget_returns_single_best_window():
 def test_params_reject_min_len_below_kit_minimum():
     with pytest.raises(ValueError):
         ImportanceParams(1, 1, 1, 1, 1, 0.5, 4.0, 6.0, 1.0, 0.5)
+
+
+def test_fpvsum_segments_follow_motion_burst_within_budget():
+    # 100 s video, 4 fps. Residual flow bursts on [60, 66); everything else flat; one
+    # shot (constant CLIP). Budget 0.145 * 100 = 14.5 s -> segments cover the burst.
+    t = _grid(100.0)
+    burst = ((t >= 60.0) & (t < 66.0)).astype(float)
+    flow = {"t": t, "flow": burst, "global_motion": np.zeros_like(t)}
+    hands = {"t": t, "hands": np.zeros_like(t)}
+    clip = {"t": np.arange(100.0), "clip_emb": np.ones((100, 4))}
+    p = ImportanceParams(1.0, 0.0, 0.0, 0.0, 1.0, 0.15, 4.05, 10.0, 1.0, 0.5)
+    segs = fpvsum_segments(flow, hands, clip, 100.0, 0.145, p)
+    assert sum(e - s for s, e in segs) <= 14.5 + 1e-9
+    assert any(s <= 61.0 and e >= 65.0 for s, e in segs)
+
+
+def test_fpvsum_segments_reject_mismatched_dense_grids():
+    t = _grid(10.0)
+    flow = {"t": t, "flow": np.zeros_like(t), "global_motion": np.zeros_like(t)}
+    hands = {"t": t[:-1], "hands": np.zeros(len(t) - 1)}
+    clip = {"t": np.arange(10.0), "clip_emb": np.ones((10, 4))}
+    with pytest.raises(ValueError):
+        fpvsum_segments(flow, hands, clip, 10.0, 0.145, P)
