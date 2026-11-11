@@ -1,6 +1,10 @@
 # Runtime dependencies (part of the submission). Pinned.
-# P3 (A): numeric core, config, optical flow. Model deps (MediaPipe, open_clip, torch)
-# are added in the PR that first uses them.
+# P3 (A): numeric core, config, optical flow, hands. Further model deps (open_clip,
+# torch) are added in the PR that first uses them.
 numpy==2.1.2
 pyyaml==6.0.2
-opencv-python-headless==4.10.0.84
+# OpenCV: the contrib build, because mediapipe depends on `opencv-contrib-python` by
+# name; installing it next to `opencv-python-headless` would give two packages that
+# both own the `cv2` module. On a bare Linux image it needs libgl1 (Dockerfile, P8).
+opencv-contrib-python==4.10.0.84
+mediapipe==1.2.2
