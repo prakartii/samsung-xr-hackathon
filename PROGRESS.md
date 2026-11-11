@@ -367,6 +367,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
 - 2026-11-11 · PK · P4 · Released features in (MD5 ok); coverage 138/138; imported the 10 downloaded videos; end-to-end action chain runs on real features (data-tier tests pass) · —
+- 2026-11-11 · PK · P3 · Home link (~2.5 MiB/s) needs ~20 h for the 184 GB of EPIC video, so the EPIC feature cache now runs on Kaggle: `tools/kaggle_launch.py` uploads the code as a private dataset and starts 5 free CPU notebooks (`tools/kaggle_cache_epic.py`, one shard each: parallel MD5-checked downloads, single-pass flow/hands/CLIP, videos deleted). Results come back with `--collect` (~100 MB, keyed by content fingerprint like a local run) · —
 - 2026-11-11 · PK · P6 · `select/importance.py`, `label/`, `importance`/`label`/`select.budget_frac` config, shared Hypothesis strategies · —
 - 2026-11-11 · PK · P6 · Started P6 on `p6/fpvsum-importance` (P4 is blocked on the features download) · —
 - 2026-11-11 · PK · P4 · `tools/fetch_released_features.py`: Google Drive throttled the 6.5 GB archive to ~25 KiB/s; switched to the README's Box mirror with parallel ranges · —
