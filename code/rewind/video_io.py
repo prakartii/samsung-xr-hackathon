@@ -1,8 +1,8 @@
 """Video I/O: the only place frames are converted to seconds and back.
 
 CLAUDE.md §6.4: time is float seconds everywhere; frame <-> seconds conversion lives
-only in this module. The conversion helpers are pure; ffprobe and decoding are the
-I/O edge.
+only in this module. The conversion helpers are pure; probing and decoding (PyAV)
+are the I/O edge.
 """
 
 from __future__ import annotations
@@ -142,42 +142,86 @@ def resize_to_width(frame: np.ndarray, width: int) -> np.ndarray:
     return cv2.resize(frame, (width, height), interpolation=cv2.INTER_AREA)
 
 
+class DecodeError(RuntimeError):
+    """The decoder ended before the requested duration (truncated or unreadable file)."""
+
+
+def probe_video(path: Path) -> ProbeMeta:
+    """Duration, average fps and size via PyAV (same FFmpeg libraries as decoding)."""
+    import av
+
+    with av.open(str(path)) as container:
+        stream = container.streams.video[0]
+        if container.duration is not None:
+            duration = container.duration / 1_000_000  # microseconds
+        elif stream.duration is not None:
+            duration = float(stream.duration * stream.time_base)
+        else:
+            raise ValueError(f"no duration in {path}")
+        fps = float(stream.average_rate or stream.base_rate)
+        return ProbeMeta(duration, fps, stream.codec_context.width, stream.codec_context.height)
+
+
 def iter_frames(
     path: Path,
     duration_sec: float,
-    fps: float,
     target_fps: float,
     width: int | None = None,
 ) -> Iterator[tuple[float, np.ndarray]]:
     """Yield (t, BGR frame) at every t in `sample_times(duration_sec, target_fps)`.
 
-    Each t gets the source frame shown at t (`sec_to_frame(t, fps)`), so t is exact
-    and shared by every signal sampled at the same rate. `duration_sec` and `fps` come
-    from ffprobe (`ProbeMeta`) so all modules agree on them. Frames are decoded
-    sequentially (grab skips without decoding pixels), which beats seeking for
-    sampling rates of a few fps. If the decoder runs out early, iteration stops; the
-    caller compares the count with its timestamps.
+    Each t gets the frame shown at t: the last decoded frame whose presentation time is
+    <= t (the first frame for t before it). Timestamps come from the container, so this
+    is exact for variable frame rate too, and t is shared by every signal sampled at
+    the same rate.
+
+    Decoding uses PyAV with threaded decode of the first video stream only; other
+    streams (audio, GoPro metadata) are ignored. OpenCV's backend stopped silently
+    after < 1 s on EPIC GoPro files, which is why this module doesn't use it.
+
+    Raises DecodeError if the stream ends more than one frame before the last
+    requested t, so a truncated decode can never be mistaken for a short video.
     """
+    import av
+
     times = sample_times(duration_sec, target_fps)
-    targets = [sec_to_frame(float(t), fps) for t in times]
-    cap = cv2.VideoCapture(str(path))
-    if not cap.isOpened():
-        raise OSError(f"cannot open video: {path}")
-    try:
-        current = -1  # index of the last frame grabbed
-        frame = None
-        for t, target in zip(times, targets, strict=True):
-            while current < target:
-                if not cap.grab():
-                    return
-                current += 1
-                frame = None
-            if frame is None:
-                ok, frame = cap.retrieve()
-                if not ok:
-                    return
-                if width is not None:
-                    frame = resize_to_width(frame, width)
-            yield float(t), frame
-    finally:
-        cap.release()
+    n = len(times)
+    idx = 0
+    with av.open(str(path)) as container:
+        stream = container.streams.video[0]
+        stream.thread_type = "AUTO"
+        frame_dur = 1.0 / float(stream.average_rate or stream.base_rate or 30)
+        prev = None  # (time, av.VideoFrame)
+        cached: tuple[object, np.ndarray] | None = None  # (frame, its image); holds a ref
+
+        def image(frame) -> np.ndarray:
+            nonlocal cached
+            if cached is not None and cached[0] is frame:
+                return cached[1]
+            if width is None:
+                img = frame.to_ndarray(format="bgr24")
+            else:
+                h = max(2, 2 * round(frame.height * width / frame.width / 2))
+                img = frame.reformat(width=width, height=h, format="bgr24").to_ndarray()
+            cached = (frame, img)
+            return img
+
+        for frame in container.decode(stream):
+            ft = frame.time if frame.time is not None else (prev[0] + frame_dur if prev else 0.0)
+            while idx < n and ft > times[idx] + _FRAME_EPS:
+                yield float(times[idx]), image(prev[1] if prev is not None else frame)
+                idx += 1
+            if idx >= n:
+                return
+            prev = (ft, frame)
+        if prev is None:
+            raise DecodeError(f"no video frames decoded from {path}")
+        # remaining targets inside the last frame's display interval get the last frame
+        while idx < n and times[idx] <= prev[0] + frame_dur + _FRAME_EPS:
+            yield float(times[idx]), image(prev[1])
+            idx += 1
+        if idx < n:
+            raise DecodeError(
+                f"{path}: stream ends at {prev[0]:.2f} s but samples were requested up to "
+                f"{times[-1]:.2f} s ({n - idx} short)"
+            )
