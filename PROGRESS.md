@@ -16,7 +16,7 @@ Who is A and who is B: **A = prakartii**, **B = Daksh Arora (DA)**.
 |---|---|---|---|---|---|
 | P0 | Kit & rules | B | Nov 10 | in progress | Kit committed in `kit/`; kit rules in `ARCHITECTURE.md` §7 confirmed or corrected; questions emailed |
 | P1 | Skeleton & submission contract | B | Nov 10–11 | in progress | `run.sh` writes valid fallback JSON for all 187 videos; CI green |
-| P2 | Evaluation harness | B | Nov 11–12 | not started | Leaderboard has uniform + oracle rows on `tune` and `report` |
+| P2 | Evaluation harness | B | Nov 11–12 | in progress | Leaderboard has uniform + oracle rows on `tune` and `report` |
 | P3 | Video I/O, signals, feature cache | A | Nov 10–12 | not started | Flow, hands and CLIP cached for all 187 + `tune` videos |
 | P4 | Action detection → `actions[]` | A | Nov 11–13 | not started | mAP measured on `tune` and `report`; beats the zero-shot fallback |
 | P5 | Clustering + EPIC coverage selector | B | Nov 12–14 | not started | EPIC coverage > uniform; % of oracle reported; ablation done |
@@ -90,12 +90,12 @@ package: `validate.py`. Remaining: send the email, set the team ID.
 ---
 
 ### P2 — Evaluation harness
-**Owner:** B · **Planned:** Nov 11–12 · **Status:** not started · **Depends on:** P1
+**Owner:** B · **Planned:** Nov 11–12 · **Status:** in progress (started 2026-11-11) · **Depends on:** P1
 
 - [ ] `tools/fetch_annotations.sh` (EPIC-100 train/val CSVs + class CSVs; FPVSum importance), documenting exact sources
 - [ ] `rewind_eval/gt_epic.py`, `gt_fpvsum.py` (class index → kit key mapping)
 - [ ] `configs/splits.yaml`: `tune` (~20 EPIC train videos matching the val duration spread) and `report`
-- [ ] `coverage.py` (both capture rules, < 4 s exclusion, penalty λ), `map.py`, `f1.py`, `label_acc.py`
+- [x] `coverage.py` (both capture rules, < 4 s exclusion, penalty λ), `map.py`, `f1.py`, `label_acc.py`
 - [ ] `baselines.py` (uniform, random), `oracle.py`
 - [ ] `score.py` CLI → `results/leaderboard.csv` (SHA, tag, config hash, all metrics, split)
 - [ ] Leaderboard rows: uniform and oracle on `tune` and `report`
@@ -323,6 +323,8 @@ Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 - 2026-11-11 · DA · P1 · Post-processing, fallback and `output.py` (`to_document`, deterministic `dumps`); `SHORT_VIDEO_T` corrected to 4.05 / 0.15 = 27.0 s; unit + Hypothesis property tests (any input → valid highlights; fallback passes strict validation for T in 5–2000 s) · #9
 - 2026-11-11 · DA · P1 · Validator: `rewind/schema.py` (R1–R14, strict + kit severities), bundled class list (`rewind/vocab.py`), `rewind_eval.validate` directory CLI (manifest durations, missing files, team_id); 63 new tests, 21 of 22 deliberate bugs caught (1 harmless rewrite) · #8
 - 2026-11-11 · DA · process · Review agents post every review on the PR from their person's account (request-changes / comment / approve, with suggested diffs); the author's agent replies on the PR with what it fixed (CLAUDE.md §5) · #11
+- 2026-11-12 · DA · P2 · Review fixes on metrics: tests for score ranking in AP, tIoU = threshold, exactly-4 s highlights, short highlights in the budget penalty, empty/perfect coverage and empty F1 · #12
+- 2026-11-11 · DA · P2 · Metrics as pure functions: coverage (any-overlap / fraction, < 4 s ignored, budget penalty), mAP (highest-tIoU greedy matching, interpolated AP, 5 thresholds), frame F1 (exact top 15%), label accuracy; 31 hand-computed + property tests, 19/19 deliberate bugs caught · #12
 - 2026-11-11 · DA · process · Review agents: every session runs a background review sub-agent that polls PRs (`tools/pr_watch.py`), reviews the other person's PRs and reports to the main agent, which posts the review and merges (CLAUDE.md §5); approved by prakartii · #7
 - 2026-11-11 · DA · P1 · Skeleton: pyproject, pinned requirements, CI, constants, types, strict config loader + default.yaml, import-boundary tests (source scan, config scan, runtime import check); 69 tests, checked against deliberate bugs; review fixes: NaN/inf and duplicate keys rejected, more range checks, hash of the loaded config · #6
 - 2026-11-11 · DA · P0 · Recorded roles (A = prakartii, B = DA); removed leftover GPU assumptions (P4 test marker, P7 latency, P8 Dockerfile) · #5

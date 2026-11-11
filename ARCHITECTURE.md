@@ -461,8 +461,11 @@ definitions (`kit/TEAM_README.md` §5). Keep each one parameterized where the of
 ### 9.1 Action coverage
 For a video: let `G` be the set of distinct GT (verb, noun) pairs. A pair is
 captured if any of its GT instances is captured by any highlight of length ≥ 4.0 s,
-under the capture rule (`any_overlap` or `fraction ≥ θ`).
-`coverage = |captured pairs| / |G|`. Apply an over-budget penalty:
+under the capture rule: `any_overlap` (overlap > 0; touching doesn't count) or
+`fraction` (the valid highlights together cover ≥ θ of the instance's span, default
+θ = 0.5). `coverage = |captured pairs| / |G|`; a video with no GT actions is left out
+of the mean. Highlights under 4 s capture nothing but still count toward the budget.
+Apply an over-budget penalty:
 `× max(0, 1 − λ · max(0, total/T − 0.15) / 0.15)` with λ configurable (default 1.0)
 **[verify Q4, Q8]**. Report the mean over EPIC videos. Always report both capture variants.
 
@@ -470,16 +473,19 @@ under the capture rule (`any_overlap` or `fraction ≥ θ`).
 ActivityNet-style, with classes = (verb, noun) pairs present in GT. For each tIoU in
 {0.1, 0.2, 0.3, 0.4, 0.5}: per class, sort predictions by score and greedily match
 each to the unmatched GT of the same class in the same video with the highest tIoU
-≥ threshold; AP = area under the interpolated precision–recall curve. mAP = mean
-over classes, then over thresholds. Computed over all EPIC videos jointly.
+≥ threshold; AP = area under the interpolated precision–recall curve (all-point,
+precision made monotone). Equal scores keep input order. A GT class with no
+predictions has AP 0; predictions of classes absent from the GT are ignored. mAP =
+mean over classes, then over thresholds. Computed over all EPIC videos jointly.
 
 ### 9.3 Highlight F1 (FPVSum)
-Sample at `cfg.eval.f1_fps` (default 2 fps). GT positives = the frames in the top 15%
-of mean human importance. Predicted positives = frames inside highlights ≥ 4.0 s.
-F1 per video, mean over videos.
+Sample at `cfg.eval.f1_fps` (default 2 fps). GT positives = exactly ⌈0.15 · N⌉
+frames with the highest mean human importance (ties: earlier frames). Predicted
+positives = frames at times `t` with `start ≤ t < end` for a highlight ≥ 4.0 s. F1 per
+video (0 if no true positive), mean over videos.
 
 ### 9.4 Label accuracy
-Exact match of `label.name` on FPVSum videos.
+Exact match of `label.name` on FPVSum videos; a missing prediction counts as wrong.
 
 ### 9.5 Oracle
 The same window rules (≥ 4.0 s, budget 0.145·T, non-overlapping) with clusters
