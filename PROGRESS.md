@@ -117,7 +117,7 @@ package: `validate.py`. Remaining: send the email, set the team ID.
 > B owns these files: keep or replace them in P1; P3 code depends only on the
 > layout in `CLAUDE.md` §3.
 
-- [ ] Download the 187 videos into `data/videos/` + the `tune` videos
+- [ ] Download the 187 videos into `data/videos/` + the `tune` videos — in progress (2026-11-11) with `tools/download_videos.py`; `tune` videos wait for B's `configs/splits.yaml`
 - [x] `video_io.py`: decoding at a target fps, frame ↔ seconds (also ffprobe parsing, so P1's `ffprobe_meta` item is covered)
 - [x] `features/flow.py` (residual + global motion)
 - [ ] `features/hands.py`, `features/clip.py`
@@ -140,6 +140,13 @@ package: `validate.py`. Remaining: send the email, set the team ID.
   (hands/objects). Frame 0 copies frame 1's value. Both z-scored per video.
 - Routing returns `unknown` when |P(cooking) − thr| < `min_conf` and keeps the mean
   P(cooking) so the uncertain-route rule (ARCHITECTURE.md §4) can still pick a side.
+- Videos: `python tools/download_videos.py --root <data root> --epic-scripts <clone of
+  epic-kitchens-download-scripts>`. EPIC comes straight from data.bris (URLs and MD5s
+  read from the official scripts' CSVs; resumable; MD5-verified). FPVSum comes from
+  YouTube via yt-dlp, which now needs a JS runtime (pip `deno`, pinned in
+  `requirements-dev.txt`); 360p progressive MP4. **FPVSum YouTube ids come from the
+  official `FPVSum_videolist.csv`, not the name:** 4 manifest ids
+  (`BikePolo_*_1/_3`) are YouTube videos with other ids.
 - Local dev here runs Python 3.12 (CLAUDE.md says 3.11); `pyproject` targets ≥ 3.11 and
   ruff checks against 3.11 syntax.
 
@@ -331,6 +338,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-11 · PK · P3 · `tools/download_videos.py` (EPIC direct + resumable + MD5; FPVSum via the official id list); downloads of the 187 videos started · —
 - 2026-11-11 · PK · P3 · `video_io` (frame ↔ seconds, ffprobe parsing, decoding at a target fps), versioned fingerprint-keyed `features/cache`, Farneback `features/flow` (global vs residual motion), signal-only `routing`; 70 tests, each mutation-checked · —
 - 2026-11-11 · PK · P3 · Started P3 on `p3/video-io-signals`; minimal scaffolding note for B · —
 - 2026-11-11 · DA · P0 · Recorded roles (A = prakartii, B = DA); removed leftover GPU assumptions (P4 test marker, P7 latency, P8 Dockerfile) · #5
