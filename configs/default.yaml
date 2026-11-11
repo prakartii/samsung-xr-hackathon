@@ -113,5 +113,5 @@ routing:
   min_conf: 0.1            # route margin below this → uncertain route; initial, P6
 
 eval:
-  f1_fps: 2.0              # sampling rate for frame-level F1
   coverage_lambda: 1.0     # over-budget penalty slope in our coverage metric (Q8)
+  capture_theta: 0.5       # coverage metric's fraction rule: share of an action a highlight must cover (Q4)
