@@ -17,7 +17,7 @@ Who is A and who is B: **A = prakartii**, **B = Daksh Arora (DA)**.
 | P0 | Kit & rules | B | Nov 10 | in progress | Kit committed in `kit/`; kit rules in `ARCHITECTURE.md` §7 confirmed or corrected; questions emailed |
 | P1 | Skeleton & submission contract | B | Nov 10–11 | not started | `run.sh` writes valid fallback JSON for all 187 videos; CI green |
 | P2 | Evaluation harness | B | Nov 11–12 | not started | Leaderboard has uniform + oracle rows on `tune` and `report` |
-| P3 | Video I/O, signals, feature cache | A | Nov 10–12 | not started | Flow, hands and CLIP cached for all 187 + `tune` videos |
+| P3 | Video I/O, signals, feature cache | A | Nov 10–12 | in progress | Flow, hands and CLIP cached for all 187 + `tune` videos |
 | P4 | Action detection → `actions[]` | A | Nov 11–13 | not started | mAP measured on `tune` and `report`; beats the zero-shot fallback |
 | P5 | Clustering + EPIC coverage selector | B | Nov 12–14 | not started | EPIC coverage > uniform; % of oracle reported; ablation done |
 | P6 | FPVSum route: importance, segments, label | A | Nov 13–15 | not started | F1 > uniform on FPVSum CV; label accuracy reported |
@@ -108,7 +108,14 @@ package: `validate.py`. Remaining: send the email, set the team ID.
 ---
 
 ### P3 — Video I/O, signals, feature cache
-**Owner:** A · **Planned:** Nov 10–12 · **Status:** not started · **Depends on:** — (P1 types; coordinate with B)
+**Owner:** A (prakartii) · **Planned:** Nov 10–12 · **Status:** in progress (started 2026-11-11, branch `p3/video-io-signals`) · **Depends on:** — (P1 types; coordinate with B)
+
+> **Coordination note (A → B):** P1 hasn't started, but P3 needs a test harness. This
+> branch adds the minimum P1 scaffolding P3 needs (`pyproject.toml`, `.gitignore`,
+> `requirements-dev.txt`, package `__init__.py` files, and only the `signals`,
+> `features` and `routing` sections of `configs/default.yaml`), each in its own commit.
+> B owns these files: keep or replace them in P1; P3 code depends only on the
+> layout in `CLAUDE.md` §3.
 
 - [ ] Download the 187 videos into `data/videos/` + the `tune` videos
 - [ ] `video_io.py`: decoding at a target fps, frame ↔ seconds
@@ -311,6 +318,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-11 · PK · P3 · Started P3 on `p3/video-io-signals`; minimal scaffolding note for B · —
 - 2026-11-11 · DA · P0 · Recorded roles (A = prakartii, B = DA); removed leftover GPU assumptions (P4 test marker, P7 latency, P8 Dockerfile) · #5
 - 2026-11-11 · DA · P0 · Teammate (prakartii) confirmed the v1.1 routing decision · #4
 - 2026-11-11 · DA · P0 · Committed the official kit to `kit/`; ARCHITECTURE v1.1 (signal-only routing, cache keyed by content fingerprint, one schema, 2 decimals, kit facts); answered Q6, Q9, K1; added Q10, Q11 and the email draft; removed superseded plans · #3
