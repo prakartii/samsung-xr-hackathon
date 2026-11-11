@@ -10,7 +10,7 @@ opencv-contrib-python==4.10.0.84
 mediapipe==1.2.2
 # Video decoding: bundles FFmpeg, reads multi-stream GoPro files to the end (OpenCV
 # stopped silently on them), threaded, with exact frame timestamps (PROGRESS.md D1).
-av==19.0.2
+av==18.0.0                 # newest PyAV with Python 3.11 wheels (CI and the runtime use 3.11)
 torch==2.15.0+cpu
 torchvision==0.29.2+cpu
 open_clip_torch==4.2.2
