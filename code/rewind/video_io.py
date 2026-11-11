@@ -10,11 +10,13 @@ from __future__ import annotations
 import json
 import math
 import subprocess
+from collections.abc import Iterator
 from dataclasses import dataclass
 from fractions import Fraction
 from pathlib import Path
 from typing import Any
 
+import cv2
 import numpy as np
 
 # Absorbs float error when a timestamp sits exactly on a frame boundary, e.g.
@@ -126,3 +128,56 @@ def ffprobe_meta(path: Path) -> ProbeMeta:
     ]
     out = subprocess.run(cmd, check=True, capture_output=True, text=True).stdout
     return parse_ffprobe(json.loads(out))
+
+
+# --- decoding (I/O edge) ------------------------------------------------------------
+
+
+def resize_to_width(frame: np.ndarray, width: int) -> np.ndarray:
+    """Resize keeping the aspect ratio; height is rounded to an even number (>= 2)."""
+    h, w = frame.shape[:2]
+    if w == width:
+        return frame
+    height = max(2, 2 * round(h * width / w / 2))
+    return cv2.resize(frame, (width, height), interpolation=cv2.INTER_AREA)
+
+
+def iter_frames(
+    path: Path,
+    duration_sec: float,
+    fps: float,
+    target_fps: float,
+    width: int | None = None,
+) -> Iterator[tuple[float, np.ndarray]]:
+    """Yield (t, BGR frame) at every t in `sample_times(duration_sec, target_fps)`.
+
+    Each t gets the source frame shown at t (`sec_to_frame(t, fps)`), so t is exact
+    and shared by every signal sampled at the same rate. `duration_sec` and `fps` come
+    from ffprobe (`ProbeMeta`) so all modules agree on them. Frames are decoded
+    sequentially (grab skips without decoding pixels), which beats seeking for
+    sampling rates of a few fps. If the decoder runs out early, iteration stops; the
+    caller compares the count with its timestamps.
+    """
+    times = sample_times(duration_sec, target_fps)
+    targets = [sec_to_frame(float(t), fps) for t in times]
+    cap = cv2.VideoCapture(str(path))
+    if not cap.isOpened():
+        raise OSError(f"cannot open video: {path}")
+    try:
+        current = -1  # index of the last frame grabbed
+        frame = None
+        for t, target in zip(times, targets, strict=True):
+            while current < target:
+                if not cap.grab():
+                    return
+                current += 1
+                frame = None
+            if frame is None:
+                ok, frame = cap.retrieve()
+                if not ok:
+                    return
+                if width is not None:
+                    frame = resize_to_width(frame, width)
+            yield float(t), frame
+    finally:
+        cap.release()
