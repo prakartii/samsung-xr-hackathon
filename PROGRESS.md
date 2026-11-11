@@ -120,7 +120,7 @@ package: `validate.py`. Remaining: send the email, set the team ID.
 - [ ] Download the 187 videos into `data/videos/` + the `tune` videos — in progress (2026-11-11) with `tools/download_videos.py`; `tune` videos wait for B's `configs/splits.yaml`
 - [x] `video_io.py`: decoding at a target fps, frame ↔ seconds (also ffprobe parsing, so P1's `ffprobe_meta` item is covered)
 - [x] `features/flow.py` (residual + global motion)
-- [ ] `features/hands.py`, `features/clip.py`
+- [x] `features/hands.py` (MediaPipe Hand Landmarker), `features/clip.py` (open_clip ViT-B/16, prompt ensemble, zero-shot); weights via `tools/fetch_weights.sh` (SHA-256 pinned)
 - [x] `features/cache.py` (versioned, atomic)
 - [ ] `tools/cache_features.py` (longest first, resumable)
 - [x] `routing.py` (video signals only; no manifest, no filename): pure decision from per-keyframe CLIP P(cooking); the CLIP prompts that produce it come with `features/clip.py`
@@ -147,6 +147,15 @@ package: `validate.py`. Remaining: send the email, set the team ID.
   `requirements-dev.txt`); 360p progressive MP4. **FPVSum YouTube ids come from the
   official `FPVSum_videolist.csv`, not the name:** 4 manifest ids
   (`BikePolo_*_1/_3`) are YouTube videos with other ids.
+- Dependencies: `mediapipe` requires `opencv-contrib-python` by name, so we use that
+  instead of `opencv-python-headless` (two packages owning `cv2` break each other);
+  a Linux image needs `libgl1`. Torch is the CPU build from the PyTorch index.
+- Hands: presence = max handedness score of detected hands (0 if none), MediaPipe
+  VIDEO mode on the shared time grid.
+- CLIP smoke check (2026-11-11, first-pass prompts in `configs/default.yaml` →
+  `prompts`): mean P(cooking) ≤ 0.006 on 9 FPVSum videos (routing threshold 0.5);
+  zero-shot label top-1 right on 5 of 9 (Bike→motor, BikePolo→bike, Jumping→plane,
+  Plane→horse). Phrase tuning is P6 work, on CV folds only.
 - Local dev here runs Python 3.12 (CLAUDE.md says 3.11); `pyproject` targets ≥ 3.11 and
   ruff checks against 3.11 syntax.
 
@@ -338,6 +347,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-11 · PK · P3 · `features/hands.py` (MediaPipe) and `features/clip.py` (open_clip); `tools/fetch_weights.sh`; licenses in ARCHITECTURE §10; data-tier tests for both models; FPVSum 49/49 downloaded, durations within ±0.5 s · —
 - 2026-11-11 · PK · P3 · `tools/download_videos.py` (EPIC direct + resumable + MD5; FPVSum via the official id list); downloads of the 187 videos started · —
 - 2026-11-11 · PK · P3 · `video_io` (frame ↔ seconds, ffprobe parsing, decoding at a target fps), versioned fingerprint-keyed `features/cache`, Farneback `features/flow` (global vs residual motion), signal-only `routing`; 70 tests, each mutation-checked · —
 - 2026-11-11 · PK · P3 · Started P3 on `p3/video-io-signals`; minimal scaffolding note for B · —
