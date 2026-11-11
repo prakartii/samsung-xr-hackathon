@@ -13,6 +13,7 @@ from rewind.select.importance import (
     importance_signal,
     select_segments,
     shots,
+    window_lengths,
 )
 
 P = ImportanceParams(
@@ -67,6 +68,40 @@ def test_importance_signal_is_weighted_sum_before_smoothing():
         np.arange(1.0), np.ones((1, 2)), p,
     )  # fmt: skip
     np.testing.assert_allclose(imp, [1.0, 0.5, 2.0, 0.0], atol=1e-12)
+
+
+def test_importance_signal_scene_change_term_is_z_scored():
+    # Only the scene weight: CLIP e0, e0, e1 at t = 0, 1, 2 → change [0, 0, 1]
+    # (mean 1/3, population std √2/3) → z = [−1/√2, −1/√2, √2].
+    p = ImportanceParams(0.0, 0.0, 0.0, 1.0, 0.0, 0.5, 4.05, 6.05, 1.0, 0.5)
+    t = np.arange(3.0)
+    e = np.array([[1.0, 0.0], [1.0, 0.0], [0.0, 1.0]])
+    zeros = np.zeros(3)
+
+    imp = importance_signal(t, zeros, zeros, zeros, t, e, p)
+
+    np.testing.assert_allclose(imp, [-1 / np.sqrt(2), -1 / np.sqrt(2), np.sqrt(2)], atol=1e-12)
+
+
+def test_shots_change_equal_to_threshold_is_not_a_cut():
+    # A cut needs change > thr: exactly at thr stays one shot, just above it cuts.
+    e = np.array([[1.0, 0.0], [1.0, 0.0], [0.6, 0.8]])
+    thr = float(clip_change(e)[2])  # 1 - 0.6 = 0.4 (as computed)
+
+    assert shots(np.arange(3.0), e, 3.0, thr=thr) == [(0.0, 3.0)]
+    assert shots(np.arange(3.0), e, 3.0, thr=thr - 1e-9) == [(0.0, 2.0), (2.0, 3.0)]
+
+
+def test_window_lengths_include_max_window_off_the_grid():
+    # 4.05 + k · 1.0 → 4.05 … 9.05, then max_window 10.0 itself.
+    p = ImportanceParams(1.0, 0.0, 0.0, 0.0, 0.0, 0.5, 4.05, 10.0, 1.0, 0.5)
+
+    assert window_lengths(p) == pytest.approx([4.05, 5.05, 6.05, 7.05, 8.05, 9.05, 10.0], abs=1e-9)
+
+
+def test_window_lengths_on_the_grid_are_not_duplicated():
+    # 4.05, 5.05, 6.05: max_window is already on the grid.
+    assert window_lengths(P) == pytest.approx([4.05, 5.05, 6.05], abs=1e-9)
 
 
 # --- select_segments ----------------------------------------------------------------

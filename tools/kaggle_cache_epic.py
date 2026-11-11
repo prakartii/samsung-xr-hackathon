@@ -12,7 +12,8 @@ Per shard:
    MD5-verified by tools/download_videos.py, keeping at most `backlog` videos on disk.
 3. For each video: content fingerprint, flow + hands + CLIP in one decoding pass
    (tools/cache_features.py), store in /kaggle/working/cache, delete the MP4.
-4. Write /kaggle/working/shard_<i>.jsonl: video_id, fingerprint, duration, seconds.
+4. Write /kaggle/working/shard_<i>.jsonl: video_id, fingerprint, duration, seconds, and the
+   versions of the feature libraries (installed at the requirements.txt pins).
 
 The output folder (/kaggle/working) holds only the cache (~100 MB for all of EPIC);
 tools/kaggle_launch.py --collect downloads and merges it into the local cache.
@@ -43,12 +44,25 @@ def sh(cmd: str) -> None:
     subprocess.run(cmd, shell=True, check=True)
 
 
+def pinned(requirements: Path, names: list[str]) -> list[str]:
+    """`name==version` lines for ``names`` from a requirements file (comments ignored).
+
+    The Kaggle job installs exactly what run.sh ships, so cached features can't come
+    from a different decoder or model version than the one used at inference.
+    """
+    found = {}
+    for line in requirements.read_text(encoding="utf-8").splitlines():
+        spec = line.split("#", 1)[0].strip()
+        if "==" in spec:
+            name = spec.split("==", 1)[0].strip()
+            found[name.lower()] = spec
+    missing = [n for n in names if n.lower() not in found]
+    if missing:
+        raise ValueError(f"{requirements}: no pin for {missing}")
+    return [found[n.lower()] for n in names]
+
+
 def setup() -> Path:
-    # mediapipe pins opencv-contrib-python by name; the image's OpenCV already provides
-    # cv2, so install mediapipe without deps plus its small pure deps.
-    sh("pip install -q av==19.0.2 open_clip_torch==4.2.2")
-    sh("pip install -q --no-deps mediapipe==1.2.2")
-    sh('pip install -q "absl-py~=2.3" "flatbuffers~=25.9" "sounddevice~=0.5"')
     repo = TMP / "repo"
     # Kaggle auto-extracts an uploaded .tar.gz into a read-only folder; older datasets
     # may keep the archive. Accept both, and copy to a writable place (weights land
@@ -61,8 +75,47 @@ def setup() -> Path:
     else:
         marker = next(Path("/kaggle/input").rglob("configs/default.yaml"))
         shutil.copytree(marker.parents[1], repo, dirs_exist_ok=True)
+    # Same versions as requirements.txt. mediapipe pins opencv-contrib-python by name;
+    # the image's OpenCV already provides cv2, so install mediapipe without deps plus
+    # its small pure deps.
+    av, open_clip, mediapipe = pinned(
+        repo / "requirements.txt", ["av", "open_clip_torch", "mediapipe"]
+    )
+    sh(f"pip install -q {av} {open_clip}")
+    sh(f"pip install -q --no-deps {mediapipe}")
+    sh('pip install -q "absl-py~=2.3" "flatbuffers~=25.9" "sounddevice~=0.5"')
     sh(f"cd {repo} && SKIP_GDRIVE=1 PYTHON={sys.executable} bash tools/fetch_weights.sh")
     return repo
+
+
+def fetch_and_report(vid: str, download, ready: queue.Queue) -> None:
+    """Run ``download(vid)`` and always put (vid, ok) on ``ready``.
+
+    The consumer blocks on ready.get() once per video, so a download that raised without
+    putting would hang the shard until Kaggle's 12 h limit (e.g. http.client.
+    IncompleteRead, which isn't an OSError and isn't caught downstream).
+    """
+    ok = False
+    try:
+        ok = bool(download(vid))
+    except Exception as e:  # never leave the consumer waiting
+        print(f"[{vid}] fetch crashed: {e!r}", flush=True)
+    finally:
+        ready.put((vid, ok))
+
+
+def library_versions() -> dict[str, str]:
+    """Versions of the libraries that produce features, stored with every record so any
+    Kaggle-vs-local skew can be traced (cache versions don't encode them)."""
+    import importlib
+
+    out = {}
+    for mod in ("av", "cv2", "torch", "open_clip", "mediapipe", "numpy"):
+        try:
+            out[mod] = str(importlib.import_module(mod).__version__)
+        except Exception as e:  # report, don't fail the shard over a version string
+            out[mod] = f"unavailable: {e!r}"
+    return out
 
 
 def main() -> None:
@@ -110,14 +163,19 @@ def main() -> None:
     ready: queue.Queue = queue.Queue()
     slots = threading.Semaphore(BACKLOG)
 
+    def download(vid: str) -> bool:
+        base, parts, version = dv.epic_remote(vid, splits)
+        return dv.download_one_epic(
+            vid, f"[{vid}]", "/".join([base, *parts]),
+            md5s.get((version, "/".join(parts))), TMP, 8,
+        )  # fmt: skip
+
     def fetch(vid: str) -> None:
         slots.acquire()
-        base, parts, version = dv.epic_remote(vid, splits)
-        ok = dv.download_one_epic(
-            vid, f"[{vid}]", "/".join([base, *parts]), md5s.get((version, "/".join(parts))), TMP, 8
-        )
-        ready.put((vid, ok))
+        fetch_and_report(vid, download, ready)
 
+    libs = library_versions()
+    print("libraries:", libs, flush=True)
     log = (WORK / f"shard_{SHARD}.jsonl").open("a", encoding="utf-8")
     with ThreadPoolExecutor(DOWNLOAD_THREADS) as pool:
         for vid in ids:
@@ -137,7 +195,7 @@ def main() -> None:
                 ).items():
                     caches[feat].put(fp, arrays)
                 rec = {"video_id": vid, "fingerprint": fp, "duration": meta.duration_sec,
-                       "seconds": round(time.time() - t0, 1)}  # fmt: skip
+                       "seconds": round(time.time() - t0, 1), "libs": libs}  # fmt: skip
                 print("done", rec, flush=True)
             except Exception as e:  # keep going; the record says what failed
                 rec = {"video_id": vid, "error": repr(e)}
@@ -150,4 +208,6 @@ def main() -> None:
             log.flush()
 
 
-main()
+# Runs as a Kaggle script kernel; importing it elsewhere (tests) must not start a shard.
+if __name__ == "__main__" or Path("/kaggle/working").exists():
+    main()

@@ -13,7 +13,7 @@ BUDGET = 0.145
 
 
 @settings(max_examples=40, deadline=None)
-@given(data=st.data(), duration=st.floats(min_value=5.0, max_value=400.0))
+@given(data=st.data(), duration=durations)  # 5–2000 s (CLAUDE.md §7.3 rule 8)
 def test_selected_segments_satisfy_highlight_rules(data, duration):
     t, imp = data.draw(dense_signal(duration))
     n_cuts = data.draw(st.integers(min_value=0, max_value=5))
@@ -34,9 +34,3 @@ def test_selected_segments_satisfy_highlight_rules(data, duration):
         assert segs, "a video with budget >= min_window must get at least one segment"
     elif duration >= P.min_window:
         assert len(segs) == 1  # short video: exactly one min_window window
-
-
-@settings(max_examples=10, deadline=None)
-@given(duration=durations)
-def test_durations_strategy_in_range(duration):
-    assert 5.0 <= duration <= 2000.0

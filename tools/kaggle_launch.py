@@ -94,6 +94,23 @@ def push_kernels(user: str, shards: int, work: Path) -> None:
         print(run("kernels", "push", "-p", str(kdir)))
 
 
+def _cache_version(path: Path) -> str | None:
+    """The extractor version stored inside a cache entry (None if unreadable)."""
+    import numpy as np
+
+    try:
+        with np.load(path, allow_pickle=False) as npz:
+            return str(npz["__cache_version__"]) if "__cache_version__" in npz.files else None
+    except (OSError, ValueError):
+        return None
+
+
+def needs_copy(src: Path, target: Path) -> bool:
+    """Copy a collected entry unless the local one was built by the same extractor
+    version; a stale local entry (older version) must not block the new one."""
+    return not target.exists() or _cache_version(target) != _cache_version(src)
+
+
 def collect(user: str, shards: int, work: Path) -> None:
     dest = REPO / "cache"
     for i in range(shards):
@@ -105,7 +122,7 @@ def collect(user: str, shards: int, work: Path) -> None:
         for npz in (out / "cache").rglob("*.npz") if (out / "cache").exists() else []:
             target = dest / npz.relative_to(out / "cache")
             target.parent.mkdir(parents=True, exist_ok=True)
-            if not target.exists():
+            if needs_copy(npz, target):
                 shutil.copy2(npz, target)
         logs = dest / "kaggle_logs"
         logs.mkdir(parents=True, exist_ok=True)

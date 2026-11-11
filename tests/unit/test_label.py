@@ -61,3 +61,8 @@ def test_choose_label_uncertain_exactly_at_threshold_is_cooking():
     # Same tie rule as routing: P(cooking) >= thr -> cooking (a kitchen video keeps
     # its label and actions).
     assert choose_label(_route("unknown", 0.5), 0.5, ("ski", 0.8), 0.3) == ("cooking", 0.5)
+
+
+def test_choose_label_zero_shot_score_exactly_at_other_thr_keeps_its_label():
+    # "other" only below other_thr: a score equal to it (0.3) keeps the zero-shot label.
+    assert choose_label(_route("unknown", 0.45), 0.5, ("ski", 0.3), 0.3) == ("ski", 0.3)

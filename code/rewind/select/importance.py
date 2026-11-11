@@ -10,8 +10,10 @@ consecutive 1 fps CLIP embeddings, interpolated to the dense grid. (`flow` and
 `global_motion` arrive z-scored from features/flow.py.)
 
 Segments: shots start where scene change exceeds `shot_thr`. Inside each shot,
-windows of `min_window`..`max_window` s are scored by mean imp; the best non-overlapping
-windows are taken greedily until the budget is used. The result still goes through
+windows of `min_window`..`max_window` s (lengths every `len_step`, plus `max_window`;
+starts every `stride`) are scored by mean imp; the best non-overlapping windows are
+taken greedily until the budget is used. If no shot is long enough for a min_window
+window, windows may span shots. The result still goes through
 post-processing (§5.6), which owns merging, short videos and rounding.
 
 Pure: arrays in, segments out. Weights are tuned on FPVSum CV folds only.
@@ -102,10 +104,19 @@ def shots(t_clip: np.ndarray, clip_emb: np.ndarray, duration: float, thr: float)
     return [(a, b) for a, b in pairwise(bounds) if b > a]
 
 
+def window_lengths(p: ImportanceParams) -> list[float]:
+    """min_window, min_window + len_step, ... and always max_window itself (the grid
+    alone can stop short of it: 4.05 + k·1.0 never hits 10.0)."""
+    lengths = [float(x) for x in np.arange(p.min_window, p.max_window + 1e-9, p.len_step)]
+    if p.max_window - lengths[-1] > 1e-9:
+        lengths.append(float(p.max_window))
+    return lengths
+
+
 def _candidates(span: Segment, p: ImportanceParams) -> list[Segment]:
     s0, e0 = span
     out = []
-    for length in np.arange(p.min_window, p.max_window + 1e-9, p.len_step):
+    for length in window_lengths(p):
         for start in np.arange(s0, e0 - length + 1e-9, p.stride):
             out.append((float(start), float(start + length)))
     return out
