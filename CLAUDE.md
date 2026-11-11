@@ -154,15 +154,26 @@ restart it.
 The review agent never posts to GitHub, pushes, merges or edits a branch itself.
 
 **The main agent decides**, then tells its person what it did:
-- Post the review: `gh pr review <n> --approve | --request-changes | --comment
-  --body-file <file>`, with the findings and suggested diffs in the body. Drop findings
-  it disagrees with, and say why in the review.
+- **Every review is posted on the PR, from its person's GitHub account** (`gh` is logged
+  in as that person: A's agent posts as `prakartii`, B's as `dakshcodez`). Nothing found
+  stays private between the agents.
+  - Findings or fixes → `gh pr review <n> --request-changes` (any blocker or
+    should-fix) or `--comment` (nits only), with `--body-file <file>`. The body lists
+    every finding with severity, `file:line`, the failing input and the suggested fix as
+    a ```` ```diff ```` block. Findings the main agent disagrees with stay in the
+    comment, marked "not requiring a change" with the reason.
+  - No findings → `gh pr review <n> --approve` with a one-line summary of what was
+    checked (commands run, deliberate breakages caught).
+  - Start the body with `Review by <A|B>'s review agent at <short sha>` so the author
+    knows which commit was reviewed.
 - Don't push to the other person's branch unless they ask. Suggested fixes go in the
   review; the author's agent applies them.
 - Merge only when the PR is approved, CI is green on the head commit, there are no open
   blockers and `PROGRESS.md` is updated. Squash-merge and delete the branch.
-- For `own:` items: fix and push, or reply to the comment with the reason for not
-  changing it. Tell its person when CI fails.
+- For `own:` items: fix and push, then **reply on the PR from its person's account**
+  (`gh pr comment <n> --body-file <file>`) listing each finding and what was done: fixed
+  in `<sha>`, or not changed and why. That reply plus the new commits triggers a fresh
+  review. Tell its person when CI fails.
 - Anything that changes the design or a recorded decision goes to its person first
   (`ARCHITECTURE.md` change control).
 
