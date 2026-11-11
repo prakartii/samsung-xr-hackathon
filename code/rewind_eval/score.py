@@ -107,22 +107,39 @@ def compute_scores(
     return scores
 
 
-def oracle_predictions(data: EvalData, budget_frac: float) -> dict[str, Prediction]:
+def oracle_predictions(
+    data: EvalData, budget_frac: float, lengths: tuple[float, ...], stride: float
+) -> dict[str, Prediction]:
     """GT-derived upper reference: coverage oracle windows, GT actions, GT labels."""
     out = {}
     for vid, gt in data.epic_gt.items():
         out[vid] = Prediction(
-            highlights=coverage_oracle(gt, data.epic_dur[vid], budget_frac=budget_frac),
+            highlights=coverage_oracle(
+                gt, data.epic_dur[vid], budget_frac=budget_frac, lengths=lengths, stride=stride
+            ),
             actions=[(s, v, n, 1.0) for s, v, n in gt],
             label="cooking",
         )
     for vid, g in data.fpv_gt.items():
-        hl = f1_oracle(g.times, g.highlight, data.fpv_dur[vid], budget_frac=budget_frac)
+        hl = f1_oracle(
+            g.times,
+            g.highlight,
+            data.fpv_dur[vid],
+            budget_frac=budget_frac,
+            lengths=lengths,
+            stride=stride,
+        )
         out[vid] = Prediction(highlights=hl, label=g.label)
     return out
 
 
-def baseline_predictions(data: EvalData, kind: str, budget_frac: float) -> dict[str, Prediction]:
+def baseline_predictions(
+    data: EvalData,
+    kind: str,
+    budget_frac: float,
+    lengths: tuple[float, ...] = (4.05,),
+    stride: float = 0.5,
+) -> dict[str, Prediction]:
     durations = {**data.epic_dur, **data.fpv_dur}
     if kind == "uniform":
         return {
@@ -138,7 +155,7 @@ def baseline_predictions(data: EvalData, kind: str, budget_frac: float) -> dict[
             for v, T in sorted(durations.items())
         }
     if kind == "oracle":
-        return oracle_predictions(data, budget_frac)
+        return oracle_predictions(data, budget_frac, lengths, stride)
     raise ValueError(f"unknown baseline {kind!r}")
 
 
@@ -250,12 +267,15 @@ def main(argv: list[str] | None = None) -> int:
     if args.pred:
         preds = read_predictions(args.pred, [*data.epic_gt, *data.fpv_gt])
     else:
-        preds = baseline_predictions(data, args.baseline, budget)
-    oracle_cov = {
-        v: coverage(gt, coverage_oracle(gt, data.epic_dur[v], budget_frac=budget), data.epic_dur[v],
-                    rule="any_overlap", theta=theta, lam=lam)
-        for v, gt in data.epic_gt.items()
-    }  # fmt: skip
+        preds = baseline_predictions(
+            data, args.baseline, budget, cfg.select.window_lengths, cfg.select.stride
+        )
+    lengths, stride = cfg.select.window_lengths, cfg.select.stride
+    oracle_cov = {}
+    for v, gt in data.epic_gt.items():
+        T = data.epic_dur[v]
+        hl = coverage_oracle(gt, T, budget_frac=budget, lengths=lengths, stride=stride)
+        oracle_cov[v] = coverage(gt, hl, T, rule="any_overlap", theta=theta, lam=lam)
     scores = compute_scores(
         data, preds, budget_frac=budget, lam=lam, theta=theta, oracle_cov=oracle_cov
     )
