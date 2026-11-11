@@ -151,3 +151,26 @@ def select_segments(
         if budget_sec - used < p.min_len:
             break
     return sorted(chosen)
+
+
+def fpvsum_segments(
+    flow: dict[str, np.ndarray],
+    hands: dict[str, np.ndarray],
+    clip: dict[str, np.ndarray],
+    duration: float,
+    budget_frac: float,
+    p: ImportanceParams,
+) -> list[Segment]:
+    """FPVSum highlights from cached signals (features/{flow,hands,clip} entries).
+
+    flow/hands share the dense grid (`t`); clip has its own 1 fps grid. Budget =
+    budget_frac * duration (`select.budget_frac`). Output goes to post-processing.
+    """
+    t = np.asarray(flow["t"])
+    if not np.array_equal(t, np.asarray(hands["t"])):
+        raise ValueError("flow and hands must share the dense time grid")
+    imp = importance_signal(
+        t, flow["flow"], hands["hands"], flow["global_motion"], clip["t"], clip["clip_emb"], p
+    )
+    spans = shots(clip["t"], clip["clip_emb"], duration, p.shot_thr)
+    return select_segments(t, imp, spans, duration, budget_frac * duration, p)
