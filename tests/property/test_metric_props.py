@@ -62,7 +62,7 @@ def test_map_perfect_is_one_and_empty_is_zero(gt):
 @given(st.lists(st.floats(0.0, 1.0), min_size=20, max_size=200), disjoint_highlights())
 def test_frame_f1_is_in_unit_interval(imp, hl):
     times = np.arange(len(imp), dtype=float)
-    assert 0.0 <= frame_f1(times, np.array(imp), hl) <= 1.0
+    assert 0.0 <= frame_f1(times, top_frames(np.array(imp)), hl) <= 1.0
 
 
 @settings(max_examples=100, deadline=None)
@@ -79,5 +79,4 @@ def test_coverage_empty_is_zero_and_covering_every_action_is_one(gt):
 @given(st.lists(st.floats(0.0, 1.0), min_size=20, max_size=200))
 def test_frame_f1_empty_prediction_is_zero(imp):
     times = np.arange(len(imp), dtype=float)
-    assert frame_f1(times, np.array(imp), []) == 0.0
-    assert 0.0 <= frame_f1(times, top_frames(np.array(imp)), hl) <= 1.0
+    assert frame_f1(times, top_frames(np.array(imp)), []) == 0.0

@@ -481,7 +481,8 @@ mean over classes, then over thresholds. Computed over all EPIC videos jointly.
 ### 9.3 Highlight F1 (FPVSum)
 Evaluated at the GT's native frames (frame `i` of `N` at `i · T / N` s, T from the
 manifest). GT positives = FPVSum's own top-15% highlight frames (`Binary_score` in
-`gt_data.mat`; 15–17% of frames because of ties), the closest match to the kit's "top
+`gt_data.mat`; 15.1–27.1% of frames because of ties, > 18% on 6 videos, so recall is
+capped below 1 there at a 14.5% budget), the closest match to the kit's "top
 15% of human-annotated consensus importance frames". `top_frames(score)` gives an
 exact-count variant. Predicted positives = frames with `start ≤ t < end` for a
 highlight ≥ 4.0 s. F1 per video (0 if no true positive), mean over videos.

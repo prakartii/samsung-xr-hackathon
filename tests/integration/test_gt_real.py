@@ -12,7 +12,11 @@ from tests.conftest import KIT_DIR, REPO_ROOT
 ANN = REPO_ROOT / "data" / "annotations"
 pytestmark = [
     pytest.mark.data,
-    pytest.mark.skipif(not (ANN / "epic").exists(), reason="run tools/fetch_annotations.sh"),
+    pytest.mark.skipif(
+        not (ANN / "epic" / "EPIC_100_validation.csv").exists()
+        or not (ANN / "fpvsum" / "gt_data.mat").exists(),
+        reason="run tools/fetch_annotations.sh",
+    ),
 ]
 
 
@@ -48,3 +52,15 @@ def test_every_manifest_fpvsum_video_has_ground_truth():
     assert set(gt) == set(dur)  # all 49, including the Jumping__ name quirk
     fractions = [float(np.mean(g.highlight)) for g in gt.values()]
     assert min(fractions) > 0.10 and max(fractions) < 0.30
+
+
+def test_every_fpvsum_label_is_a_kit_label():
+    import json
+
+    labels = set(
+        json.loads((KIT_DIR / "supported_classes.json").read_text(encoding="utf-8"))["labels"]
+    )
+
+    gt = load_fpvsum(ANN / "fpvsum" / "gt_data.mat", manifest("fpvsum"))
+
+    assert {g.label for g in gt.values()} <= labels

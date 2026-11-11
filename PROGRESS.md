@@ -189,6 +189,7 @@ package: `validate.py`. Remaining: send the email, set the team ID.
 - [ ] Wire the FPVSum route into `pipeline.py`
 - [ ] Tune importance weights on FPVSum CV folds (never on all 49 at once)
 - [ ] Check signal-router agreement with the manifest (target ≥ 95%); tune `routing.min_conf`
+- [ ] Check FPVSum GT timing: GT frame count vs ffprobe frame count per downloaded video. `Horse_2otBDeLWCow` (21.3 fps implied), `Plane_QsL_gCDHWHA` (39.6) and `Surfing_G7lPf1gF-W4` (21.0) look like a different cut than the annotated one; exclude or re-align mismatches (`rewind_eval/gt_fpvsum.py` stretches frames linearly over T)
 - [ ] Uncertain route always emits actions (EPIC detector or zero-shot fallback)
 - [ ] Ablation: audio terms (RMS, spectral flux) in the importance proxy; keep only if CV improves
 - [ ] Optional: ridge on CLIP if it beats the proxy on CV
@@ -324,6 +325,7 @@ Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 - 2026-11-11 · DA · P1 · Post-processing, fallback and `output.py` (`to_document`, deterministic `dumps`); `SHORT_VIDEO_T` corrected to 4.05 / 0.15 = 27.0 s; unit + Hypothesis property tests (any input → valid highlights; fallback passes strict validation for T in 5–2000 s) · #9
 - 2026-11-11 · DA · P1 · Validator: `rewind/schema.py` (R1–R14, strict + kit severities), bundled class list (`rewind/vocab.py`), `rewind_eval.validate` directory CLI (manifest durations, missing files, team_id); 63 new tests, 21 of 22 deliberate bugs caught (1 harmless rewrite) · #8
 - 2026-11-11 · DA · process · Review agents post every review on the PR from their person's account (request-changes / comment / approve, with suggested diffs); the author's agent replies on the PR with what it fixed (CLAUDE.md §5) · #11
+- 2026-11-12 · DA · P2 · Review fixes on GT/splits: FPVSum CV folds keep clips of one YouTube source together (splits.yaml regenerated), integration tests skip unless both GT files exist and check FPVSum labels, highlight-frame share documented as 15–27%; P6 item to verify 3 FPVSum videos' timing · #13
 - 2026-11-12 · DA · P2 · Review fixes on metrics: tests for score ranking in AP, tIoU = threshold, exactly-4 s highlights, short highlights in the budget penalty, empty/perfect coverage and empty F1 · #12
 - 2026-11-11 · DA · P2 · Ground truth: `tools/fetch_annotations.sh` (pinned, hashed), EPIC loader (class id → kit key; raw verbs ignored), FPVSum loader (native frames, `Binary_score`, `Jumping__` name quirk), `configs/splits.yaml` via `tools/make_splits.py` (20 duration-matched EPIC train videos; 5 FPVSum folds); F1 takes a GT mask; scipy for eval · #13
 - 2026-11-11 · DA · P2 · Metrics as pure functions: coverage (any-overlap / fraction, < 4 s ignored, budget penalty), mAP (highest-tIoU greedy matching, interpolated AP, 5 thresholds), frame F1 (exact top 15%), label accuracy; 31 hand-computed + property tests, 19/19 deliberate bugs caught · #12

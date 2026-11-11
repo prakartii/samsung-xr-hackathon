@@ -120,6 +120,16 @@ def test_fpvsum_folds_round_robin_within_categories():
     assert folds == {"Bike_a": 0, "Bike_b": 1, "Boxing_a": 2, "Ski_a": 3, "Ski_b": 4, "Ski_c": 0}
 
 
+def test_fpvsum_folds_keep_clips_of_one_source_together():
+    mod = _make_splits_module()
+    ids = ["BikePolo_abc_1", "BikePolo_abc_3", "BikePolo_xyz_1", "Ski_a"]
+
+    folds = mod.fpvsum_folds(ids)
+
+    # Sources in order: BikePolo_abc (fold 0, both clips), BikePolo_xyz (1), Ski_a (2).
+    assert folds == {"BikePolo_abc_1": 0, "BikePolo_abc_3": 0, "BikePolo_xyz_1": 1, "Ski_a": 2}
+
+
 def test_committed_splits_are_consistent_with_the_manifest():
     import csv
 

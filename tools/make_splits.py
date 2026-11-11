@@ -10,6 +10,7 @@
 """
 
 import csv
+import re
 from pathlib import Path
 
 import yaml
@@ -38,14 +39,22 @@ def pick_tune_epic(val_durations: list[float], train_durations: dict[str, float]
     return sorted(chosen)
 
 
+def source_video(vid: str) -> str:
+    """Clips cut from one YouTube video share a source: BikePolo_DHbYfmjX3WQ_1 → …_3."""
+    return re.sub(r"_\d+$", "", vid)
+
+
 def fpvsum_folds(ids: list[str]) -> dict[str, int]:
-    by_cat: dict[str, list[str]] = {}
+    """Round-robin over source videos within each category; clips of one source share
+    a fold, so CV never trains and tests on the same footage."""
+    by_cat: dict[str, dict[str, list[str]]] = {}
     for vid in sorted(ids):
-        by_cat.setdefault(vid.split("_")[0], []).append(vid)
+        by_cat.setdefault(vid.split("_")[0], {}).setdefault(source_video(vid), []).append(vid)
     folds, k = {}, 0
     for cat in sorted(by_cat):
-        for vid in by_cat[cat]:
-            folds[vid] = k % N_FOLDS
+        for src in sorted(by_cat[cat]):
+            for vid in by_cat[cat][src]:
+                folds[vid] = k % N_FOLDS
             k += 1
     return folds
 
