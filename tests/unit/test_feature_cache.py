@@ -135,6 +135,19 @@ def test_cache_failed_overwrite_keeps_previous_entry(tmp_path):
     np.testing.assert_array_equal(cache.get("abc")["x"], np.arange(3.0))
 
 
+def test_cache_put_succeeds_when_meta_index_cannot_be_updated(tmp_path):
+    # Parallel cache workers can collide on meta.json (on Windows, os.replace fails
+    # while another process has it open). meta.json is only an index: the entry must
+    # still be stored and readable. Simulate an unwritable index with a directory.
+    cache = FeatureCache(tmp_path, "flow", "v1")
+    (cache.dir / "meta.json").mkdir(parents=True)
+
+    with pytest.warns(RuntimeWarning):
+        cache.put("abc", {"x": np.arange(3.0)})
+
+    np.testing.assert_array_equal(cache.get("abc")["x"], np.arange(3.0))
+
+
 def test_cache_reserved_key_rejected(tmp_path):
     with pytest.raises(ValueError):
         FeatureCache(tmp_path, "flow", "v1").put("abc", {"__cache_version__": np.zeros(1)})
