@@ -186,7 +186,7 @@ package: `validate.py`. Remaining: send the email, set the team ID.
 - [ ] Download the released `epic_kitchens.tar.gz` (check md5) and the verb/noun checkpoints into `weights/`; script it in `tools/fetch_weights.sh` — checkpoints done (SHA-256 pinned); 6.53 GB features archive downloading
 - [ ] **Coverage check:** every EPIC `video_id` in `kit/manifest.csv` and every `tune` video has released features; list any gaps here
 - [x] **Leakage check:** confirm from configs/logs that the checkpoints were trained on EPIC train only; record the evidence in §4 Decisions (passed, see Decisions 2026-11-11)
-- [ ] Run ActionFormer inference on CPU; record seconds per video
+- [ ] Run ActionFormer inference on CPU; record seconds per video — `detect/actionformer.py` loads the EMA checkpoint on CPU (strict) and is deterministic; smoke run on random features: 13.6 s for a 267 s video (≈ 3 s per video minute, incl. soft-NMS). Real-feature numbers pending the archive
 - [ ] `tools/import_released_features.py` (released features → cache by content fingerprint); `features/slowfast.py` reads the cache, else extracts from the MP4
 - [ ] Extraction check on 1–2 videos (Kaggle/Colab if needed): our features match the released ones (cosine ≥ 0.95)
 - [ ] Extract any gap videos on Kaggle/Colab, one at a time
@@ -364,6 +364,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-11 · PK · P4 · `detect/actionformer.py` (CPU, EMA weights, released feature timing); ActionFormer utils import lazily (no pandas at runtime); EPIC video download paused so the 6.5 GB features archive gets the bandwidth · —
 - 2026-11-11 · PK · P4 · `detect/pairing.py` (+ `types.py`, `constants.py` from the spec), `tools/build_vn_prior.py` (train-only, leakage guard); NMS numpy port so ActionFormer runs without a compiler · —
 - 2026-11-11 · PK · P4 · Checkpoints fetched (`tools/fetch_weights.sh`, SHA-256 pinned); leakage check passed · —
 - 2026-11-11 · PK · P4 · Started P4 on `p4/actionformer`; vendored ActionFormer `61ea7eb` (MIT); fetching released EPIC checkpoints · —
