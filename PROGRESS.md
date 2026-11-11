@@ -173,19 +173,25 @@ package: `validate.py`. Remaining: send the email, set the team ID.
 ### P4 — Action detection → `actions[]`
 **Owner:** A (prakartii) · **Planned:** Nov 11–13 · **Status:** in progress (started 2026-11-11, branch `p4/actionformer`, stacked on `p3/video-io-signals`) · **Depends on:** P3 (frames), P2 (mAP scorer)
 
+> **Coordination (A → B):** pairing needed `rewind/types.py` and `rewind/constants.py`
+> (P1 items). Both are transcribed verbatim from ARCHITECTURE.md §2 / §3.1 on this branch;
+> keep or replace them in P1. Also: kit key *i* = EPIC class id *i* for verbs and
+> nouns (`other` last), checked against `EPIC_100_{verb,noun}_classes.csv`; `vocab.py`
+> can rely on it.
+>
 > Note: the vendoring commit (`fd0d477`) landed on the P3 branch before `p4/actionformer`
 > was cut; it is P4 work. Rewriting the pushed P3 branch to move it was not worth the risk.
 
 - [x] Vendor ActionFormer (`happyharrycn/actionformer_release`) into `code/third_party/actionformer` with its LICENSE (commit `61ea7eb`, MIT)
-- [ ] Download the released `epic_kitchens.tar.gz` (check md5) and the verb/noun checkpoints into `weights/`; script it in `tools/fetch_weights.sh`
+- [ ] Download the released `epic_kitchens.tar.gz` (check md5) and the verb/noun checkpoints into `weights/`; script it in `tools/fetch_weights.sh` — checkpoints done (SHA-256 pinned); 6.53 GB features archive downloading
 - [ ] **Coverage check:** every EPIC `video_id` in `kit/manifest.csv` and every `tune` video has released features; list any gaps here
 - [x] **Leakage check:** confirm from configs/logs that the checkpoints were trained on EPIC train only; record the evidence in §4 Decisions (passed, see Decisions 2026-11-11)
 - [ ] Run ActionFormer inference on CPU; record seconds per video
 - [ ] `tools/import_released_features.py` (released features → cache by content fingerprint); `features/slowfast.py` reads the cache, else extracts from the MP4
 - [ ] Extraction check on 1–2 videos (Kaggle/Colab if needed): our features match the released ones (cosine ≥ 0.95)
 - [ ] Extract any gap videos on Kaggle/Colab, one at a time
-- [ ] `tools/build_vn_prior.py` → `weights/vn_prior.npy` (train split only)
-- [ ] `detect/actionformer.py`, `detect/pairing.py`; cache proposals
+- [x] `tools/build_vn_prior.py` → `weights/vn_prior.npy` (train split only): 67,217 train segments, 3,568 distinct pairs; refuses CSVs containing manifest videos. Source: `epic-kitchens-100-annotations` @ `ea8b404`
+- [ ] `detect/actionformer.py`, `detect/pairing.py`; cache proposals — `pairing.py` done (§5.1; proposals anchored on the group's top verb, scores `(p_v·p_n·prior^α)^power`)
 - [ ] Wire into `pipeline.py` (EPIC route → `actions[]`)
 - [ ] Tune `max_per_video` and the minimum score on `tune`
 - [ ] **Kill rule (end of Nov 13):** if no working mAP, switch to `detect/fallback_zeroshot.py`
@@ -358,6 +364,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-11 · PK · P4 · `detect/pairing.py` (+ `types.py`, `constants.py` from the spec), `tools/build_vn_prior.py` (train-only, leakage guard); NMS numpy port so ActionFormer runs without a compiler · —
 - 2026-11-11 · PK · P4 · Checkpoints fetched (`tools/fetch_weights.sh`, SHA-256 pinned); leakage check passed · —
 - 2026-11-11 · PK · P4 · Started P4 on `p4/actionformer`; vendored ActionFormer `61ea7eb` (MIT); fetching released EPIC checkpoints · —
 - 2026-11-11 · PK · P3 · `tools/cache_features.py`; first throughput numbers (provisional, on battery); EPIC download parallelized (6 connections) · —
