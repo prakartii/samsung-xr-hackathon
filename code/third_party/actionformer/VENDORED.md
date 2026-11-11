@@ -5,7 +5,11 @@
 - License: MIT (`LICENSE`, recorded in ARCHITECTURE.md §10)
 - Copied: `libs/`, `eval.py` (reference only), `configs/epic_slowfast_{verb,noun}.yaml`, `LICENSE`.
   Not copied: training script, other datasets' configs, tools, docs, images.
-- Local modifications: **none yet**. Any change must be listed here with its reason.
-- Note: `libs/utils/nms.py` imports a C++ extension (`libs/utils/csrc/nms_cpu.cpp`,
-  built by `libs/utils/setup.py`). P4 decides whether to build it or replace NMS with
-  a pure-PyTorch version (no compiler needed in the organizers' environment).
+- Local modifications (each with its reason):
+  1. **Added `libs/utils/nms_1d_py.py`**: an exact numpy port of the C++ 1D NMS /
+     soft-NMS extension (`libs/utils/csrc/nms_cpu.cpp`). The organizers re-run
+     `run.sh` in an isolated environment that may have no C++ compiler. Verified
+     against a literal transcription of the C++ code in
+     `tests/unit/test_actionformer_nms.py` (hand cases + randomized inputs with ties).
+  2. **`libs/utils/nms.py`**: `import nms_1d_cpu` now falls back to that port when
+     the extension isn't built (3-line change at the import).
