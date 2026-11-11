@@ -168,7 +168,7 @@ def test_clip_signals_no_frames_raises():
 
 def test_clip_cache_version_ignores_batch_size_tracks_the_rest():
     v = clip_cache_version(PARAMS, 1.0, "abc")
-    assert v.startswith("clip-v1-")
+    assert v.startswith("clip-v2-")
     assert v == clip_cache_version(dataclasses.replace(PARAMS, batch_size=8), 1.0, "abc")
     assert v != clip_cache_version(dataclasses.replace(PARAMS, width=224), 1.0, "abc")
     assert v != clip_cache_version(PARAMS, 2.0, "abc")

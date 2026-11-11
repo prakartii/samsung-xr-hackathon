@@ -24,7 +24,9 @@ import numpy as np
 
 # Bump when the algorithm changes in a way the parameters don't capture
 # (CLAUDE.md §6.8: change the extractor -> bump the version -> old caches ignored).
-_ALGO_VERSION = "flow-v1"
+# v2 (2026-11-11): PyAV decoding by presentation time; v1 used OpenCV, which truncated
+# EPIC GoPro files (tests/integration/test_decode_epic.py).
+_ALGO_VERSION = "flow-v2"
 
 
 @dataclass(frozen=True)
