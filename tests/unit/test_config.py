@@ -335,3 +335,15 @@ def test_config_score_power_zero_is_rejected(default_cfg_dict):
 
     with pytest.raises(ConfigError, match=r"pairing\.score_power: 0\.0 must be > 0"):
         config_from_dict(default_cfg_dict)
+
+
+# --- P6 additions: importance window grid ---------------------------------------------
+
+
+@pytest.mark.parametrize("key", ["len_step", "stride"])
+def test_config_importance_grid_step_zero_is_rejected(default_cfg_dict, key):
+    # a zero step would make the FPVSum window search loop forever / produce nothing
+    default_cfg_dict["importance"][key] = 0.0
+
+    with pytest.raises(ConfigError, match=rf"importance\.{key}: 0\.0 must be > 0"):
+        config_from_dict(default_cfg_dict)

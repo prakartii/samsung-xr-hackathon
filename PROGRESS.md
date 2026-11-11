@@ -21,7 +21,7 @@ Who is A and who is B: **A = prakartii**, **B = Daksh Arora (DA)**.
 | P4 | Action detection → `actions[]` | A | Nov 11–13 | in progress | mAP measured on `tune` and `report`; beats the zero-shot fallback |
 | P4 | Action detection → `actions[]` | A | Nov 11–13 | not started | mAP measured on `tune` and `report`; beats the zero-shot fallback |
 | P5 | Clustering + EPIC coverage selector | B | Nov 12–14 | in progress | EPIC coverage > uniform; % of oracle reported; ablation done |
-| P6 | FPVSum route: importance, segments, label | A | Nov 13–15 | not started | F1 > uniform on FPVSum CV; label accuracy reported |
+| P6 | FPVSum route: importance, segments, label | A | Nov 13–15 | in progress | F1 > uniform on FPVSum CV; label accuracy reported |
 | P7 | Integration, tuning, ablations | A + B | Nov 15–16 | not started | All 187 outputs from raw MP4 pass validation; tuned config committed; floors set |
 | P8 | Packaging, demo, deck | B (pkg) + A (demo) | Nov 16–17 | not started | Fresh clone + Docker reproduces one video; demo video + deck done |
 | P9 | Submission | A + B | Nov 18 | not started | Submitted via Google Form before 11:59 PM IST |
@@ -279,10 +279,10 @@ edge fix. Hedges improved from 0.422 to 0.447 but still trail h = 0.)
 ---
 
 ### P6 — FPVSum route: importance, segments, label
-**Owner:** A · **Planned:** Nov 13–15 · **Status:** not started · **Depends on:** P3, P2 (F1 scorer)
+**Owner:** A (prakartii) · **Planned:** Nov 13–15 · **Status:** in progress (started 2026-11-11 while P4 waits on data; branch `p6/fpvsum-importance`, stacked on `p4/actionformer`) · **Depends on:** P3, P2 (F1 scorer)
 
-- [ ] `select/importance.py` (proxy, shots, windows of 4.05–10 s)
-- [ ] `label/` (EPIC → cooking; FPVSum CLIP zero-shot with a prompt ensemble)
+- [x] `select/importance.py` (proxy, shots, windows of 4.05–10 s); unit + Hypothesis property tests (`tests/property/`)
+- [x] `label/` (EPIC → cooking; FPVSum CLIP zero-shot with a prompt ensemble); uncertain route per ARCHITECTURE.md §4
 - [ ] Wire the FPVSum route into `pipeline.py`
 - [ ] Tune importance weights on FPVSum CV folds (never on all 49 at once)
 - [ ] Check signal-router agreement with the manifest (target ≥ 95%); tune `routing.min_conf`
@@ -420,6 +420,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-12 · DA · P6 · Review fixes (B took over on request): Kaggle download crashes always report back (no 12 h hang), Kaggle installs the requirements.txt pins and logs library versions per record, `--collect` replaces stale-version cache entries; scene-change term, `shots`/`other_thr` boundaries and `max_window` (now reachable) tested; property test over 5–2000 s; ARCHITECTURE §6.2 updated; P6 log lines cite #19 · #19
 - 2026-11-12 · DA · P4 · Review fixes (B took over on request): pairing uses greedy anchors so a confident verb without a matching noun no longer drops an overlapping verb's action (two regression tests; ARCHITECTURE §5.1); zero-shot windows end exactly at T; P4 log lines now cite #18 · #18
 - 2026-11-12 · PK · P3 · CI fixes: PyAV pinned to 18.0.0 (19.x has no Python 3.11 wheels); `video_io` imports OpenCV lazily so `run.sh`'s fallback path loads no OpenCV; `test_run_sh_never_opens_manifest_or_ground_truth` (P1) now ignores files inside the Python installation, which tripped it with library names (`torch/jit/annotations.py`, `cv2/data/`), while still checking every other path · —
 - 2026-11-12 · PK · P3 · Merged `main` (P1) into `p3/video-io-signals`: P1 owns `video_io` probing (`ProbeInfo`, `ffprobe_meta`, `parse_probe`), P3 adds frame↔seconds, `sample_times`, PyAV `probe_video`/`iter_frames`; config schema extended (`features.flow/hands/clip` blocks replace `features.flow_width`, new `label.classes` mapping; `signals.dense_fps` = 4.0, see D1 note) · —
@@ -446,6 +447,14 @@ Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 - 2026-11-11 · DA · process · Review agents: every session runs a background review sub-agent that polls PRs (`tools/pr_watch.py`), reviews the other person's PRs and reports to the main agent, which posts the review and merges (CLAUDE.md §5); approved by prakartii · #7
 - 2026-11-11 · DA · P1 · Skeleton: pyproject, pinned requirements, CI, constants, types, strict config loader + default.yaml, import-boundary tests (source scan, config scan, runtime import check); 69 tests, checked against deliberate bugs; review fixes: NaN/inf and duplicate keys rejected, more range checks, hash of the loaded config · #6
 - 2026-11-11 · PK · P3 · EPIC download stalled at 11/138: data.bris intermittently serves a SHA-1-signed CA, rejected by OpenSSL's default security level (`CA signature digest algorithm too weak`). `download_videos.py` now uses a verified TLS context at security level 1 (chain + hostname still checked; files still MD5-checked) and backs off between retries · —
+- 2026-11-12 · PK · P4 · Merged P3 (with `main`/P1) into `p4/actionformer`: P1's `types.py`/`constants.py` replace the stand-ins; pairing uses P1's `pairing.top_k`/`eps` (values from P1: alpha 1.0, eps 1.0, max 2000 actions) + new `pairing.score_power` and `zeroshot` config; `tests/contract/test_actionformer_boundary.py` keeps inference off ActionFormer's dataset loaders · —
+- 2026-11-11 · PK · P4 · Released features in (MD5 ok); coverage 138/138; imported the 10 downloaded videos; end-to-end action chain runs on real features (data-tier tests pass) · —
+- 2026-11-11 · PK · P3 · Home link (~2.5 MiB/s) needs ~20 h for the 184 GB of EPIC video, so the EPIC feature cache now runs on Kaggle: `tools/kaggle_launch.py` uploads the code as a private dataset and starts 5 free CPU notebooks (`tools/kaggle_cache_epic.py`, one shard each: parallel MD5-checked downloads, single-pass flow/hands/CLIP, videos deleted). Results come back with `--collect` (~100 MB, keyed by content fingerprint like a local run) · —
+- 2026-11-12 · PK · P6 · Merged P4 (with `main`) into `p6/fpvsum-importance`: importance uses P1's config names and values (`w_global_motion`, `w_scene_change`, `min_window`, `max_window`) + new `importance.len_step`/`stride`; the label uses `label.prompts` + `label.classes`; `tests/strategies.py` merged (P1's + `dense_signal`) · #19
+- 2026-11-11 · PK · P6 · `select/importance.py`, `label/`, `importance`/`label`/`select.budget_frac` config, shared Hypothesis strategies · #19
+- 2026-11-11 · PK · P6 · Started P6 on `p6/fpvsum-importance` (P4 is blocked on the features download) · #19
+- 2026-11-11 · PK · P4 · `tools/fetch_released_features.py`: Google Drive throttled the 6.5 GB archive to ~25 KiB/s; switched to the README's Box mirror with parallel ranges · —
+- 2026-11-11 · PK · P4 · `detect/fallback_zeroshot.py` + `zeroshot` config · —
 - 2026-11-12 · PK · P4 · Merged P3 (with `main`/P1) into `p4/actionformer`: P1's `types.py`/`constants.py` replace the stand-ins; pairing uses P1's `pairing.top_k`/`eps` (values from P1: alpha 1.0, eps 1.0, max 2000 actions) + new `pairing.score_power` and `zeroshot` config; `tests/contract/test_actionformer_boundary.py` keeps inference off ActionFormer's dataset loaders · #18
 - 2026-11-11 · PK · P4 · Released features in (MD5 ok); coverage 138/138; imported the 10 downloaded videos; end-to-end action chain runs on real features (data-tier tests pass) · #18
 - 2026-11-11 · PK · P4 · `tools/fetch_released_features.py`: Google Drive throttled the 6.5 GB archive to ~25 KiB/s; switched to the README's Box mirror with parallel ranges · #18

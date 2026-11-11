@@ -155,6 +155,8 @@ class ImportanceCfg:
     w_scene_change: float
     min_window: float
     max_window: float
+    len_step: float
+    stride: float
 
 
 @dataclass(frozen=True)
@@ -364,6 +366,8 @@ def _check_ranges(cfg: Config) -> None:
         "select.stride": s.stride,
         "select.fraction_tau": s.fraction_tau,
         "importance.sigma": imp.sigma,
+        "importance.len_step": imp.len_step,
+        "importance.stride": imp.stride,
         "features.flow.width": cfg.features.flow.width,
         "features.flow.pyr_scale": cfg.features.flow.pyr_scale,
         "features.flow.levels": cfg.features.flow.levels,

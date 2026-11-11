@@ -390,9 +390,12 @@ Gaussian smoothing of σ = `cfg.importance.sigma` s. Scene change = 1 − cosine
 similarity of consecutive CLIP embeddings, interpolated to the dense grid.
 Weights are tuned on FPVSum cross-validation folds only.
 
-Segments: find shots from CLIP change points (`cfg.importance.shot_thr`). Within
-each shot, slide windows of 4.05–10 s and score each by mean `imp`. Greedily pick the
-best non-overlapping windows until budget `B`, then postprocess (§5.6).
+Segments: find shots from CLIP change points (change > `cfg.importance.shot_thr`).
+Within each shot, slide windows of `min_window`…`max_window` s (lengths every
+`importance.len_step` plus `max_window` itself; starts every `importance.stride`) and
+score each by mean `imp`. If no shot is long enough for a `min_window` window, windows
+may span shots. Greedily pick the best non-overlapping windows until budget `B` (or the
+single best window when `B < min_window`), then postprocess (§5.6).
 
 Ablation candidate (P6): add audio terms (RMS loudness, spectral flux; extracted
 with ffmpeg at 16 kHz) to `imp(t)`. Keep only if it wins on CV. Many FPVSum videos are

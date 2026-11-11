@@ -1,5 +1,6 @@
 """Shared Hypothesis strategies (CLAUDE.md §7.3 rule 8)."""
 
+import numpy as np
 from hypothesis import strategies as st
 
 durations = st.floats(min_value=5.0, max_value=2000.0, allow_nan=False, allow_infinity=False)
@@ -13,3 +14,12 @@ def segments_and_values(draw, duration: float, max_n: int = 300):
     lengths = draw(st.lists(st.floats(0.0, 60.0), min_size=n, max_size=n))
     values = draw(st.lists(st.floats(0.0, 1.0), min_size=n, max_size=n))
     return [(s, s + L) for s, L in zip(starts, lengths, strict=True)], values
+
+
+@st.composite
+def dense_signal(draw, duration: float, rate: float = 4.0):
+    """(t, values) on a dense time grid with random finite values in [-3, 3] (P6)."""
+    n = max(1, int(duration * rate))
+    seed = draw(st.integers(min_value=0, max_value=2**32 - 1))
+    values = np.random.default_rng(seed).uniform(-3.0, 3.0, n)
+    return np.arange(n) / rate, values

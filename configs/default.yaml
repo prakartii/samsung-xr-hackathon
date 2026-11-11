@@ -91,6 +91,8 @@ importance:
   w_scene_change: 0.5      # importance weight: scene change
   min_window: 4.05         # shortest FPVSum window in s (>= 4.05)
   max_window: 10.0         # longest FPVSum window in s
+  len_step: 1.0            # window-length grid step in s between min_window and max_window; P6
+  stride: 0.5              # window start grid step in s; P6
 
 label:
   prompts:                 # CLIP prompt templates; {} is the category name
