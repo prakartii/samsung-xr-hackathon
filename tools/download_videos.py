@@ -155,13 +155,24 @@ def download_epic(ids: list[str], root: Path, scripts: Path, retries: int = 5) -
         label = f"[epic {i}/{len(ids)}] {vid}"
         base, parts, version = epic_remote(vid, splits55)
         target = root / "EPIC-KITCHENS" / vid.split("_")[0] / "videos" / f"{vid}.MP4"
-        if target.exists():
-            print(f"{label}: exists", flush=True)
-            continue
-        target.parent.mkdir(parents=True, exist_ok=True)
+        ok_marker = target.with_name(target.name + ".md5ok")
         part = target.with_name(target.name + ".part")
-        url = "/".join([base, *parts])
         expected = md5s.get((version, "/".join(parts)))
+        if target.exists() and ok_marker.exists():
+            print(f"{label}: exists (verified)", flush=True)
+            continue
+        if target.exists():
+            # Unverified file, e.g. a partial left by the official script, which
+            # writes straight to the final name. Keep it if it checks out, else
+            # resume from it.
+            if expected and md5_file(target) == expected:
+                ok_marker.touch()
+                print(f"{label}: exists (md5 ok)", flush=True)
+                continue
+            print(f"{label}: existing file fails MD5, resuming it", flush=True)
+            os.replace(target, part)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        url = "/".join([base, *parts])
         print(f"{label}: downloading {url}", flush=True)
         for attempt in range(1, retries + 1):
             try:
@@ -177,6 +188,8 @@ def download_epic(ids: list[str], root: Path, scripts: Path, retries: int = 5) -
             part.unlink()
             continue
         os.replace(part, target)
+        if expected:
+            ok_marker.touch()
         print(f"{label}: done{' (md5 ok)' if expected else ' (no md5 listed)'}", flush=True)
 
 
