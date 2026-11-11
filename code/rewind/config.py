@@ -124,6 +124,7 @@ class RoutingCfg:
 @dataclass(frozen=True)
 class EvalCfg:
     coverage_lambda: float
+    capture_theta: float
 
 
 @dataclass(frozen=True)
@@ -281,6 +282,7 @@ def _check_ranges(cfg: Config) -> None:
         "routing.cooking_thr": cfg.routing.cooking_thr,
         "routing.min_conf": cfg.routing.min_conf,
         "select.fraction_theta": s.fraction_theta,
+        "eval.capture_theta": cfg.eval.capture_theta,
     }
     for key, v in unit_interval.items():
         if not 0.0 <= v <= 1.0:
