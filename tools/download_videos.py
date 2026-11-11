@@ -10,10 +10,13 @@ Steps (run all by default, or pick with --only):
           pinned below), NOT from the name: e.g. `BikePolo_5yf797Lh4Oc_1` is YouTube
           `6oOSbkUiJY0`. Progressive MP4 only (`best[ext=mp4]`), so no ffmpeg is
           needed to merge streams; resolution is ample for 160 px flow and 224 px CLIP.
-  epic    138 EPIC-KITCHENS-100 val videos (~184 GB) with the official downloader
-          (github.com/epic-kitchens/epic-kitchens-download-scripts), which verifies
-          MD5s and skips files already downloaded. It writes
-          <root>/EPIC-KITCHENS/<P..>/videos/<id>.MP4.
+  epic    138 EPIC-KITCHENS-100 val videos (~184 GB) from the official data.bris
+          endpoint. URLs, EPIC-55 splits and MD5s are read as data from a clone of
+          github.com/epic-kitchens/epic-kitchens-download-scripts (data/*.csv); we
+          don't run its script. Same URL scheme and output layout as that script
+          (<root>/EPIC-KITCHENS/<P..>/videos/<id>.MP4), plus resume: partial files
+          continue with HTTP Range requests, and each file is MD5-verified before
+          it gets its final name.
   link    Hard-link every EPIC .MP4 into <root>/videos/<id>.mp4 (same volume, no copy).
 
 Example (Windows, data on D:)::
@@ -31,14 +34,18 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import os
 import subprocess
 import sys
+import urllib.error
 import urllib.request
 from pathlib import Path
 
 import cv2
 
+EPIC_55_BASE = "https://data.bris.ac.uk/datasets/3h91syskeag572hl6tvuovwv4d"
+EPIC_100_BASE = "https://data.bris.ac.uk/datasets/2g1n6qdydwa9u22shpxqzp0t8m"
 REPO = Path(__file__).resolve().parents[1]
 MANIFEST = REPO / "kit" / "manifest.csv"
 FPVSUM_LIST_URL = (
@@ -90,14 +97,87 @@ def download_fpvsum(ids: list[str], out_dir: Path) -> None:
             print(f"[fpvsum] FAILED: {vid}", flush=True)
 
 
-def download_epic(ids: list[str], root: Path, scripts: Path) -> None:
-    # The official script resolves its data/*.csv paths relative to the cwd.
-    cmd = [
-        sys.executable, "-u", "epic_downloader.py", "--videos",
-        "--specific-videos", ",".join(ids),
-        "--output-path", str(root),
-    ]  # fmt: skip
-    subprocess.run(cmd, cwd=scripts, check=True)
+def _read_csv(path: Path) -> list[dict[str, str]]:
+    with path.open(newline="", encoding="utf-8") as f:
+        return list(csv.DictReader(f))
+
+
+def epic_remote(vid: str, splits55: dict[str, str]) -> tuple[str, list[str], str]:
+    """(base url, remote path parts, md5 version) for one EPIC video.
+
+    Mirrors epic_downloader.py: EPIC-55 ids (`P01_11`) live under
+    videos/<split>/<P01>/ on the EPIC-55 dataset; extension ids (`P01_101`) under
+    <P01>/videos/ on the EPIC-100 dataset.
+    """
+    participant, num = vid.split("_")
+    if len(num) == 3:
+        return EPIC_100_BASE, [participant, "videos", f"{vid}.MP4"], "100"
+    return EPIC_55_BASE, ["videos", splits55[vid], participant, f"{vid}.MP4"], "55"
+
+
+def md5_file(path: Path) -> str:
+    h = hashlib.md5()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def fetch_resumable(url: str, part: Path, label: str) -> None:
+    """Download `url` into `part`, continuing from its current size (HTTP Range)."""
+    done = part.stat().st_size if part.exists() else 0
+    req = urllib.request.Request(url, headers={"Range": f"bytes={done}-"} if done else {})
+    try:
+        resp = urllib.request.urlopen(req, timeout=60)
+    except urllib.error.HTTPError as e:
+        if e.code == 416:  # range starts at the end: already complete
+            return
+        raise
+    with resp:
+        if done and resp.status != 206:  # server ignored the range: start over
+            done = 0
+        total = done + int(resp.headers.get("Content-Length", 0))
+        next_report = 0.0
+        with part.open("ab" if done else "wb") as f:
+            while chunk := resp.read(1 << 20):
+                f.write(chunk)
+                done += len(chunk)
+                if total and done / total >= next_report:
+                    print(f"  {label}: {done / 2**30:.2f} / {total / 2**30:.2f} GiB", flush=True)
+                    next_report += 0.25
+
+
+def download_epic(ids: list[str], root: Path, scripts: Path, retries: int = 5) -> None:
+    data = scripts / "data"
+    splits55 = {r["video_id"]: r["split"] for r in _read_csv(data / "epic_55_splits.csv")}
+    md5s = {(r["version"], r["file_remote_path"]): r["md5"] for r in _read_csv(data / "md5.csv")}
+    for i, vid in enumerate(ids, 1):
+        label = f"[epic {i}/{len(ids)}] {vid}"
+        base, parts, version = epic_remote(vid, splits55)
+        target = root / "EPIC-KITCHENS" / vid.split("_")[0] / "videos" / f"{vid}.MP4"
+        if target.exists():
+            print(f"{label}: exists", flush=True)
+            continue
+        target.parent.mkdir(parents=True, exist_ok=True)
+        part = target.with_name(target.name + ".part")
+        url = "/".join([base, *parts])
+        expected = md5s.get((version, "/".join(parts)))
+        print(f"{label}: downloading {url}", flush=True)
+        for attempt in range(1, retries + 1):
+            try:
+                fetch_resumable(url, part, label)
+                break
+            except (urllib.error.URLError, OSError) as e:
+                print(f"{label}: attempt {attempt} failed ({e}); resuming", flush=True)
+        else:
+            print(f"{label}: FAILED after {retries} attempts", flush=True)
+            continue
+        if expected and md5_file(part) != expected:
+            print(f"{label}: MD5 MISMATCH, deleting partial file", flush=True)
+            part.unlink()
+            continue
+        os.replace(part, target)
+        print(f"{label}: done{' (md5 ok)' if expected else ' (no md5 listed)'}", flush=True)
 
 
 def link_epic(ids: list[str], root: Path, out_dir: Path) -> None:
