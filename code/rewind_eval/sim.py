@@ -73,7 +73,9 @@ def simulate(
             continue
         js = s + rng.gauss(0.0, noise.jitter) if noise.jitter else s
         je = e + rng.gauss(0.0, noise.jitter) if noise.jitter else e
-        js, je = max(0.0, min(js, je - 0.2)), min(duration, max(je, js + 0.2))
+        lo, hi = sorted((js, je))
+        js = min(max(0.0, lo), duration - 0.2)
+        je = min(duration, max(hi, js + 0.2))
         exact = noise.topk == 1 and noise.top1_acc >= 1.0
         pairs = ((v, n, 1.0),) if exact else _pairs((v, n), pool, noise, rng)
         out.append(Proposal((js, je), (), (), pairs))

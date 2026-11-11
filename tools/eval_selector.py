@@ -14,7 +14,7 @@ import time
 from pathlib import Path
 
 from rewind.cluster import cluster_proposals
-from rewind.config import Config, load_config
+from rewind.config import Config, config_hash, load_config
 from rewind.select.epic import select_epic
 from rewind_eval.baselines import uniform_highlights
 from rewind_eval.coverage import coverage, mean_ignoring_none
@@ -56,7 +56,7 @@ def main() -> None:
 
     def cov(hl_by_vid, rule):
         return mean_ignoring_none(
-            coverage(gt, hl_by_vid[v], data.epic_dur[v], rule=rule, theta=s.fraction_theta)
+            coverage(gt, hl_by_vid[v], data.epic_dur[v], rule=rule, theta=cfg.eval.capture_theta)
             for v, gt in data.epic_gt.items()
         )
 
@@ -75,6 +75,7 @@ def main() -> None:
     rows = [("—", "uniform", cov(uniform, "any_overlap"), cov(uniform, "fraction"), 0.0)]
     rows.append(("—", "oracle", o_any, cov(oracle, "fraction"), 0.0))
 
+    hashes = {name: config_hash(vcfg) for name, (vcfg, _) in variants(cfg).items()}
     for noise in (CLEAN, NOISY):
         for name, (vcfg, mode) in variants(cfg).items():
             t0, hl = time.perf_counter(), {}
@@ -108,7 +109,7 @@ def main() -> None:
                     "date": time.strftime("%Y-%m-%d"),
                     "git_sha": _git_sha(),
                     "tag": f"P5 sim {noise}: {name}",
-                    "config_hash": "",
+                    "config_hash": hashes.get(name, config_hash(cfg))[:10],
                     "split": args.split,
                     "n_epic": len(data.epic_gt),
                     "n_fpvsum": 0,

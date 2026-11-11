@@ -1,9 +1,10 @@
 """Hedge windows: spend a reserved slice of the budget where the detector may have
 missed actions (ARCHITECTURE.md §5.5). Pure.
 
-Centres lie on a 0.5 s grid. A centre's score is the activity profile there (motion +
-hands, when available) or, without a profile, its distance to the nearest selected
-highlight, so hedges spread into the largest uncovered stretches. Excluded: windows
+Centres lie on a 0.5 s grid. With an activity profile (motion + hands), the highest
+activity wins. Without one, farthest-point sampling: each hedge goes where the distance
+to the nearest selected highlight, video end or earlier hedge is largest, so hedges
+spread into the largest uncovered stretches. Excluded: windows
 within ``gap`` of a selected highlight or overlapping a confident cluster (the
 detector already knows about those). Highest score first, centres ≥ ``min_spacing``
 apart, MIN_SEG_EMIT windows, until ``budget`` seconds are used.
@@ -30,7 +31,7 @@ def hedge_windows(
     min_spacing: float,
     profile: tuple[np.ndarray, np.ndarray] | None = None,
 ) -> list[Segment]:
-    n = int(budget // MIN_SEG_EMIT + 1e-9)
+    n = int(budget / MIN_SEG_EMIT + 1e-9)
     if n <= 0 or duration < MIN_SEG_EMIT:
         return []
     half = MIN_SEG_EMIT / 2
@@ -42,20 +43,29 @@ def hedge_windows(
     ok = np.ones(len(centres), dtype=bool)
     for a, b in blocked:
         ok &= ~((centres - half < b) & (centres + half > a))
-    if profile is not None and len(profile[0]):
-        score = np.interp(centres, profile[0], profile[1])
-    elif selected:
-        mids = np.array([(s + e) / 2 for s, e in selected])
-        score = np.min(np.abs(centres[:, None] - mids[None, :]), axis=1)
-    else:
-        score = np.zeros(len(centres))
+    spacing = max(min_spacing, MIN_SEG_EMIT + gap)
 
     picked: list[float] = []
-    for i in np.argsort(-score, kind="stable"):
-        if len(picked) == n:
-            break
-        c = float(centres[i])
-        if not ok[i] or any(abs(c - p) < max(min_spacing, MIN_SEG_EMIT + gap) for p in picked):
-            continue
-        picked.append(c)
+    if profile is not None and len(profile[0]):
+        score = np.interp(centres, profile[0], profile[1])
+        for i in np.argsort(-score, kind="stable"):
+            if len(picked) == n:
+                break
+            c = float(centres[i])
+            if ok[i] and all(abs(c - p) >= spacing for p in picked):
+                picked.append(c)
+    else:
+        # Farthest-point sampling: each pick becomes an anchor, so hedges spread over
+        # the largest uncovered stretches instead of bunching at the farthest one.
+        anchors = [0.0, duration] + [(s + e) / 2 for s, e in selected]
+        dist = np.min(np.abs(centres[:, None] - np.array(anchors)[None, :]), axis=1)
+        while len(picked) < n:
+            cand = np.where(ok, dist, -np.inf)
+            i = int(np.argmax(cand))
+            if not np.isfinite(cand[i]):
+                break
+            c = float(centres[i])
+            picked.append(c)
+            dist = np.minimum(dist, np.abs(centres - c))
+            ok &= np.abs(centres - c) >= spacing
     return sorted((round(c - half, 6), round(c + half, 6)) for c in picked)

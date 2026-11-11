@@ -14,6 +14,7 @@ from typing import Literal
 import numpy as np
 
 from rewind.config import Config
+from rewind.constants import MIN_SEG_EMIT
 from rewind.select.coverage import select_windows
 from rewind.select.hedge import hedge_windows
 from rewind.types import Cluster, Segment
@@ -44,11 +45,19 @@ def select_epic(
     s, h = cfg.select, cfg.hedge
     budget = s.budget_frac * duration
     cl = top1_clusters(clusters) if mode == "dedup" else list(clusters)
+    lengths: Sequence[float] = s.window_lengths
+    share = h.share
+    if budget < MIN_SEG_EMIT:
+        # Short video (or T just above 27 s): the budget can't hold a window, but the kit
+        # needs one. Pick the single best minimum window instead of leaving it to
+        # postprocess, which would centre it on the middle of the video.
+        length = min(MIN_SEG_EMIT, duration)
+        budget, lengths, share = length, (length,), 0.0
     sel = select_windows(
         cl,
         duration,
-        budget=(1.0 - h.share) * budget,
-        lengths=s.window_lengths,
+        budget=(1.0 - share) * budget,
+        lengths=lengths,
         stride=s.stride,
         merge_gap=cfg.post.merge_gap,
         rule=s.capture_rule,
