@@ -19,7 +19,7 @@ Who is A and who is B: **A = prakartii**, **B = Daksh Arora (DA)**.
 | P2 | Evaluation harness | B | Nov 11–12 | done | Leaderboard has uniform + oracle rows on `tune` and `report` |
 | P3 | Video I/O, signals, feature cache | A | Nov 10–12 | not started | Flow, hands and CLIP cached for all 187 + `tune` videos |
 | P4 | Action detection → `actions[]` | A | Nov 11–13 | not started | mAP measured on `tune` and `report`; beats the zero-shot fallback |
-| P5 | Clustering + EPIC coverage selector | B | Nov 12–14 | not started | EPIC coverage > uniform; % of oracle reported; ablation done |
+| P5 | Clustering + EPIC coverage selector | B | Nov 12–14 | in progress | EPIC coverage > uniform; % of oracle reported; ablation done |
 | P6 | FPVSum route: importance, segments, label | A | Nov 13–15 | not started | F1 > uniform on FPVSum CV; label accuracy reported |
 | P7 | Integration, tuning, ablations | A + B | Nov 15–16 | not started | All 187 outputs from raw MP4 pass validation; tuned config committed; floors set |
 | P8 | Packaging, demo, deck | B (pkg) + A (demo) | Nov 16–17 | not started | Fresh clone + Docker reproduces one video; demo video + deck done |
@@ -181,11 +181,11 @@ are blank.)
 ---
 
 ### P5 — Clustering + EPIC coverage selector
-**Owner:** B · **Planned:** Nov 12–14 · **Status:** not started · **Depends on:** P2; starts on GT-derived proposals, switches to P4's proposals when they land
+**Owner:** B · **Planned:** Nov 12–14 · **Status:** in progress (started 2026-11-11) · **Depends on:** P2; starts on GT-derived proposals, switches to P4's proposals when they land
 
-- [ ] `cluster.py`
-- [ ] `select/candidates.py` (both capture rules)
-- [ ] `select/coverage.py` (expected-coverage lazy greedy, new-seconds cost, fragment check)
+- [x] `cluster.py`
+- [x] `select/candidates.py` (both capture rules)
+- [x] `select/coverage.py` (expected-coverage lazy greedy, new-seconds cost, fragment check)
 - [ ] `select/hedge.py`
 - [ ] Label-dedup baseline selector (for the ablation and the kill rule)
 - [ ] Wire into `pipeline.py` (EPIC route → `highlights[]`)
@@ -322,6 +322,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 | 2026-11-11 | `SHORT_VIDEO_T` = `MIN_SEG_EMIT / SCORING_BUDGET` = 27.0 s (was 4.0 / 0.15 = 26.67 s) | We emit 4.05 s windows; between 26.67 and 27.0 s one window is over 15% but wasn't treated as short, so strict validation would fail. No manifest video is in that range | DA (bug fix, no design change) |
 | 2026-11-12 | Invalid stage output is salvaged part by part before the full fallback (§4 step 5) | Review of #10: one out-of-vocabulary verb or one bad highlight discarded a video's whole result | DA (review fix) |
 | 2026-11-11 | F1 ground truth = FPVSum's own top-15% frames (`Binary_score`), evaluated at native frame times; `eval.f1_fps` removed | Closest to the kit's "top 15% of consensus importance frames"; no resampling error. Exact-count `top_frames(score)` kept as a variant | DA |
+| 2026-11-11 | Expected-coverage formula corrected (§5.4): `P_miss` uses each cluster's capture by the merged union, not a factor per window | The v1.0 formula counted overlapping windows over one cluster as independent chances to catch the same action, inflating gains. The fix also scores exactly what post-processing emits | DA (prakartii to confirm) |
 | 2026-11-11 | **ARCHITECTURE.md v1.1.** Inference never reads `manifest.csv` and never derives the route, label or anything else from the filename; routing uses video signals only. Feature cache keyed by content fingerprint, not `video_id`. Supersedes "Keep manifest routing as primary" below | Kit §6: re-runs in an isolated environment; hardcoded video IDs disqualify. FPVSum filenames contain the category (`Ski_…`) | DA + prakartii (confirmed 2026-11-11) |
 | 2026-11-11 | Drop the flat brochure serializer (`output.schema`); one schema | Kit confirms the nested six-key schema | DA (kit fact) |
 | 2026-11-11 | Remove `REWIND_v2_plan.md` and `REWIND_v2.2_plan.md` (still in git history); mark the superseded parts of the v2.3 plan in its banner | Stale; `ARCHITECTURE.md` is the spec | DA |
@@ -354,6 +355,7 @@ Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 - 2026-11-11 · DA · P2 · Baselines (uniform, random), GT oracle (coverage + F1), `rewind_eval.score` CLI and the first 6 leaderboard rows; P2 done: coverage ceiling 0.724, uniform 0.338 (46.7% of oracle) on report · #14
 - 2026-11-11 · DA · P2 · Ground truth: `tools/fetch_annotations.sh` (pinned, hashed), EPIC loader (class id → kit key; raw verbs ignored), FPVSum loader (native frames, `Binary_score`, `Jumping__` name quirk), `configs/splits.yaml` via `tools/make_splits.py` (20 duration-matched EPIC train videos; 5 FPVSum folds); F1 takes a GT mask; scipy for eval · #13
 - 2026-11-11 · DA · P2 · Metrics as pure functions: coverage (any-overlap / fraction, < 4 s ignored, budget penalty), mAP (highest-tIoU greedy matching, interpolated AP, 5 thresholds), frame F1 (exact top 15%), label accuracy; 31 hand-computed + property tests, 19/19 deliberate bugs caught · #12
+- 2026-11-11 · DA · P5 · Clustering (union-find on tIoU + pair/embedding match; weighted top-k pair dists, temperature), candidate windows + capture model, expected-coverage selector on the merged union (formula corrected); GT-derived clusters on all 138 val videos: coverage 0.742, slowest 0.6 s · #15
 - 2026-11-11 · DA · process · Review agents: every session runs a background review sub-agent that polls PRs (`tools/pr_watch.py`), reviews the other person's PRs and reports to the main agent, which posts the review and merges (CLAUDE.md §5); approved by prakartii · #7
 - 2026-11-11 · DA · P1 · Skeleton: pyproject, pinned requirements, CI, constants, types, strict config loader + default.yaml, import-boundary tests (source scan, config scan, runtime import check); 69 tests, checked against deliberate bugs; review fixes: NaN/inf and duplicate keys rejected, more range checks, hash of the loaded config · #6
 - 2026-11-11 · DA · P0 · Recorded roles (A = prakartii, B = DA); removed leftover GPU assumptions (P4 test marker, P7 latency, P8 Dockerfile) · #5
