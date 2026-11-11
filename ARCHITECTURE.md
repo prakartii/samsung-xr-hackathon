@@ -59,7 +59,9 @@ computed independently.
 
 ## 2. Core data types (`code/rewind/types.py`)
 
-All are frozen dataclasses. Times are float seconds.
+All are frozen dataclasses. Times are float seconds. `Signals` uses `eq=False`
+(numpy arrays don't compare with `==`). Build `Cluster.pair_dist` as a read-only
+mapping (`types.MappingProxyType`) so a frozen cluster can't be mutated through it.
 
 ```python
 Segment = tuple[float, float]                      # (start, end), 0 <= start < end <= T
@@ -243,7 +245,7 @@ detections:
    the cosine similarity of the mean CLIP embedding over their spans ≥ `cfg.cluster.sim`.
 3. Connected components → clusters. `pair_dist` = score-weighted sum of member
    top-k pair distributions, truncated to top `cfg.cluster.k` (default 5),
-   renormalized to 1, then temperature-scaled with `cfg.calibration.T` (default 1.0).
+   renormalized to 1, then temperature-scaled with `cfg.calibration.temperature` (default 1.0).
 
 ### 5.3 Candidate windows (`select/candidates.py`)
 
@@ -520,8 +522,10 @@ Top-level sections mirror the modules: `run` (seed), `team`, `signals`, `feature
 `importance`, `label`, `routing`, `eval`. Each key has a comment. The loader is
 strict: unknown keys, missing keys and wrong types are errors, and range checks tie
 values to the kit constants (e.g. `budget_frac ≤ 0.15`, every window ≥ 4.05 s).
-`config_hash()` (sha1 of the parsed config as canonical JSON, so comments and key
-order don't matter) is written to every leaderboard row so results are reproducible.
+Duplicate keys and non-finite numbers (NaN, inf) are errors too.
+`config_hash(cfg)` (sha1 of the *loaded* `Config` as canonical JSON, so comments, key
+order and `1` vs `1.0` don't matter) is written to every leaderboard row so results
+are reproducible. `rewind_eval.score` must hash the same `Config` object that ran.
 
 ---
 

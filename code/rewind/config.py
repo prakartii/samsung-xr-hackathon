@@ -7,8 +7,9 @@ silently ignored. Kit rules live in ``rewind.constants``, not here.
 
 import hashlib
 import json
+import math
 import typing
-from dataclasses import dataclass, fields, is_dataclass
+from dataclasses import asdict, dataclass, fields, is_dataclass
 from pathlib import Path
 from typing import Any, Literal
 
@@ -148,7 +149,7 @@ class Config:
 def load_config(path: str | Path) -> Config:
     """Read a YAML file and return a validated ``Config``."""
     with open(path, encoding="utf-8") as f:
-        data = yaml.safe_load(f)
+        data = yaml.load(f, Loader=_StrictLoader)  # a SafeLoader subclass
     return config_from_dict(data)
 
 
@@ -159,13 +160,32 @@ def config_from_dict(data: Any) -> Config:
     return cfg
 
 
-def config_hash(data: Any) -> str:
-    """sha1 of the canonical JSON form of a parsed config dict.
+def config_hash(cfg: Config) -> str:
+    """sha1 of the loaded config as canonical JSON.
 
-    Comments, key order and YAML formatting don't change the hash; any value does.
+    Hashes what actually ran, not the file: comments, key order, YAML formatting and
+    ``1`` vs ``1.0`` for a float field don't change it; any value does.
     """
-    canonical = json.dumps(data, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    canonical = json.dumps(asdict(cfg), sort_keys=True, separators=(",", ":"), ensure_ascii=False)
     return hashlib.sha1(canonical.encode("utf-8")).hexdigest()
+
+
+class _StrictLoader(yaml.SafeLoader):
+    """SafeLoader that rejects duplicate keys instead of silently keeping the last."""
+
+
+def _no_duplicate_keys(loader: yaml.SafeLoader, node: yaml.MappingNode) -> dict:
+    seen: set[Any] = set()
+    for key_node, _value_node in node.value:
+        key = loader.construct_object(key_node)
+        if key in seen:
+            line = key_node.start_mark.line + 1
+            raise ConfigError(f"duplicate key {key!r} at line {line}")
+        seen.add(key)
+    return loader.construct_mapping(node)
+
+
+_StrictLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _no_duplicate_keys)
 
 
 def _build(cls: type, data: Any, path: str) -> Any:
@@ -174,7 +194,7 @@ def _build(cls: type, data: Any, path: str) -> Any:
         raise ConfigError(f"{where}: expected a mapping, got {type(data).__name__}")
     hints = typing.get_type_hints(cls)
     names = [f.name for f in fields(cls)]
-    unknown = sorted(set(data) - set(names))
+    unknown = sorted(set(data) - set(names), key=str)
     if unknown:
         raise ConfigError(f"{where}: unknown key(s) {unknown}")
     missing = [n for n in names if n not in data]
@@ -194,14 +214,18 @@ def _coerce(tp: Any, value: Any, path: str) -> Any:
             raise ConfigError(f"{path}: {value!r} is not one of {list(allowed)}")
         return value
     if origin is tuple:
-        (item_tp, _ellipsis) = typing.get_args(tp)
+        args = typing.get_args(tp)
+        if len(args) != 2 or args[1] is not Ellipsis:
+            raise ConfigError(f"{path}: only variable-length tuple[X, ...] fields are supported")
         if not isinstance(value, list):
             raise ConfigError(f"{path}: expected a list, got {type(value).__name__}")
-        return tuple(_coerce(item_tp, v, f"{path}[{i}]") for i, v in enumerate(value))
+        return tuple(_coerce(args[0], v, f"{path}[{i}]") for i, v in enumerate(value))
     if tp is float:
         # bool is a subclass of int; `true` must never pass as a number.
         if isinstance(value, bool) or not isinstance(value, int | float):
             raise ConfigError(f"{path}: expected a number, got {value!r}")
+        if not math.isfinite(value):
+            raise ConfigError(f"{path}: expected a finite number, got {value!r}")
         return float(value)
     if tp is int:
         if isinstance(value, bool) or not isinstance(value, int):
@@ -229,12 +253,12 @@ def _check_ranges(cfg: Config) -> None:
             f"select.window_lengths: {short} below MIN_SEG_EMIT={MIN_SEG_EMIT} "
             "(windows under 4 s are ignored in scoring)"
         )
-    if s.stride <= 0:
-        raise ConfigError(f"select.stride: {s.stride} must be > 0")
     if not 1 <= cfg.actions.max_per_video <= MAX_ACTIONS:
         raise ConfigError(
             f"actions.max_per_video: {cfg.actions.max_per_video} must be in [1, {MAX_ACTIONS}]"
         )
+    if not 0 <= cfg.run.seed <= 2**32 - 1:
+        raise ConfigError(f"run.seed: {cfg.run.seed} must be in [0, 2**32 - 1] (numpy seed range)")
     if not 0.0 <= cfg.hedge.share < 1.0:
         raise ConfigError(f"hedge.share: {cfg.hedge.share} must be in [0, 1)")
     imp = cfg.importance
@@ -243,6 +267,11 @@ def _check_ranges(cfg: Config) -> None:
             f"importance.min_window/max_window: need {MIN_SEG_EMIT} <= "
             f"{imp.min_window} <= {imp.max_window}"
         )
+    if not cfg.label.prompts:
+        raise ConfigError("label.prompts: must not be empty")
+    no_slot = [p for p in cfg.label.prompts if "{}" not in p]
+    if no_slot:
+        raise ConfigError(f"label.prompts: {no_slot} have no '{{}}' slot for the category name")
     unit_interval = {
         "actions.min_score": cfg.actions.min_score,
         "pairing.match_tiou": cfg.pairing.match_tiou,
@@ -261,14 +290,27 @@ def _check_ranges(cfg: Config) -> None:
         "signals.dense_fps": cfg.signals.dense_fps,
         "signals.clip_fps": cfg.signals.clip_fps,
         "calibration.temperature": cfg.calibration.temperature,
+        "select.stride": s.stride,
         "select.fraction_tau": s.fraction_tau,
         "importance.sigma": imp.sigma,
         "eval.f1_fps": cfg.eval.f1_fps,
         "features.flow_width": cfg.features.flow_width,
         "pairing.top_k": cfg.pairing.top_k,
+        "pairing.eps": cfg.pairing.eps,
         "cluster.k": cfg.cluster.k,
         "label.n_keyframes": cfg.label.n_keyframes,
     }
     for key, v in positive.items():
         if v <= 0:
             raise ConfigError(f"{key}: {v} must be > 0")
+    non_negative = {
+        "pairing.alpha": cfg.pairing.alpha,
+        "hedge.gap": cfg.hedge.gap,
+        "hedge.min_spacing": cfg.hedge.min_spacing,
+        "post.merge_gap": cfg.post.merge_gap,
+        "eval.coverage_lambda": cfg.eval.coverage_lambda,
+        "importance.shot_thr": imp.shot_thr,
+    }
+    for key, v in non_negative.items():
+        if v < 0:
+            raise ConfigError(f"{key}: {v} must be >= 0")

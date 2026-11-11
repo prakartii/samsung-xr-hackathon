@@ -1,7 +1,6 @@
 """configs/default.yaml → typed Config: strict keys, strict types, range checks, hash."""
 
 import pytest
-import yaml
 
 from rewind.config import ConfigError, config_from_dict, config_hash, load_config
 from tests.conftest import DEFAULT_CONFIG
@@ -149,17 +148,120 @@ def test_config_importance_window_order_is_enforced(default_cfg_dict):
         config_from_dict(default_cfg_dict)
 
 
-def test_config_hash_ignores_comments_and_key_order(default_cfg_dict, tmp_path):
-    reordered = dict(reversed(list(default_cfg_dict.items())))
-    text = "# a comment that must not change the hash\n" + yaml.safe_dump(reordered)
-    (tmp_path / "c.yaml").write_text(text, encoding="utf-8")
-    reloaded = yaml.safe_load((tmp_path / "c.yaml").read_text(encoding="utf-8"))
+@pytest.mark.parametrize(
+    ("section", "key", "value"),
+    [
+        ("signals", "dense_fps", float("nan")),
+        ("select", "stride", float("inf")),
+        ("importance", "max_window", float("-inf")),
+    ],
+)
+def test_config_non_finite_number_is_rejected(default_cfg_dict, section, key, value):
+    # NaN slips past every `v <= 0` style check, so it must be stopped at the type level.
+    default_cfg_dict[section][key] = value
 
-    assert config_hash(reloaded) == config_hash(default_cfg_dict)
+    with pytest.raises(ConfigError, match=rf"{section}\.{key}: expected a finite number"):
+        config_from_dict(default_cfg_dict)
+
+
+def test_config_nan_window_length_is_rejected(default_cfg_dict):
+    # `nan < 4.05` is False, so without the finite check this would pass the 4 s guard.
+    default_cfg_dict["select"]["window_lengths"] = [float("nan")]
+
+    with pytest.raises(ConfigError, match=r"select\.window_lengths\[0\]: expected a finite"):
+        config_from_dict(default_cfg_dict)
+
+
+def test_load_config_duplicate_key_is_rejected(tmp_path):
+    # A tuning edit that adds a second `stride:` must not silently win.
+    text = DEFAULT_CONFIG.read_text(encoding="utf-8").replace(
+        "  stride: 0.5", "  stride: 0.5\n  stride: 99.0", 1
+    )
+    path = tmp_path / "dup.yaml"
+    path.write_text(text, encoding="utf-8")
+
+    with pytest.raises(ConfigError, match=r"duplicate key 'stride'"):
+        load_config(path)
+
+
+def test_config_non_mapping_section_is_rejected(default_cfg_dict):
+    default_cfg_dict["select"] = 5
+
+    with pytest.raises(ConfigError, match=r"select: expected a mapping, got int"):
+        config_from_dict(default_cfg_dict)
+
+
+def test_config_scalar_for_list_is_rejected(default_cfg_dict):
+    default_cfg_dict["select"]["window_lengths"] = 5.0
+
+    with pytest.raises(ConfigError, match=r"select\.window_lengths: expected a list"):
+        config_from_dict(default_cfg_dict)
+
+
+def test_config_non_string_team_id_is_rejected(default_cfg_dict):
+    default_cfg_dict["team"]["team_id"] = 7
+
+    with pytest.raises(ConfigError, match=r"team\.team_id: expected a non-empty string"):
+        config_from_dict(default_cfg_dict)
+
+
+def test_config_importance_min_window_below_min_emit_is_rejected(default_cfg_dict):
+    # 4.0 < MIN_SEG_EMIT (4.05): FPVSum windows must clear the kit's 4 s minimum too.
+    default_cfg_dict["importance"]["min_window"] = 4.0
+
+    with pytest.raises(ConfigError, match=r"importance\.min_window/max_window"):
+        config_from_dict(default_cfg_dict)
+
+
+@pytest.mark.parametrize(
+    ("section", "key", "value", "message"),
+    [
+        ("select", "stride", 0.0, r"select\.stride: 0\.0 must be > 0"),
+        ("signals", "dense_fps", -1.0, r"signals\.dense_fps: -1\.0 must be > 0"),
+        ("pairing", "eps", 0.0, r"pairing\.eps: 0\.0 must be > 0"),
+        ("cluster", "k", 0, r"cluster\.k: 0 must be > 0"),
+        ("post", "merge_gap", -5.0, r"post\.merge_gap: -5\.0 must be >= 0"),
+        ("hedge", "min_spacing", -1.0, r"hedge\.min_spacing: -1\.0 must be >= 0"),
+        ("pairing", "alpha", -0.5, r"pairing\.alpha: -0\.5 must be >= 0"),
+        ("hedge", "share", 1.0, r"hedge\.share: 1\.0 must be in \[0, 1\)"),
+        ("cluster", "sim", -0.1, r"cluster\.sim: -0\.1 must be in \[0, 1\]"),
+        ("run", "seed", -1, r"run\.seed: -1 must be in"),
+        ("run", "seed", 2**32, r"run\.seed: 4294967296 must be in"),
+    ],
+)
+def test_config_out_of_range_value_is_rejected(default_cfg_dict, section, key, value, message):
+    default_cfg_dict[section][key] = value
+
+    with pytest.raises(ConfigError, match=message):
+        config_from_dict(default_cfg_dict)
+
+
+def test_config_empty_prompt_list_is_rejected(default_cfg_dict):
+    default_cfg_dict["label"]["prompts"] = []
+
+    with pytest.raises(ConfigError, match=r"label\.prompts: must not be empty"):
+        config_from_dict(default_cfg_dict)
+
+
+def test_config_prompt_without_slot_is_rejected(default_cfg_dict):
+    # Without "{}" every category gets the same text, so the label is a coin flip.
+    default_cfg_dict["label"]["prompts"] = ["a video of {}", "a video"]
+
+    with pytest.raises(ConfigError, match=r"label\.prompts: \['a video'\] have no"):
+        config_from_dict(default_cfg_dict)
+
+
+def test_config_hash_ignores_key_order_and_int_vs_float(default_cfg_dict):
+    reordered = dict(reversed(list(default_cfg_dict.items())))
+    reordered["pairing"] = {**reordered["pairing"], "alpha": 1}  # 1 vs 1.0 in the file
+
+    assert config_hash(config_from_dict(reordered)) == config_hash(
+        config_from_dict(default_cfg_dict)
+    )
 
 
 def test_config_hash_changes_when_a_value_changes(default_cfg_dict):
-    before = config_hash(default_cfg_dict)
+    before = config_hash(config_from_dict(default_cfg_dict))
     default_cfg_dict["select"]["stride"] = 0.25
 
-    assert config_hash(default_cfg_dict) != before
+    assert config_hash(config_from_dict(default_cfg_dict)) != before

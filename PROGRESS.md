@@ -66,6 +66,7 @@ package: `validate.py`. Remaining: send the email, set the team ID.
 - [x] `configs/default.yaml` + `rewind/config.py` with `config_hash()` (strict loader)
 - [x] `rewind/constants.py`, `rewind/types.py`
 - [ ] `rewind/vocab.py` (kit classes)
+- [ ] `python -m rewind…` / `rewind_eval…` work outside pytest: `run.sh` and the docs set `PYTHONPATH=code` (or install the package)
 - [ ] `rewind/schema.py` implementing R1–R13 + `rewind_eval/validate.py` CLI
 - [ ] `rewind/postprocess.py` (§5.6 of `ARCHITECTURE.md`)
 - [ ] `rewind/fallback.py` (uniform ≥ 4 s windows at 14.5%)
@@ -81,6 +82,7 @@ package: `validate.py`. Remaining: send the email, set the team ID.
 - property: postprocess and fallback outputs always satisfy R9–R13 for T in [5, 2000] s
 - contract: `run.sh` on 30 s and 12 s synthetic videos → valid JSON; forced exception → fallback JSON, exit 0
 - contract: `run.sh` works with no `kit/` directory present; renaming the input file changes only `video_id`
+- contract: a `sys.addaudithook` during the `run.sh` test fails on any open of a manifest, annotation or `data/` GT path (covers `third_party/` and config-driven paths)
 - import boundary test (`rewind` never imports `rewind_eval`, never opens `manifest.csv` or annotation paths)
 
 **Result:** _fill in when done._
@@ -131,7 +133,7 @@ package: `validate.py`. Remaining: send the email, set the team ID.
 ### P4 — Action detection → `actions[]`
 **Owner:** A · **Planned:** Nov 11–13 · **Status:** not started · **Depends on:** P3 (frames), P2 (mAP scorer)
 
-- [ ] Vendor ActionFormer (`happyharrycn/actionformer_release`) into `code/third_party/actionformer` with its LICENSE
+- [ ] Vendor ActionFormer (`happyharrycn/actionformer_release`) into `code/third_party/actionformer` with its LICENSE; make sure the boundary tests cover the code paths we call (its dataset loaders read annotation JSONs)
 - [ ] Download the released `epic_kitchens.tar.gz` (check md5) and the verb/noun checkpoints into `weights/`; script it in `tools/fetch_weights.sh`
 - [ ] **Coverage check:** every EPIC `video_id` in `kit/manifest.csv` and every `tune` video has released features; list any gaps here
 - [ ] **Leakage check:** confirm from configs/logs that the checkpoints were trained on EPIC train only; record the evidence in §4 Decisions
@@ -312,7 +314,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
-- 2026-11-11 · DA · P1 · Skeleton: pyproject, pinned requirements, CI, constants, types, strict config loader + default.yaml, import-boundary test; 42 tests, each checked against a deliberate bug · #6
+- 2026-11-11 · DA · P1 · Skeleton: pyproject, pinned requirements, CI, constants, types, strict config loader + default.yaml, import-boundary tests (source scan, config scan, runtime import check); 69 tests, checked against deliberate bugs; review fixes: NaN/inf and duplicate keys rejected, more range checks, hash of the loaded config · #6
 - 2026-11-11 · DA · P0 · Recorded roles (A = prakartii, B = DA); removed leftover GPU assumptions (P4 test marker, P7 latency, P8 Dockerfile) · #5
 - 2026-11-11 · DA · P0 · Teammate (prakartii) confirmed the v1.1 routing decision · #4
 - 2026-11-11 · DA · P0 · Committed the official kit to `kit/`; ARCHITECTURE v1.1 (signal-only routing, cache keyed by content fingerprint, one schema, 2 decimals, kit facts); answered Q6, Q9, K1; added Q10, Q11 and the email draft; removed superseded plans · #3

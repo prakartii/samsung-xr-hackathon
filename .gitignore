@@ -7,12 +7,12 @@ __pycache__/
 .hypothesis/
 
 # Large or licensed data (CLAUDE.md §6.9)
-data/
-cache/
-weights/
+/data/
+/cache/
+/weights/
 
 # Outputs are committed only at P9 (remove this line then)
-outputs/
+/outputs/
 
 # Editors / OS
 .idea/
