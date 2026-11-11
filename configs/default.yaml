@@ -1,9 +1,28 @@
 # REWIND configuration. Every tunable number lives here, nowhere else (CLAUDE.md §6.3).
 # Kit facts (4.0 s minimum, 15% budget, ...) are NOT here: see rewind/constants.py.
 #
-# A adds the sections A's phases use: signals, features, routing, prompts (P3) and
-# actions, pairing (P4). B adds team, cluster, calibration, select, hedge, post,
-# importance, label, eval in P1 (ARCHITECTURE.md §11).
+# A adds the sections A's phases use: signals, features, routing, prompts (P3),
+# actions, zeroshot, pairing (P4) and importance, label (P6). B adds team, cluster,
+# calibration, hedge, post, eval and the rest of select (ARCHITECTURE.md §11).
+
+select:
+  budget_frac: 0.145      # highlight budget B = budget_frac * T (ARCHITECTURE.md §5.4); B owns the rest of this section
+
+importance:               # FPVSum importance proxy + segments (ARCHITECTURE.md §6.2); weights tuned on CV folds only
+  w_flow: 1.0             # weight of z(residual flow)
+  w_hands: 0.5            # weight of hand presence (0-1)
+  w_global: 1.0           # weight of z(camera motion): FPVSum is mostly sports
+  w_scene: 1.0            # weight of z(scene change) from CLIP
+  sigma: 2.0              # Gaussian smoothing of imp(t), seconds
+  shot_thr: 0.15          # 1 - cos(CLIP_t, CLIP_t+1) above this starts a new shot
+  min_len: 4.05           # window lengths searched within a shot, seconds (>= MIN_SEG_EMIT)
+  max_len: 10.0
+  len_step: 1.0           # window length grid step, seconds
+  stride: 0.5             # window start grid step, seconds
+
+label:                    # ARCHITECTURE.md §6.3
+  n_keyframes: 8          # evenly spaced CLIP frames averaged for the FPVSum label
+  other_thr: 0.0          # on the unknown route, top probability below this -> `other`
 
 actions:
   max_per_video: 1000     # actions[] cap after pairing (kit hard limit 2000 lives in constants); tuned in P4
