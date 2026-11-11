@@ -121,6 +121,6 @@ def test_flow_signals_no_frames_raises():
 def test_flow_cache_version_is_stable_and_tracks_params():
     v = flow_cache_version(PARAMS, dense_fps=4.0)
     assert v == flow_cache_version(PARAMS, dense_fps=4.0)
-    assert v.startswith("flow-v1-")
+    assert v.startswith("flow-v2-")
     assert v != flow_cache_version(dataclasses.replace(PARAMS, winsize=21), dense_fps=4.0)
     assert v != flow_cache_version(PARAMS, dense_fps=2.0)

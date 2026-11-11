@@ -77,7 +77,7 @@ def test_hands_signals_no_frames_raises():
 def test_hands_cache_version_tracks_params_rate_and_weights():
     v = hands_cache_version(PARAMS, 4.0, "abc")
     assert v == hands_cache_version(PARAMS, 4.0, "abc")
-    assert v.startswith("hands-v1-")
+    assert v.startswith("hands-v2-")
     assert v != hands_cache_version(dataclasses.replace(PARAMS, num_hands=1), 4.0, "abc")
     assert v != hands_cache_version(PARAMS, 2.0, "abc")
     assert v != hands_cache_version(PARAMS, 4.0, "def")

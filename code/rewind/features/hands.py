@@ -24,7 +24,9 @@ import numpy as np
 from rewind.video_io import resize_to_width
 
 # Bump when the algorithm changes in a way the parameters don't capture (CLAUDE.md §6.8).
-_ALGO_VERSION = "hands-v1"
+# v2 (2026-11-11): PyAV decoding by presentation time; v1 used OpenCV, which truncated
+# EPIC GoPro files (tests/integration/test_decode_epic.py).
+_ALGO_VERSION = "hands-v2"
 
 # (RGB frame, timestamp in seconds) -> confidence of each detected hand, in [0, 1]
 HandScorer = Callable[[np.ndarray, float], Sequence[float]]
