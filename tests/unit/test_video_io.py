@@ -2,7 +2,13 @@
 
 import pytest
 
-from rewind.video_io import frame_to_sec, parse_rate, sample_times, sec_to_frame
+from rewind.video_io import (
+    frame_to_sec,
+    parse_ffprobe,
+    parse_rate,
+    sample_times,
+    sec_to_frame,
+)
 
 NTSC_60 = 60000 / 1001  # "59.94" fps
 NTSC_30 = 30000 / 1001  # "29.97" fps
@@ -105,3 +111,54 @@ def test_sample_times_all_inside_duration():
     assert len(t) == 2247
     assert t[-1] == pytest.approx(561.5, abs=1e-12)
     assert t[-1] < 561.53
+
+
+# --- parse_ffprobe ----------------------------------------------------------------
+
+
+def _probe(fmt_duration="561.53", avg="60000/1001", r="60000/1001"):
+    """A trimmed `ffprobe -show_format -show_streams` result: audio first, then video."""
+    video = {
+        "codec_type": "video",
+        "width": 1920,
+        "height": 1080,
+        "avg_frame_rate": avg,
+        "r_frame_rate": r,
+        "duration": "561.40",
+    }
+    fmt = {} if fmt_duration is None else {"duration": fmt_duration}
+    return {"streams": [{"codec_type": "audio"}, video], "format": fmt}
+
+
+def test_parse_ffprobe_reads_container_duration_fps_and_size():
+    meta = parse_ffprobe(_probe())
+    assert meta.duration_sec == pytest.approx(561.53, abs=1e-9)
+    assert meta.fps == pytest.approx(60000 / 1001, abs=1e-9)
+    assert (meta.width, meta.height) == (1920, 1080)
+
+
+def test_parse_ffprobe_missing_container_duration_uses_stream_duration():
+    meta = parse_ffprobe(_probe(fmt_duration=None))
+    assert meta.duration_sec == pytest.approx(561.40, abs=1e-9)
+
+
+def test_parse_ffprobe_avg_rate_zero_falls_back_to_r_frame_rate():
+    meta = parse_ffprobe(_probe(avg="0/0", r="30/1"))
+    assert meta.fps == pytest.approx(30.0, abs=1e-12)
+
+
+def test_parse_ffprobe_prefers_avg_rate_over_r_frame_rate():
+    # Variable-frame-rate phone video: r_frame_rate is the timebase-ish max (60),
+    # avg_frame_rate is the true average (29.97). The average is the correct one.
+    meta = parse_ffprobe(_probe(avg="30000/1001", r="60/1"))
+    assert meta.fps == pytest.approx(30000 / 1001, abs=1e-9)
+
+
+def test_parse_ffprobe_audio_only_raises():
+    with pytest.raises(ValueError):
+        parse_ffprobe({"streams": [{"codec_type": "audio"}], "format": {"duration": "10"}})
+
+
+def test_parse_ffprobe_zero_duration_raises():
+    with pytest.raises(ValueError):
+        parse_ffprobe(_probe(fmt_duration="0.0"))
