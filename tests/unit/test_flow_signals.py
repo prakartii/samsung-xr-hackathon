@@ -124,3 +124,15 @@ def test_flow_cache_version_is_stable_and_tracks_params():
     assert v.startswith("flow-v2-")
     assert v != flow_cache_version(dataclasses.replace(PARAMS, winsize=21), dense_fps=4.0)
     assert v != flow_cache_version(PARAMS, dense_fps=2.0)
+
+
+def test_flow_online_resizes_wider_frames_to_param_width():
+    # The single decoding pass hands flow 448-px frames; FlowOnline must downsize to
+    # p.width itself, giving the same signal as frames decoded at p.width directly.
+    tex = _texture()
+    small = [_bgr(np.roll(tex, 2 * k, axis=1)) for k in range(5)]
+    wide = [cv2.resize(f, (2 * W, 2 * H), interpolation=cv2.INTER_NEAREST) for f in small]
+    _, _, g_small = raw_motion(_timed(small), PARAMS)
+    _, _, g_wide = raw_motion(_timed(wide), PARAMS)
+    # nearest-upscaled then area-downscaled frames equal the originals exactly
+    np.testing.assert_allclose(g_wide, g_small, atol=1e-6)
