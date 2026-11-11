@@ -1,0 +1,6 @@
+# Runtime dependencies (part of the submission). Pinned.
+# P3 (A): numeric core, config, optical flow. Model deps (MediaPipe, open_clip, torch)
+# are added in the PR that first uses them.
+numpy==2.1.2
+pyyaml==6.0.2
+opencv-python-headless==4.10.0.84
