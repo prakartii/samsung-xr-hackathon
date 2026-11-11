@@ -143,6 +143,7 @@ to keys once, in `rewind/vocab.py`.
 | `select/candidates.py` | Candidate windows (§5.3) | yes |
 | `select/coverage.py` | Expected-coverage gain + lazy greedy (§5.4) | yes |
 | `select/hedge.py` | Hedge windows (§5.5) | yes |
+| `select/epic.py` | `select_epic(clusters, T, cfg, mode, profile)`: expected coverage on `(1 − h)·B`, hedges on whatever budget is left; `mode="dedup"` = label-dedup baseline (top-1 pair per cluster) | yes |
 | `select/importance.py` | FPVSum importance proxy + segment selection (§6.2) | yes |
 | `postprocess.py` | Sort, merge, enforce ≥ 4 s, budget trim, clamp (§5.6) | yes |
 | `label/` | EPIC → `cooking`; FPVSum → CLIP zero-shot (§6.3) | scoring pure |
@@ -314,7 +315,12 @@ Activity score `a(t) = z(flow)·w_f + hands·w_h` on the dense grid. Mask out ti
 inside selected windows (± `cfg.hedge.gap`) and inside clusters with
 `confidence ≥ cfg.hedge.strong`. Take peaks of the smoothed `a(t)` spaced
 ≥ `cfg.hedge.min_spacing`; place `MIN_SEG_EMIT` windows centered on them, highest
-first, until the hedge budget `h · B` is used. The default `h` is 1/8, tuned later.
+first, until the hedge budget is used. Without an activity profile, a centre's score
+is its distance to the nearest selected highlight (hedges spread into the largest
+uncovered stretches). The hedge budget is `B − |U|`: the reserve `h · B` plus any
+coverage budget the selector didn't use. Default `h = 0`: on simulated proposals a
+reserve of 1/8 cost ~0.08 coverage (no activity signals yet); re-tune once P3's
+flow/hands profile exists.
 
 ### 5.6 Post-processing (`postprocess.py`), shared by both routes
 
@@ -520,6 +526,10 @@ captures more, because greedy alone can lose to a fixed layout (a counterexample
 pinned test). F1 oracle: gain = GT highlight frames covered. A strong reference, not a
 proven optimum: a selector can beat it. Report `system / oracle` as "% of
 oracle". Measured ceilings (report split): coverage 0.724, F1 0.708.
+(any-overlap). F1 oracle: gain = GT highlight frames covered. Upper reference, not a
+proven optimum (property-tested ≥ uniform). Report `system / oracle` as "% of
+oracle". The oracle uses `cfg.select.window_lengths` and `stride`, like the selector.
+Measured ceilings (report split, 4.05/5/6 s windows): coverage 0.737, F1 0.718.
 
 ### 9.6 Weighted total
 `0.40·coverage + 0.25·mAP + 0.25·F1 + 0.10·label_acc`. Computed per split for the
