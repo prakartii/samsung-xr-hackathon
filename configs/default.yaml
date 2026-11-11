@@ -25,6 +25,36 @@ features:
     min_detection_conf: 0.3   # palm detector threshold; low, since presence is a soft signal
     min_presence_conf: 0.3    # landmark-model hand presence threshold
     min_tracking_conf: 0.3    # below this, re-run palm detection instead of tracking
+  clip:
+    model: ViT-B-16       # open_clip architecture name (ARCHITECTURE.md §10)
+    weights: weights/clip_vit_b16_openai.safetensors  # OpenAI weights (tools/fetch_weights.sh)
+    width: 448            # frames are resized to this width before CLIP preprocessing
+    batch_size: 32        # images per forward pass (CPU memory vs speed)
+
+# Zero-shot prompts shared by routing (P(cooking), ARCHITECTURE.md §6.1) and the
+# FPVSum label (§6.3). Each class embedding is the mean of its template embeddings
+# (prompt ensemble). First pass; P6 tunes phrases on FPVSum CV folds only.
+prompts:
+  templates:
+    - "a first-person video of {}."
+    - "a photo taken by a person {}."
+    - "a GoPro view while {}."
+  classes:                # kit label key -> phrase; `other` is never a CLIP class
+    bike: "riding a bicycle"
+    bikepolo: "playing bike polo"
+    boxing: "boxing"
+    cooking: "cooking in a kitchen"
+    horse: "riding a horse"
+    jumping: "skydiving or jumping"
+    longboarding: "riding a longboard"
+    motor: "riding a motorcycle"
+    parkour: "doing parkour"
+    plane: "flying a small plane"
+    rockclimbing: "rock climbing"
+    scuba: "scuba diving underwater"
+    skate: "skateboarding"
+    ski: "skiing"
+    surfing: "surfing a wave"
 
 routing:
   cooking_thr: 0.5        # mean CLIP P(cooking) >= this -> EPIC route (tuned in P6)
