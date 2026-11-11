@@ -1,6 +1,9 @@
 # ARCHITECTURE.md — REWIND build spec
 
-> **Status: LOCKED — v1.0, 2026-11-11.** Build against this spec.
+> **Status: LOCKED — v1.1, 2026-11-11.** Build against this spec.
+> v1.1: rules checked against the official kit in `kit/`; inference routes on video
+> signals only (never `manifest.csv`, never the filename); one output schema; 2-decimal
+> timestamps. See `PROGRESS.md` → Decisions.
 
 This is the build spec. Code must match it. Rationale for the choices is in
 `REWIND_v2.3_plan.md`. Status is in `PROGRESS.md`.
@@ -63,15 +66,14 @@ Segment = tuple[float, float]                      # (start, end), 0 <= start < 
 
 @dataclass(frozen=True)
 class VideoMeta:
-    video_id: str          # filename stem
+    video_id: str          # filename stem; echoed into the JSON, never used for any decision
     path: Path
-    duration_sec: float    # from ffprobe; cross-checked against manifest (±0.5 s)
+    duration_sec: float    # from ffprobe (the eval validator checks it against the manifest)
     fps: float
     width: int
     height: int
     dataset: Literal["epic_kitchens_100", "fpvsum", "unknown"]
-    routed_by: Literal["manifest", "signals"]
-    route_conf: float      # 1.0 for manifest routing; below cfg.routing.min_conf = uncertain
+    route_conf: float      # signal-router margin; below cfg.routing.min_conf = uncertain
 
 @dataclass(frozen=True)
 class Signals:
@@ -121,16 +123,16 @@ to keys once, in `rewind/vocab.py`.
 
 | Module | Responsibility | Pure? |
 |---|---|---|
-| `constants.py` | Kit facts: `MIN_SEG=4.0`, `MIN_SEG_EMIT=4.05`, `SCORING_BUDGET=0.15`, `DURATION_TOL=0.5`, `MAX_ACTIONS=2000`, `SHORT_VIDEO_T=MIN_SEG/SCORING_BUDGET` (26.67 s). **Provisional until P0** checks each value against our own kit copy; every value must cite its kit source in a comment | — |
+| `constants.py` | Kit facts: `MIN_SEG=4.0`, `MIN_SEG_EMIT=4.05`, `SCORING_BUDGET=0.15`, `DURATION_TOL=0.5`, `MAX_ACTIONS=2000`, `SHORT_VIDEO_T=MIN_SEG/SCORING_BUDGET` (26.67 s), `TIME_DECIMALS=2`. Confirmed against `kit/TEAM_README.md`; every value cites its kit section in a comment | — |
 | `config.py` | Load and validate `configs/default.yaml` into typed dataclasses; `config_hash()` | yes |
 | `types.py` | §2 types | — |
 | `vocab.py` | Load kit classes; index ↔ key maps; verb–noun co-occurrence prior | load at edge, lookups pure |
 | `video_io.py` | ffprobe metadata; frame decoding at a target fps; frame ↔ seconds | no |
-| `routing.py` | Dataset routing: manifest lookup, else signal fallback (§6.1) | yes, given inputs |
+| `routing.py` | Dataset routing from video signals only (§6.1) | yes, given inputs |
 | `features/flow.py` | Farneback flow at low resolution → residual + global motion | no |
 | `features/hands.py` | MediaPipe hand presence | no |
 | `features/clip.py` | CLIP image embeddings @ 1 fps; text embeddings for prompts | no |
-| `features/slowfast.py` | ActionFormer input features (§10.1): load ActionFormer's released EPIC-100 features by `video_id` when available; otherwise extract with the matching SlowFast extractor | no |
+| `features/slowfast.py` | ActionFormer input features (§10.1): read from the cache (where `tools/import_released_features.py` puts ActionFormer's released EPIC-100 features); otherwise extract with the matching SlowFast extractor | no |
 | `features/cache.py` | Versioned on-disk cache (§8) | no |
 | `detect/actionformer.py` | Run vendored ActionFormer → raw verb/noun proposals | no |
 | `detect/pairing.py` | Raw proposals → `Proposal` with paired, scored (verb, noun) (§5.1) | yes |
@@ -142,8 +144,8 @@ to keys once, in `rewind/vocab.py`.
 | `select/importance.py` | FPVSum importance proxy + segment selection (§6.2) | yes |
 | `postprocess.py` | Sort, merge, enforce ≥ 4 s, budget trim, clamp (§5.6) | yes |
 | `label/` | EPIC → `cooking`; FPVSum → CLIP zero-shot (§6.3) | scoring pure |
-| `schema.py` | `validate(result_dict, manifest_duration) -> (errors, warnings)` per §7 | yes |
-| `output.py` | `VideoResult` → JSON dict (rounded to 3 decimals, sorted) | yes |
+| `schema.py` | `validate(result_dict, expected_duration: float \| None) -> (errors, warnings)` per §7; `run.sh` passes `None`, the eval CLI passes the manifest duration | yes |
+| `output.py` | `VideoResult` → JSON dict in the kit schema (rounded to 2 decimals, sorted) | yes |
 | `fallback.py` | Safe output: uniform windows, empty actions, default label | yes |
 | `pipeline.py` | Wires M0–M6 for one video; catches exceptions → fallback | no |
 | `cli.py` | `python -m rewind.cli <video> <out>`; called by `run.sh` | no |
@@ -163,7 +165,7 @@ to keys once, in `rewind/vocab.py`.
 | `oracle.py` | Greedy max coverage using GT spans + same window rules (§9.5) |
 | `baselines.py` | Uniform windows; random windows (seeded) |
 | `score.py` | CLI: score a prediction dir on a split; append to `results/leaderboard.csv` |
-| `validate.py` | CLI wrapper around `rewind.schema.validate` for a directory |
+| `validate.py` | CLI wrapper around `rewind.schema.validate` for a directory; checks durations and the 187 ids against `kit/manifest.csv` |
 
 ### 3.3 `tools/`
 
@@ -188,7 +190,7 @@ and crossfades for the demo only), `timeline_html.py` (stretch).
 4. EPIC route: detect → pairing → `actions[]`; cluster → coverage windows + hedge
    → postprocess → `highlights[]`; label = `cooking`.
    FPVSum route: importance proxy → segments → postprocess → `highlights[]`;
-   `actions[]` = `[]` **[verify Q6]**; label = CLIP zero-shot.
+   `actions[]` = `[]` (the kit allows it; mAP is scored on EPIC only); label = CLIP zero-shot.
    Uncertain route (§6.1 confidence below threshold): **always emit actions** (EPIC
    detector if SlowFast features are available, else the zero-shot fallback
    detector), pick the label by CLIP P(cooking) ≥ threshold, and select highlights
@@ -199,8 +201,16 @@ and crossfades for the demo only), `timeline_html.py` (stretch).
 6. Any exception at any step → fallback output, error to stderr, exit code 0.
 7. Write JSON atomically (temp file + rename).
 
-`TEAM_ID` comes from the `REWIND_TEAM_ID` env var, defaulting to the registered
-`CollegeName_TeamName` set in `configs/default.yaml`.
+`TEAM_ID` comes from the `REWIND_TEAM_ID` env var, defaulting to `team.team_id` in
+`configs/default.yaml`. It must be identical in every file (kit). The kit examples use
+`T07`; use the ID the organizers assigned us **[verify Q11]**.
+
+**Inference inputs.** `run.sh` gets only the MP4 path and the output path. The
+organizers re-run it on sample videos in an isolated environment, and hardcoded
+video IDs mean disqualification (kit §6). So inference never reads `kit/manifest.csv`
+and never derives the route, label or anything else from the filename; `video_id` is
+only echoed into the JSON. A contract test renames the input and checks that only
+`video_id` changes.
 
 ---
 
@@ -288,19 +298,15 @@ Input: any list of segments. Output satisfies every highlight rule in §7:
 4. While total > `cfg.select.budget_frac · T`: shrink the lowest-value segment
    (value passed in by the caller) from its lower-value end, never below
    `MIN_SEG_EMIT`; if it is already at the minimum, drop it.
-5. **Short video** (`T < SHORT_VIDEO_T`, 3 EPIC videos): R11 (≥ 1 highlight of
-   4 s) and R13 (≤ 15%) cannot both hold. Behavior is set by
-   `cfg.post.short_video_mode`:
-   - `min_seg` (default): one segment of `min(MIN_SEG_EMIT, T)` at the best-value
-     position. Satisfies R11, exceeds the budget. Under the rules as known (R11 is an
-     error, R13 a warning), this is the only output that validates.
-   - `within_budget`: one segment of `SCORING_BUDGET · T` at the best-value position.
-     Satisfies R13, violates R11.
-   P0 runs both modes through the **official** validator and the organizers' answer
-   to Q8, then fixes the default. Never ship a mode the official validator rejects.
+5. **Short video** (`T < SHORT_VIDEO_T`; 3 EPIC videos: 11.13 s, 15.28 s, 25.16 s):
+   R11 (≥ 1 highlight of 4 s) and R13 (≤ 15%) cannot both hold. The kit makes R11
+   pass/fail and R13 a warning with a soft coverage penalty, so we emit one segment of
+   `min(MIN_SEG_EMIT, T)` at the best-value position (`cfg.post.short_video_mode:
+   min_seg`). The alternative `within_budget` (one segment of `SCORING_BUDGET · T`)
+   fails R11 and stays only as a flag for tests; never ship it.
 6. If the result is empty and `T ≥ MIN_SEG`: one `MIN_SEG_EMIT` window at the
    highest-activity position.
-7. Round to 3 decimals *inside* the bounds (round start up and end down so that
+7. Round to 2 decimals (kit) *inside* the bounds (round start up and end down so that
    lengths stay ≥ `MIN_SEG`).
 
 ---
@@ -309,16 +315,19 @@ Input: any list of segments. Output satisfies every highlight rule in §7:
 
 ### 6.1 Routing (`routing.py`)
 
-1. If `video_id` is in `kit/manifest.csv` → use its `dataset` column
-   (`routed_by="manifest"`) **[verify Q9]**.
-2. Otherwise use signals: CLIP P(cooking-scene prompts) averaged over keyframes ≥
-   `cfg.routing.cooking_thr` → EPIC, else FPVSum (`routed_by="signals"`).
-3. Every route carries a confidence (1.0 for manifest routing; the CLIP margin from
-   the threshold for signal routing). Below `cfg.routing.min_conf` the route is
-   **uncertain** and §4 step 4's uncertain-route rule applies.
+Routing uses the video's content only (see "Inference inputs" in §4). Never the
+manifest, never the filename: FPVSum filenames contain the category
+(`Ski_-Z5a4UQmZLs`) and EPIC ids have their own pattern (`P01_11`), so either would
+be a hardcoded shortcut.
 
-Test both paths. The signal router must reach ≥ 95% agreement with the manifest on
-all 187 videos.
+1. CLIP P(cooking-scene prompts) averaged over keyframes ≥ `cfg.routing.cooking_thr`
+   → EPIC, else FPVSum.
+2. The route confidence is the margin from the threshold. Below
+   `cfg.routing.min_conf` the route is **uncertain** and §4 step 4's uncertain-route
+   rule applies.
+
+Offline, `rewind_eval` measures router agreement with the manifest's `dataset`
+column on all 187 videos; the target is ≥ 95%, and P6 tunes the threshold on `tune`.
 
 ### 6.2 Importance and segments (`select/importance.py`)
 
@@ -342,6 +351,9 @@ embeddings to per-second importance, 5-fold CV over videos.
 ### 6.3 Label (`label/`)
 
 - EPIC route → `("cooking", 1.0)`.
+- Names are exactly the keys in `kit/supported_classes.json` (`ski`, not `skiing`;
+  the kit's `skiing_03.json` example uses `skiing`, which is not in the vocabulary
+  **[verify Q10]**).
 - FPVSum route → CLIP zero-shot over the 14 FPVSum categories with a prompt ensemble
   (`cfg.label.prompts`), averaged over `cfg.label.n_keyframes` (8) evenly spaced
   frames; the score is the softmax probability of the argmax. `other` only on the
@@ -351,11 +363,13 @@ embeddings to per-second importance, 5-fold CV over videos.
 
 ## 7. Output schema and validation rules (`schema.py`)
 
-Source: the kit's `TEAM_README.md` as reported second-hand **[verify against `kit/`]**.
+Source: the official kit, `kit/TEAM_README.md` §3–§4 (received 2026-11-11). The kit
+lists a `validate.py`, but it was missing from our package **[verify Q8]**; until it
+arrives, our validator is the reference.
 
 ```json
 {
-  "team_id": "CollegeName_TeamName",
+  "team_id": "T07",
   "video_id": "P01_11",
   "duration_sec": 561.53,
   "label": { "name": "cooking", "score": 1.0 },
@@ -368,7 +382,7 @@ Source: the kit's `TEAM_README.md` as reported second-hand **[verify against `ki
 |---|---|---|
 | R1 | All six keys present | error |
 | R2 | `video_id` non-empty string, equals the output filename stem | error |
-| R3 | `duration_sec` positive finite number, within ±0.5 s of the manifest when listed | error |
+| R3 | `duration_sec` positive finite number, within ±0.5 s of the manifest (checked offline; `run.sh` uses ffprobe) | error |
 | R4 | `label` = `{name: str, score: [0,1]}`; name in kit labels | error / warning if unknown name |
 | R5 | `actions` list, ≤ 2000 items | error |
 | R6 | Each action: `segment` = 2 finite numbers with `0 ≤ s < e ≤ duration + 0.5` | error |
@@ -384,28 +398,31 @@ Our validator treats R12 as an error, and R13 as an error except for short video
 under `short_video_mode: min_seg`, so that we never ship something that loses points
 silently.
 
-**Serializer variants.** `output.py` writes either schema, selected by
-`cfg.output.schema`:
-- `kit_readme` (default): the nested schema above.
-- `brochure_flat`: `label` as a string; actions as `{verb, noun, start, end}`;
-  highlights as `{start, end, importance}`. The brochure shows no `score`; if the kit
-  ends up confirming this variant, P0 must find out how ranking works for mAP.
+Timestamps have at most 2 decimal places (kit). Any invalid or missing file scores
+0 on every metric for that video (kit §4).
 
-Internal types (§2) are the same for both; only `output.py` and `schema.py` switch.
-P0 sets the variant from our own kit copy.
+**Scoring facts from the kit (§5):** mAP and coverage are scored on EPIC only; F1 and
+label accuracy on FPVSum only. Coverage counts distinct GT (verb, noun) pairs captured
+by highlights, with a soft penalty over 15%. Only a hidden subset of the 187 videos is
+scored, so every output matters.
 
-**Conservative assumptions until organizers answer** (see `PROGRESS.md` → Open
-questions): any-overlap capture for selection, reporting both capture variants;
-the < 4 s rule applies to coverage and F1; manifest routing with a working fallback.
+**Still open** (see `PROGRESS.md` → Open questions): what counts as "captured" (Q4;
+we select with any-overlap and report both capture variants), and the shape of the
+over-budget penalty (Q8).
 
 ---
 
 ## 8. Feature cache (`features/cache.py`)
 
 ```
-cache/<feature>/<video_id>.npz    # arrays
-cache/<feature>/meta.json         # {"version": "<extractor>-<params-hash>", "created": ..., "videos": {...}}
+cache/<feature>/<fingerprint>.npz   # arrays
+cache/<feature>/meta.json           # {"version": "<extractor>-<params-hash>", "created": ..., "videos": {...}}
 ```
+
+Entries are keyed by a **content fingerprint** of the MP4 (sha1 of its size plus its
+first and last 1 MB), not by `video_id`, so inference never uses the filename (§4).
+`tools/import_released_features.py` maps each released feature file to its video's
+fingerprint once, offline. A clean machine has no cache and computes everything.
 
 Features: `flow`, `hands`, `clip`, `slowfast`, `proposals` (detector output, so
 selector work doesn't rerun models). The version string includes the model name,
@@ -416,8 +433,8 @@ weights hash, fps and resolution. A version mismatch → recompute. Writes are a
 
 ## 9. Evaluation definitions (`rewind_eval/`)
 
-These are **our approximations** of the official metrics, which haven't been
-published. Keep each one parameterized where the official definition is unknown.
+These are **our approximations** of the official metrics; the kit gives only one-line
+definitions (`kit/TEAM_README.md` §5). Keep each one parameterized where the official definition is unknown.
 
 ### 9.1 Action coverage
 For a video: let `G` be the set of distinct GT (verb, noun) pairs. A pair is
@@ -425,7 +442,7 @@ captured if any of its GT instances is captured by any highlight of length ≥ 4
 under the capture rule (`any_overlap` or `fraction ≥ θ`).
 `coverage = |captured pairs| / |G|`. Apply an over-budget penalty:
 `× max(0, 1 − λ · max(0, total/T − 0.15) / 0.15)` with λ configurable (default 1.0)
-**[verify]**. Report the mean over videos. Always report both capture variants.
+**[verify Q4, Q8]**. Report the mean over EPIC videos. Always report both capture variants.
 
 ### 9.2 Action mAP
 ActivityNet-style, with classes = (verb, noun) pairs present in GT. For each tIoU in
@@ -476,7 +493,8 @@ Fill each row in before the model is used **[verify all]**.
 ### 10.1 Feature strategy (CPU-first; neither team member has a GPU)
 
 1. **Development and submission outputs for EPIC:** use ActionFormer's released
-   SlowFast features, keyed by `video_id`. This removes the only heavy GPU job.
+   SlowFast features, imported into the cache by fingerprint (§8). This removes the
+   only heavy GPU job.
    P4 first checks that every EPIC `video_id` in `kit/manifest.csv` and every `tune`
    video is present.
 2. **`run.sh` on a clean machine:** extracts features from the MP4 with the matching
@@ -489,6 +507,9 @@ Fill each row in before the model is used **[verify all]**.
    features from the same extractor, and how to regenerate them from raw MP4.
 5. Everything else (decode, flow, hands, CLIP, ActionFormer inference, selection)
    runs on CPU.
+6. **Data size:** the 138 EPIC videos are ~184 GB (13.2 h of video; kit §2), FPVSum
+   49 videos ~2.4 h from YouTube via `yt-dlp`. Keep only what is being processed on
+   disk if space is short; cached features are small.
 
 ---
 
@@ -515,7 +536,7 @@ Report measured latency per minute of video in the deck (`tools/latency.py`).
 
 ---
 
-## 13. Submission package layout (from the kit)
+## 13. Submission package layout (`kit/TEAM_README.md` §6)
 
 ```
 TEAM_ID/

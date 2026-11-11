@@ -14,7 +14,7 @@ Who is A and who is B: A = `<name>`, B = `<name>` ← fill in.
 
 | Phase | Name | Owner | Planned | Status | Exit check |
 |---|---|---|---|---|---|
-| P0 | Kit & rules | B | Nov 10 | not started | Kit committed in `kit/`; kit rules in `ARCHITECTURE.md` §7 confirmed or corrected; questions emailed |
+| P0 | Kit & rules | B | Nov 10 | in progress | Kit committed in `kit/`; kit rules in `ARCHITECTURE.md` §7 confirmed or corrected; questions emailed |
 | P1 | Skeleton & submission contract | B | Nov 10–11 | not started | `run.sh` writes valid fallback JSON for all 187 videos; CI green |
 | P2 | Evaluation harness | B | Nov 11–12 | not started | Leaderboard has uniform + oracle rows on `tune` and `report` |
 | P3 | Video I/O, signals, feature cache | A | Nov 10–12 | not started | Flow, hands and CLIP cached for all 187 + `tune` videos |
@@ -33,23 +33,29 @@ starts on GT-derived proposals before P4 lands, so neither person waits.
 ## 2. Phases
 
 ### P0 — Kit & rules
-**Owner:** B · **Planned:** Nov 10 · **Status:** not started · **Depends on:** —
+**Owner:** B · **Planned:** Nov 10 · **Status:** in progress (started 2026-11-11) · **Depends on:** —
 
-- [ ] Download our own copy of the student kit; commit it unmodified to `kit/`
-      (`manifest.csv`, `supported_classes.json`, `TEAM_README.md`, `validate.py` if present, `examples/`)
-- [ ] Diff the kit against `ARCHITECTURE.md` §7 (schema, R1–R13); fix `ARCHITECTURE.md` where it differs
-- [ ] Check whether the official `validate.py` is in our kit; if yes, note how it differs from our rules
-- [ ] Email prism@samsung.com with Q4, Q6, Q7, Q8, Q9 (§3); record the date sent
-- [ ] Confirm the registered team name and set `team.team_id` in config
-- [ ] Set `output.schema` (`kit_readme` or `brochure_flat`) from the kit's README and examples
-- [ ] Check every value in `rewind/constants.py` against the kit; cite the source in a comment
-- [ ] Run both `post.short_video_mode` values through the official validator (if present); set the default (see Q8)
+- [x] Commit the official student kit unmodified to `kit/` (received 2026-11-11 as
+      `Student package_track04.zip`: `TEAM_README.md`, `manifest.csv`,
+      `supported_classes.json`, `P02_109.json`, `skiing_03.json`; files are flat, not in `examples/`)
+- [x] Diff the kit against `ARCHITECTURE.md` §7 (schema, R1–R13): all rules match; `ARCHITECTURE.md` updated to v1.1
+- [x] Check whether the official `validate.py` is in our kit: **no**, although `TEAM_README.md` lists it (asked in Q8)
+- [ ] Email prism@samsung.com with Q4, Q7, Q8, Q10, Q11 (draft in §3); record the date sent
+- [ ] Confirm our assigned team ID and set `team.team_id` in config (Q11)
+- [x] Output schema: the kit's nested six-key schema; the flat brochure variant is dropped
+- [x] Kit constants confirmed: 4.0 s minimum, 15% budget (warning), ±0.5 s duration, 0–2000 actions, `end ≤ duration + 0.5`, 2 decimals, 16/98/301 classes, 187 videos (138 EPIC + 49 FPVSum)
+- [x] Short videos: kit makes ≥ 4 s pass/fail and the 15% budget a warning, so `short_video_mode: min_seg` is the default (re-check with the official validator when it arrives)
 
 **Exit check:** `kit/` committed; every `[verify]` in `ARCHITECTURE.md` §7 resolved
 or listed in §3 below.
 **Tests required:** none (documentation phase).
 
-**Result:** _fill in when done: what the kit confirmed or contradicted; links to the email._
+**Result (partial, 2026-11-11):** The kit confirmed every second-hand rule (R1–R13),
+the nested schema and the class counts. New from the kit: organizers re-run `run.sh`
+in an isolated environment and disqualify hardcoded video IDs → inference no longer
+reads `manifest.csv` or uses the filename (Decisions); only a hidden subset of the
+187 videos is scored; timestamps use 2 decimals; Q6 answered. Missing from the
+package: `validate.py`. Remaining: send the email, set the team ID.
 
 ---
 
@@ -62,7 +68,7 @@ or listed in §3 below.
 - [ ] `rewind/schema.py` implementing R1–R13 + `rewind_eval/validate.py` CLI
 - [ ] `rewind/postprocess.py` (§5.6 of `ARCHITECTURE.md`)
 - [ ] `rewind/fallback.py` (uniform ≥ 4 s windows at 14.5%)
-- [ ] `rewind/output.py` with both `output.schema` variants; `rewind/pipeline.py` (fallback-only for now), `rewind/cli.py`, `run.sh`
+- [ ] `rewind/output.py` (kit schema, 2-decimal rounding); `rewind/pipeline.py` (fallback-only for now), `rewind/cli.py`, `run.sh`
 - [ ] `post.short_video_mode` flag (`min_seg` / `within_budget`) in postprocess
 - [ ] `video_io.ffprobe_meta` (minimal; A extends it in P3)
 - [ ] GitHub Actions: ruff + `pytest` on every PR
@@ -73,7 +79,8 @@ or listed in §3 below.
 - unit: one failing case per rule R1–R13; postprocess hand cases (merge, drop < 4 s, budget trim, short video, rounding keeps ≥ 4 s)
 - property: postprocess and fallback outputs always satisfy R9–R13 for T in [5, 2000] s
 - contract: `run.sh` on 30 s and 12 s synthetic videos → valid JSON; forced exception → fallback JSON, exit 0
-- import boundary test (`rewind` never imports `rewind_eval`)
+- contract: `run.sh` works with no `kit/` directory present; renaming the input file changes only `video_id`
+- import boundary test (`rewind` never imports `rewind_eval`, never opens `manifest.csv` or annotation paths)
 
 **Result:** _fill in when done._
 
@@ -107,13 +114,13 @@ or listed in §3 below.
 - [ ] `video_io.py`: decoding at a target fps, frame ↔ seconds
 - [ ] `features/flow.py` (residual + global motion), `features/hands.py`, `features/clip.py`
 - [ ] `features/cache.py` (versioned, atomic) + `tools/cache_features.py` (longest first, resumable)
-- [ ] `routing.py` (manifest + signal fallback)
+- [ ] `routing.py` (video signals only; no manifest, no filename)
 - [ ] Start caching on Nov 10; record throughput (seconds of compute per minute of video)
 
 **Exit check:** caches complete for all 187 + `tune`; throughput recorded below.
 **Tests required:**
-- unit: frame ↔ seconds conversion at 25/30/59.94 fps; cache version mismatch → recompute; atomic write leaves no partial file
-- unit: routing with the manifest present, missing id, missing manifest
+- unit: frame ↔ seconds conversion at 25/30/59.94 fps; cache version mismatch → recompute; atomic write leaves no partial file; cache key is the content fingerprint (renamed file → cache hit)
+- unit: routing on fake CLIP scores (clear EPIC, clear FPVSum, uncertain margin)
 - integration (`data`): signals on one real video have the expected shapes, and the timestamps span `[0, T]`
 
 **Result:** _fill in: throughput, total cache size, any videos that failed to decode._
@@ -128,7 +135,7 @@ or listed in §3 below.
 - [ ] **Coverage check:** every EPIC `video_id` in `kit/manifest.csv` and every `tune` video has released features; list any gaps here
 - [ ] **Leakage check:** confirm from configs/logs that the checkpoints were trained on EPIC train only; record the evidence in §4 Decisions
 - [ ] Run ActionFormer inference on CPU; record seconds per video
-- [ ] `features/slowfast.py`: load released features by `video_id`; extraction path for raw MP4
+- [ ] `tools/import_released_features.py` (released features → cache by content fingerprint); `features/slowfast.py` reads the cache, else extracts from the MP4
 - [ ] Extraction check on 1–2 videos (Kaggle/Colab if needed): our features match the released ones (cosine ≥ 0.95)
 - [ ] Extract any gap videos on Kaggle/Colab, one at a time
 - [ ] `tools/build_vn_prior.py` → `weights/vn_prior.npy` (train split only)
@@ -256,12 +263,26 @@ or listed in §3 below.
 
 | # | Question | Asked (date, how) | Answer (date, source) | Changes made |
 |---|---|---|---|---|
-| Q4 | How is a GT action "captured" by a highlight (any overlap, tIoU, fraction)? | | | |
-| Q6 | Is highlight F1 scored on EPIC? Is mAP scored on FPVSum? | | | |
+| Q4 | How is a GT action "captured" by a highlight (any overlap, tIoU, fraction)? | | Kit §5 says only "distinct GT action pairs captured within the selected highlights" | Still open; select with any-overlap, report both |
+| Q6 | Is highlight F1 scored on EPIC? Is mAP scored on FPVSum? | — | 2026-11-11, `kit/TEAM_README.md` §5: mAP + coverage on EPIC only; F1 + label on FPVSum only; FPVSum `actions` may be `[]` | `ARCHITECTURE.md` §4, §7 |
 | Q7 | Demo video max 3 or 5 min? | | | |
-| Q8 | Is the official `validate.py` coming? Does "< 4 s ignored" apply to coverage and F1? Over-budget penalty curve? For videos under 26.7 s, ≥ 4 s and ≤ 15% conflict: which wins? | | | |
-| Q9 | May `run.sh` read the kit's `manifest.csv` for routing? Scoring only on the 187 listed videos? | | | |
-| K1 | Do the second-hand kit rules (`ARCHITECTURE.md` §7) match our own kit copy? | — | | |
+| Q8 | `validate.py` is listed in `TEAM_README.md` but missing from our package: please send it. What is the over-budget penalty curve? | | Partly, kit §4–§5: < 4 s segments are ignored in scoring; ≥ 4 s is pass/fail; the 15% budget is a warning with a soft coverage penalty (so short videos keep one 4 s window) | `ARCHITECTURE.md` §5.6, §7 |
+| Q9 | May `run.sh` read `manifest.csv`? Scoring only on the 187 videos? | — | 2026-11-11, kit §6: a hidden subset of the 187 is scored; re-runs happen in an isolated environment | Closed by decision: inference doesn't read the manifest |
+| Q10 | The example `skiing_03.json` uses label `skiing`, but `supported_classes.json` has `ski`. Which is correct? | | | We use `ski` (the vocabulary file) |
+| Q11 | What is our team ID? The kit examples use `T07`. | | | |
+| K1 | Do the second-hand kit rules (`ARCHITECTURE.md` §7) match our own kit copy? | — | 2026-11-11: yes, all of R1–R13 | `ARCHITECTURE.md` §7 now cites `kit/` |
+
+**Email draft (to prism@samsung.com, subject "Track 4 — questions on the student package"):**
+
+> Hello, we are a Track 4 team. Thank you for the student package. A few questions:
+> 1. `TEAM_README.md` lists `validate.py`, but it wasn't in the zip we received. Could you send it?
+> 2. Action coverage: when does a highlight "capture" a ground-truth action: any overlap, a minimum tIoU, or a fraction of the action inside the highlight?
+> 3. What is the exact soft penalty when highlights exceed 15% of the duration?
+> 4. `skiing_03.json` uses the label `skiing`, but `supported_classes.json` has `ski`. Should we use `ski`?
+> 5. What team ID should we use in `team_id`? The examples show `T07`.
+> 6. Is the demo video limit 3 or 5 minutes? The brochure mentions both.
+>
+> Thank you.
 
 ---
 
@@ -271,6 +292,9 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 | Date | Decision | Why | By |
 |---|---|---|---|
+| 2026-11-11 | **ARCHITECTURE.md v1.1.** Inference never reads `manifest.csv` and never derives the route, label or anything else from the filename; routing uses video signals only. Feature cache keyed by content fingerprint, not `video_id`. Supersedes "Keep manifest routing as primary" below | Kit §6: re-runs in an isolated environment; hardcoded video IDs disqualify. FPVSum filenames contain the category (`Ski_…`) | DA (approved in chat; teammate to confirm) |
+| 2026-11-11 | Drop the flat brochure serializer (`output.schema`); one schema | Kit confirms the nested six-key schema | DA (kit fact) |
+| 2026-11-11 | Remove `REWIND_v2_plan.md` and `REWIND_v2.2_plan.md` (still in git history); mark the superseded parts of the v2.3 plan in its banner | Stale; `ARCHITECTURE.md` is the spec | DA |
 | 2026-11-11 | **Architecture locked (ARCHITECTURE.md v1.0).** Design changes now need a Decisions entry agreed by A and B first; `[verify]` resolutions and pre-approved kill rules excepted | Build starts; avoid design churn with 7 days left | A + B |
 | 2026-11-11 | Withdraw the (1 − 1/e) guarantee claim (also made in the frozen v2.3 plan §4 and §15); report % of oracle coverage instead | Cost-ratio greedy under a budget, min-length and fragment rules break the conditions | A + B |
 | 2026-11-11 | Short videos: `post.short_video_mode` flag; default `min_seg` until P0 tests both against the official validator | R11 and R13 conflict for T < 26.7 s; under known rules only `min_seg` validates | A + B |
@@ -287,6 +311,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-11 · DA · P0 · Committed the official kit to `kit/`; ARCHITECTURE v1.1 (signal-only routing, cache keyed by content fingerprint, one schema, 2 decimals, kit facts); answered Q6, Q9, K1; added Q10, Q11 and the email draft; removed superseded plans · #3
 - 2026-11-11 · — · design · Recorded the lock in PROGRESS.md and README (follow-up to #1) · #2
 - 2026-11-11 · — · design · Locked ARCHITECTURE.md v1.0 with change-control rules · #1
 - 2026-11-11 · — · design · Applied external review: short-video flag, dual schema serializer, uncertain-route actions, routing confidence, no approximation claim, provisional constants, audio ablation; CPU-first feature strategy using ActionFormer's released features · #1

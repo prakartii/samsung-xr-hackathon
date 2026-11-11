@@ -3,16 +3,17 @@
 **Track 4 — Action-Aware Video Summarization · Samsung XR Hackathon 2026**
 *The most distinct steps per second of highlight.*
 
-> **Status:** Current canonical build spec. Supersedes `REWIND_v2.2_plan.md`.
-> **Revised Nov 10** after finding the kit's rules (§3): highlights under **4.0 s are
-> ignored in scoring**, actions carry a required **score**, the real output schema
-> differs from the brochure, and `manifest.csv` names each video's dataset.
->
-> v2.3 vs v2.2: (1) the selector picks **4-second windows that overlap the most
-> distinct actions**, not whole segments; (2) coverage gain is **expected coverage**
-> over clustered proposals, not top-1 label dedup; (3) the model stack is
-> **committed** and the per-frame HOI detector is cut; (4) a **local scorer + oracle**
-> is a day-1 deliverable.
+> **Status: design rationale only, frozen.** The build spec is `ARCHITECTURE.md`;
+> where the two differ, `ARCHITECTURE.md` wins. Superseded here:
+> - Routing by `manifest.csv` (§4, §5, §6.4): inference now routes on video signals
+>   only and never reads the manifest or the filename (`ARCHITECTURE.md` §6.1).
+> - The (1 − 1/e) / near-optimality guarantee (§4, §15): withdrawn; we report % of
+>   oracle coverage.
+> - Timeline and four team roles (§12, §13): we are two people; phases, owners and
+>   dates live in `PROGRESS.md`.
+> - "Second-hand" kit rules (§3.1, §10): confirmed against the official kit in `kit/`.
+> - Open questions (§3.2): tracked in `PROGRESS.md` §3.
+> - Feature extraction on a GPU: replaced by the CPU-first plan (`ARCHITECTURE.md` §10.1).
 
 ---
 
