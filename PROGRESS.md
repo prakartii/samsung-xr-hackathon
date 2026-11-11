@@ -194,7 +194,7 @@ package: `validate.py`. Remaining: send the email, set the team ID.
 - [ ] `detect/actionformer.py`, `detect/pairing.py`; cache proposals — `pairing.py` done (§5.1; proposals anchored on the group's top verb, scores `(p_v·p_n·prior^α)^power`)
 - [ ] Wire into `pipeline.py` (EPIC route → `actions[]`)
 - [ ] Tune `max_per_video` and the minimum score on `tune`
-- [ ] **Kill rule (end of Nov 13):** if no working mAP, switch to `detect/fallback_zeroshot.py`
+- [ ] **Kill rule (end of Nov 13):** if no working mAP, switch to `detect/fallback_zeroshot.py` — fallback implemented (2 s windows / 1 s stride over 1 fps CLIP, top-k verbs and nouns per window, paired by `pairing.py`); also serves the uncertain route (ARCHITECTURE.md §4)
 
 **Exit check:** mAP rows on `tune` and `report`; mAP > the zero-shot fallback's mAP (or the fallback is shipped and logged).
 **Tests required:**
@@ -365,6 +365,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-11 · PK · P4 · `detect/fallback_zeroshot.py` + `zeroshot` config · —
 - 2026-11-11 · PK · P3/P4 · **Bug fixed:** OpenCV decoded < 1 s of EPIC GoPro files without error (regression test `tests/integration/test_decode_epic.py`). Decoding moved to PyAV (open question D1 for B), `iter_frames` raises `DecodeError` on early end, flow/hands/clip cache versions bumped to v2 (old entries ignored), and caching now decodes each video once for all three features: 63 s compute per video minute for flow+hands+CLIP on one EPIC video · —
 - 2026-11-11 · PK · P4 · `detect/actionformer.py` (CPU, EMA weights, released feature timing); ActionFormer utils import lazily (no pandas at runtime); EPIC video download paused so the 6.5 GB features archive gets the bandwidth · —
 - 2026-11-11 · PK · P4 · `detect/pairing.py` (+ `types.py`, `constants.py` from the spec), `tools/build_vn_prior.py` (train-only, leakage guard); NMS numpy port so ActionFormer runs without a compiler · —
