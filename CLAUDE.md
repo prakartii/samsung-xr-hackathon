@@ -254,7 +254,7 @@ resource is missing.
   > 2000 actions, `video_id` ≠ filename).
 - **Post-processing and selector** — property tests for every output, any input:
   sorted; non-overlapping; every segment ≥ 4.0 s; inside `[0, T]`; total ≤ 0.145·T;
-  except when T < 26.7 s, which gives exactly one segment shaped by
+  except when T < 27.0 s (`SHORT_VIDEO_T`), which gives exactly one segment shaped by
   `post.short_video_mode` (test both modes). Plus unit tests on small hand-made cases
   with the exact expected windows.
 - **Expected-coverage gain**: hand-computed values on 2–3 clusters; monotone (adding

@@ -13,9 +13,9 @@ from rewind.constants import (
 from tests.conftest import KIT_DIR
 
 
-def test_short_video_threshold_is_min_seg_over_budget():
-    # One 4.0 s highlight fits the 15% budget only if T >= 4.0 / 0.15 = 26.666... s.
-    assert pytest.approx(26.6667, abs=1e-4) == SHORT_VIDEO_T
+def test_short_video_threshold_is_emitted_min_length_over_budget():
+    # The 4.05 s highlight we emit fits the 15% budget only if T >= 4.05 / 0.15 = 27.0 s.
+    assert pytest.approx(27.0, abs=1e-9) == SHORT_VIDEO_T
 
 
 def test_min_seg_emit_survives_endpoint_rounding_above_kit_minimum():
