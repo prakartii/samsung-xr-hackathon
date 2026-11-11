@@ -27,9 +27,8 @@ Datasets: EPIC-KITCHENS-100 (138 val videos) and FPVSum (49 videos).
 | `CLAUDE.md` (this file) | How we work: rules, commands, testing standard | Rarely; both agree first |
 | `ARCHITECTURE.md` | **The build spec.** Modules, data types, interfaces, algorithms, output schema, scorer definitions | Whenever the design changes, in the same PR as the code |
 | `PROGRESS.md` | **The live status.** Phases, checklists, owners, results, log, open questions | Every PR (see §5) |
-| `REWIND_v2.3_plan.md` | Rationale: why we chose this design | Frozen; don't edit |
-| `REWIND_v2.2_plan.md`, `REWIND_v2_plan.md` | History | Never |
-| `kit/` | The organizers' student kit, committed unmodified | Never edit; replace wholesale if they reissue it |
+| `REWIND_v2.3_plan.md` | Rationale: why we chose this design (its banner lists what `ARCHITECTURE.md` has since superseded) | Frozen; only the banner may change |
+| `kit/` | The organizers' student kit (`TEAM_README.md`, `manifest.csv`, `supported_classes.json`, two example JSONs), committed unmodified | Never edit; replace wholesale if they reissue it |
 
 **Order of authority when sources disagree:** official kit files in `kit/` >
 answers from the organizers (recorded in `PROGRESS.md` → Open questions) >
@@ -80,7 +79,7 @@ python tools/run_all.py --manifest kit/manifest.csv --videos data/videos --out o
 
 # validate + score
 python -m rewind_eval.validate --dir outputs/          # our validator (all kit rules)
-python kit/validate.py --dir outputs/                  # official one, if the kit has it
+python kit/validate.py --dir outputs/                  # official one, once the organizers send it (missing from our kit)
 python -m rewind_eval.score --pred outputs/ --split report --tag "<short description>"
 ```
 
@@ -132,9 +131,11 @@ a new entry.
 
 1. **No ground truth at inference.** `code/rewind/` must never import
    `rewind_eval`, read annotation files, or branch on GT. A test enforces this.
-   The only per-video facts inference may read are the MP4 and the kit's
-   `manifest.csv` (dataset + duration). Using the manifest is pending organizer
-   confirmation; keep the signal-based fallback router working regardless.
+   Inference reads only the MP4 (plus config and weights). It never reads
+   `kit/manifest.csv` and never derives the route, label or anything else from the
+   filename: organizers re-run `run.sh` in an isolated environment, and hardcoded
+   video IDs disqualify (kit §6). FPVSum filenames even contain the category
+   (`Ski_…`). `video_id` is only echoed into the JSON. Tests enforce this.
 2. **No tuning on the report split.** Hyperparameters are chosen on `tune`
    (~20 EPIC *train* videos + FPVSum cross-validation folds). `report` (138 EPIC val +
    FPVSum) is for measuring only. Record any exception in `PROGRESS.md`.
@@ -210,9 +211,10 @@ resource is missing.
 - **Oracle**: on GT-as-proposals, oracle coverage ≥ system coverage, and ≥ uniform.
 - **Pairing, routing (including the uncertain route always emitting actions), time
   conversion, cache versioning**: unit tests.
-- **Serializer**: both `output.schema` variants pass their matching validator rules.
+- **Filename independence**: the same synthetic video under two filenames gives
+  identical JSON apart from `video_id`, and `run.sh` works with no `kit/` present.
 - **Import boundary**: a test that parses every module in `code/rewind/` and fails
-  if any imports `rewind_eval` or reads an annotation path.
+  if any imports `rewind_eval` or reads an annotation path or `manifest.csv`.
 - **`run.sh` contract**: on 30 s and 12 s synthetic videos generated in a fixture
   (`ffmpeg -f lavfi -i testsrc`), produces JSON that passes the validator, including
   through the fallback path (force a detector failure).
