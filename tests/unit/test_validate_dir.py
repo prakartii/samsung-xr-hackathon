@@ -64,3 +64,11 @@ def test_validate_dir_invalid_json_is_error(tmp_path):
     errors, _ = validate_dir(tmp_path, {"A": 100.0}, strict=True)
 
     assert errors["A.json"][0].startswith("R1 <root>: not valid JSON")
+
+
+def test_validate_dir_non_utf8_file_is_error_not_crash(tmp_path):
+    (tmp_path / "A.json").write_bytes(b"\xff\xfe{}")
+
+    errors, _ = validate_dir(tmp_path, {"A": 100.0}, strict=True)
+
+    assert errors["A.json"][0].startswith("R1 <root>: not valid JSON")

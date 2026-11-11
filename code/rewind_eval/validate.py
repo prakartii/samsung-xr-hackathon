@@ -40,7 +40,7 @@ def validate_dir(
     for path in files:
         try:
             doc = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError) as exc:
+        except (OSError, ValueError) as exc:  # ValueError covers bad JSON and bad UTF-8
             errors[path.name] = [f"R1 <root>: not valid JSON ({exc})"]
             continue
         errs, warns = validate(

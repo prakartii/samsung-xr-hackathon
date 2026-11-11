@@ -399,8 +399,10 @@ arrives, our validator is the reference.
 
 `strict=True` (what `run.sh` uses) also rejects what would lose points silently: R12,
 R14, unknown names under R4/R7, and R13, except for a short video (`T < SHORT_VIDEO_T`)
-whose only highlight is at most `MIN_SEG_EMIT` long. `strict=False` mirrors the kit's
-severities, i.e. what the official validator would accept.
+whose only highlight is at most `MIN_SEG_EMIT` long; it also compares lengths and
+bounds exactly (no float slack), as a plain `end - start >= 4.0` check would.
+`strict=False` follows the kit's severities with a 1e-9 slack, except that unexpected
+keys are always errors (conservative: the kit only requires the six to be present).
 
 Timestamps have at most 2 decimal places (kit). Any invalid or missing file scores
 0 on every metric for that video (kit §4).

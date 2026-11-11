@@ -28,7 +28,8 @@ from rewind.constants import (
 )
 from rewind.vocab import Vocab
 
-# Float slack for comparisons on values that went through JSON and rounding.
+# Float slack, used only at kit severity. Strict mode compares exactly, the way a
+# plain `end - start >= 4.0` validator would (4.1 - 0.1 = 3.9999999999999996 fails).
 _EPS = 1e-9
 
 
@@ -48,6 +49,7 @@ def validate(
     errors: list[str] = []
     warnings: list[str] = []
     soft = errors if strict else warnings  # kit warnings that strict mode rejects
+    slack = 0.0 if strict else _EPS
 
     if not isinstance(doc, dict):
         return [f"R1 <root>: expected a JSON object, got {type(doc).__name__}"], []
@@ -67,16 +69,18 @@ def validate(
         elif filename_stem is not None and vid != filename_stem:
             errors.append(f"R2 video_id: {vid!r} does not match the file name {filename_stem!r}")
 
-    duration = _check_duration(doc.get("duration_sec"), expected_duration, errors, "duration_sec")
+    duration = _check_duration(
+        doc.get("duration_sec"), expected_duration, errors, "duration_sec", slack
+    )
 
     if "label" in doc:
         _check_label(doc["label"], vocab, errors, soft)
 
     if "actions" in doc:
-        _check_actions(doc["actions"], duration, vocab, errors, soft)
+        _check_actions(doc["actions"], duration, vocab, errors, soft, slack)
 
     if "highlights" in doc:
-        _check_highlights(doc["highlights"], duration, errors, warnings, soft, strict)
+        _check_highlights(doc["highlights"], duration, errors, warnings, soft, strict, slack)
 
     return errors, warnings
 
@@ -86,20 +90,27 @@ def _nonempty_str(v: Any) -> bool:
 
 
 def _is_number(v: Any) -> bool:
-    return isinstance(v, int | float) and not isinstance(v, bool) and math.isfinite(v)
+    if not isinstance(v, int | float) or isinstance(v, bool):
+        return False
+    try:
+        return math.isfinite(v)
+    except OverflowError:  # a JSON integer with hundreds of digits
+        return False
 
 
 def _too_many_decimals(x: float) -> bool:
     return abs(round(x, TIME_DECIMALS) - x) > _EPS
 
 
-def _check_duration(d: Any, expected: float | None, errors: list[str], where: str) -> float | None:
+def _check_duration(
+    d: Any, expected: float | None, errors: list[str], where: str, slack: float
+) -> float | None:
     if d is None:
         return None
     if not _is_number(d) or d <= 0:
         errors.append(f"R3 {where}: expected a positive finite number, got {d!r}")
         return None
-    if expected is not None and abs(d - expected) > DURATION_TOL + _EPS:
+    if expected is not None and abs(d - expected) > DURATION_TOL + slack:
         errors.append(
             f"R3 {where}: {d} differs from the manifest duration {expected} by more than "
             f"{DURATION_TOL} s"
@@ -119,7 +130,9 @@ def _check_label(label: Any, vocab: Vocab, errors: list[str], soft: list[str]) -
         errors.append(f"R4 label.score: expected a number in [0, 1], got {label['score']!r}")
 
 
-def _check_segment(seg: Any, duration: float | None, where: str, rule: str) -> str | None:
+def _check_segment(
+    seg: Any, duration: float | None, where: str, rule: str, slack: float
+) -> str | None:
     """Return an error message, or None if `seg` is a valid [start, end]."""
     if not isinstance(seg, list) or len(seg) != 2 or not all(_is_number(x) for x in seg):
         return f"{rule} {where}: expected [start, end] with two finite numbers, got {seg!r}"
@@ -128,13 +141,18 @@ def _check_segment(seg: Any, duration: float | None, where: str, rule: str) -> s
         return f"{rule} {where}: start {s} < 0"
     if not s < e:
         return f"{rule} {where}: start {s} is not before end {e}"
-    if duration is not None and e > duration + END_TOL + _EPS:
+    if duration is not None and e > duration + END_TOL + slack:
         return f"{rule} {where}: end {e} > duration_sec + {END_TOL} ({duration + END_TOL})"
     return None
 
 
 def _check_actions(
-    actions: Any, duration: float | None, vocab: Vocab, errors: list[str], soft: list[str]
+    actions: Any,
+    duration: float | None,
+    vocab: Vocab,
+    errors: list[str],
+    soft: list[str],
+    slack: float,
 ) -> None:
     if not isinstance(actions, list):
         errors.append(f"R5 actions: expected a list, got {type(actions).__name__}")
@@ -146,7 +164,7 @@ def _check_actions(
         if not isinstance(a, dict) or set(a) != {"segment", "verb", "noun", "score"}:
             errors.append(f"R6 {where}: expected keys {{segment, verb, noun, score}}, got {a!r}")
             continue
-        msg = _check_segment(a["segment"], duration, f"{where}.segment", "R6")
+        msg = _check_segment(a["segment"], duration, f"{where}.segment", "R6", slack)
         if msg:
             errors.append(msg)
         else:
@@ -173,6 +191,7 @@ def _check_highlights(
     warnings: list[str],
     soft: list[str],
     strict: bool,
+    slack: float,
 ) -> None:
     if not isinstance(highlights, list) or not highlights:
         errors.append(f"R9 highlights: expected a non-empty list, got {highlights!r}")
@@ -183,7 +202,7 @@ def _check_highlights(
         if not isinstance(h, dict) or set(h) != {"segment"}:
             errors.append(f"R9 {where}: expected {{'segment': [start, end]}}, got {h!r}")
             continue
-        msg = _check_segment(h["segment"], duration, f"{where}.segment", "R9")
+        msg = _check_segment(h["segment"], duration, f"{where}.segment", "R9", slack)
         if msg:
             errors.append(msg)
             continue
@@ -201,15 +220,15 @@ def _check_highlights(
             errors.append(f"R10 highlights[{i}]: starts at {s1}, not after previous end {e0}")
 
     lengths = [e - s for s, e in segs]
-    if not any(L >= MIN_SEG - _EPS for L in lengths):
+    if not any(length >= MIN_SEG - slack for length in lengths):
         errors.append(f"R11 highlights: none is >= {MIN_SEG} s (lengths {lengths})")
-    for i, L in enumerate(lengths):
-        if L < MIN_SEG - _EPS:
-            soft.append(f"R12 highlights[{i}]: {L:.3f} s < {MIN_SEG} s is ignored in scoring")
+    for i, length in enumerate(lengths):
+        if length < MIN_SEG - slack:
+            soft.append(f"R12 highlights[{i}]: {length:.3f} s < {MIN_SEG} s is ignored in scoring")
 
     if duration is not None:
         total = sum(lengths)
-        if total > SCORING_BUDGET * duration + _EPS:
+        if total > SCORING_BUDGET * duration + slack:
             msg = (
                 f"R13 highlights: total {total:.3f} s > {SCORING_BUDGET:.0%} of "
                 f"{duration} s ({SCORING_BUDGET * duration:.3f} s)"

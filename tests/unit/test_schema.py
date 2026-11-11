@@ -289,3 +289,50 @@ def test_validate_three_decimal_timestamp_is_r14_warning_at_kit_severity():
 def test_validate_three_decimal_timestamp_is_r14_error_when_strict():
     errors, _ = check(lambda d: d["actions"][0].update(segment=[12.4, 18.905]), strict=True)
     assert rules(errors) == ["R14"]
+
+
+# --- review fixes (PR #8) ------------------------------------------------------
+
+
+def test_validate_strict_compares_lengths_exactly():
+    # 4.1 - 0.1 = 3.9999999999999996 in floats: a plain `>= 4.0` validator rejects it,
+    # so strict must too (R11; R12 for the same segment). Kit severity keeps the slack.
+    mutate = lambda d: d.update(highlights=[{"segment": [0.1, 4.1]}])  # noqa: E731
+
+    strict_errors, _ = check(mutate, strict=True)
+    kit_errors, _ = check(mutate)
+
+    assert "R11" in rules(strict_errors)
+    assert kit_errors == []
+
+
+def test_validate_short_video_with_two_highlights_is_r13_error_when_strict():
+    # T = 12: the short-video exemption covers one minimum window only.
+    def mutate(d):
+        d.update(duration_sec=12.0, actions=[])
+        d["highlights"] = [{"segment": [0.5, 4.55]}, {"segment": [6.0, 10.05]}]
+
+    errors, _ = check(mutate, strict=True)
+
+    assert rules(errors) == ["R13"]
+
+
+def test_validate_negative_label_score_is_r4_error():
+    errors, _ = check(lambda d: d["label"].update(score=-0.1))
+    assert rules(errors) == ["R4"]
+
+
+def test_validate_kit_skiing_example_has_no_errors_at_kit_severity():
+    from tests.conftest import KIT_DIR
+
+    doc = json.loads((KIT_DIR / "skiing_03.json").read_text(encoding="utf-8"))
+
+    errors, warnings = validate(doc, VOCAB, filename_stem="skiing_03")
+
+    assert errors == []
+    assert rules(warnings) == ["R4"]  # "skiing" isn't a kit label (PROGRESS.md Q10)
+
+
+def test_validate_huge_integer_is_an_error_not_a_crash():
+    errors, _ = check(lambda d: d.update(duration_sec=10**400))
+    assert rules(errors) == ["R3"]
