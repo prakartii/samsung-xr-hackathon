@@ -249,7 +249,9 @@ detections:
 
 1. Sort proposals by start time.
 2. Link two proposals if tIoU ≥ `cfg.cluster.tiou` **and** their top-1 pairs match or
-   the cosine similarity of the mean CLIP embedding over their spans ≥ `cfg.cluster.sim`.
+   the cosine similarity of the mean CLIP embedding over their spans ≥ `cfg.cluster.sim`
+   (embeddings optional; without them only the pair rule applies). Links are
+   transitive (union-find).
 3. Connected components → clusters. `pair_dist` = score-weighted sum of member
    top-k pair distributions, truncated to top `cfg.cluster.k` (default 5),
    renormalized to 1, then temperature-scaled with `cfg.calibration.temperature` (default 1.0).
@@ -258,35 +260,53 @@ detections:
 
 For lengths `L ∈ cfg.select.window_lengths` (default `[4.05, 5.0, 6.0]`) and starts on
 a grid of `cfg.select.stride` (default 0.5 s), keep windows inside `[0, T]` that
-overlap ≥ 1 cluster span. Precompute a sparse matrix `cap[w, c] ∈ [0, 1]`:
+overlap ≥ 1 cluster span (window ends clamped to `≤ T`). A cluster's capture
+probability is computed from how many seconds of its span the union covers:
 
-- `any_overlap` rule: `cap = 1` if the window and the cluster span overlap.
-- `fraction` rule: `cap = sigmoid((overlap / span_len − θ) / τ)` with θ, τ in config.
+- `any_overlap` rule: `cap = 1` if the union overlaps the span at all.
+- `fraction` rule: `cap = sigmoid((covered / span_len − θ) / τ)` with θ, τ in config.
 
 The rule is `cfg.select.capture_rule` **[verify Q4]**; the default is `any_overlap`.
 
 ### 5.4 Expected-coverage selection (`select/coverage.py`)
 
+State is the union `U` of selected windows, merged exactly as post-processing
+merges highlights (gaps < `max(merge_gap, 0.01 s)` filled), so the model scores what
+is emitted. Each cluster is one action whose pair is drawn from `p_c`; `cap_c(U)` is
+the capture probability given how much of its span `U` covers (§5.3).
+
 ```
-P_miss[pair]      = Π over selected windows w, clusters c:  (1 − cap[w,c] · p_c(pair))
-gain(w | S)       = Σ_pair P_miss[pair] · (1 − Π_c (1 − cap[w,c] · p_c(pair)))
-cost(w | S)       = seconds of w not already covered by ∪S
-priority(w | S)   = gain / max(cost, ε)        (cost == 0 → skip)
+P_miss[pair]      = Π_c (1 − p_c(pair) · cap_c(U))
+E(U)              = Σ_pair (1 − P_miss[pair])          expected distinct pairs captured
+gain(w | U)       = E(U + w) − E(U)
+cost(w | U)       = |U + w| − |U|                      new seconds, incl. filled gaps
+priority(w | U)   = gain / cost                        (gain or cost ≈ 0 → skip)
 ```
 
-Lazy greedy with a max-heap of priorities. Before accepting `w`, simulate the union
-and reject `w` if it would create any fragment < `MIN_SEG`, or push the total over
-`(1 − h) · B` where `B = cfg.select.budget_frac · T` (default 0.145) and `h` is the
-hedge share. Stop when no window fits. The coverage term alone is monotone submodular, and tests
-check monotonicity and diminishing returns (`CLAUDE.md` §7.2). **We claim no
+(v1.0 multiplied a miss factor per selected *window*, so two overlapping windows over
+one cluster counted as two independent chances to catch the same action. Corrected;
+see `PROGRESS.md` Decisions.)
+
+Lazy greedy with a max-heap of priorities; gains and costs are rounded (1e-12, 1e-9)
+so equal choices tie exactly and the earliest window wins. After each pick, the windows
+next to the changed component are re-scored at once: their cost can drop (overlap) and
+their gain rise (filled gaps), which plain lazy evaluation misses (a review
+counterexample is a pinned test). Every union component
+contains a whole window, so it is ≥ 4.05 s (no fragment check needed). A window that
+would push the total over `(1 − h) · B` (`B = cfg.select.budget_frac · T`, `h` the
+hedge share) is dropped. Stop when the heap is empty. Under `any_overlap`, E as a
+function of a set of segments is monotone submodular, and tests check monotonicity and
+diminishing returns (`CLAUDE.md` §7.2). Under `fraction` it is not (the sigmoid is convex
+below θ), and union merging makes the window-level objective slightly non-submodular. **We claim no
 approximation guarantee for the full procedure:** cost-ratio greedy under a budget,
 the ≥ 4 s and fragment rules, the hedge reserve and post-processing all break the
 conditions for one. Quality is measured empirically as **% of oracle coverage** (§9.5);
 that is the number we report in the deck.
 
 Complexity: windows ≈ 3 · T / 0.5, so ~12k for a 33-minute video; clusters per
-window are few. With lazy evaluation this runs in well under a second; it must stay
-under 2 s per video.
+window are few. Each evaluation only looks at union components within one span length
+of the change. Measured: 1.4 s for 2000 random proposals with top-5 pairs on a 2000 s
+video (the actions cap; `slow` test), 0.6 s on GT-derived clusters; must stay under 2 s.
 
 ### 5.5 Hedge windows (`select/hedge.py`)
 
@@ -461,8 +481,11 @@ definitions (`kit/TEAM_README.md` §5). Keep each one parameterized where the of
 ### 9.1 Action coverage
 For a video: let `G` be the set of distinct GT (verb, noun) pairs. A pair is
 captured if any of its GT instances is captured by any highlight of length ≥ 4.0 s,
-under the capture rule (`any_overlap` or `fraction ≥ θ`).
-`coverage = |captured pairs| / |G|`. Apply an over-budget penalty:
+under the capture rule: `any_overlap` (overlap > 0; touching doesn't count) or
+`fraction` (the valid highlights together cover ≥ θ of the instance's span, default
+θ = 0.5). `coverage = |captured pairs| / |G|`; a video with no GT actions is left out
+of the mean. Highlights under 4 s capture nothing but still count toward the budget.
+Apply an over-budget penalty:
 `× max(0, 1 − λ · max(0, total/T − 0.15) / 0.15)` with λ configurable (default 1.0)
 **[verify Q4, Q8]**. Report the mean over EPIC videos. Always report both capture variants.
 
@@ -470,30 +493,47 @@ under the capture rule (`any_overlap` or `fraction ≥ θ`).
 ActivityNet-style, with classes = (verb, noun) pairs present in GT. For each tIoU in
 {0.1, 0.2, 0.3, 0.4, 0.5}: per class, sort predictions by score and greedily match
 each to the unmatched GT of the same class in the same video with the highest tIoU
-≥ threshold; AP = area under the interpolated precision–recall curve. mAP = mean
-over classes, then over thresholds. Computed over all EPIC videos jointly.
+≥ threshold; AP = area under the interpolated precision–recall curve (all-point,
+precision made monotone). Equal scores keep input order. A GT class with no
+predictions has AP 0; predictions of classes absent from the GT are ignored. mAP =
+mean over classes, then over thresholds. Computed over all EPIC videos jointly.
 
 ### 9.3 Highlight F1 (FPVSum)
-Sample at `cfg.eval.f1_fps` (default 2 fps). GT positives = the frames in the top 15%
-of mean human importance. Predicted positives = frames inside highlights ≥ 4.0 s.
-F1 per video, mean over videos.
+Evaluated at the GT's native frames (frame `i` of `N` at `i · T / N` s, T from the
+manifest). GT positives = FPVSum's own top-15% highlight frames (`Binary_score` in
+`gt_data.mat`; 15.1–27.1% of frames because of ties, > 18% on 6 videos, so recall is
+capped below 1 there at a 14.5% budget), the closest match to the kit's "top
+15% of human-annotated consensus importance frames". `top_frames(score)` gives an
+exact-count variant. Predicted positives = frames with `start ≤ t < end` for a
+highlight ≥ 4.0 s. F1 per video (0 if no true positive), mean over videos.
 
 ### 9.4 Label accuracy
-Exact match of `label.name` on FPVSum videos.
+Exact match of `label.name` on FPVSum videos; a missing prediction counts as wrong.
 
 ### 9.5 Oracle
-The same window rules (≥ 4.0 s, budget 0.145·T, non-overlapping) with clusters
-built from GT actions (one-hot pair distributions), selected with the same greedy
-as §5.4. This gives an upper reference for coverage. Report
-`system / oracle` as "% of oracle".
+Greedy over candidate windows built from the GT (`rewind_eval/oracle.py`): 4.05 s
+windows on a 0.5 s grid; repeatedly add the window with the most new gain per second
+that fits the budget (0.145·T, or one window for short videos) and is ≥ 0.01 s from
+every chosen window. Coverage oracle: gain = distinct GT pairs newly captured
+(any-overlap); the result is whichever of the greedy windows and the uniform windows
+captures more, because greedy alone can lose to a fixed layout (a counterexample is a
+pinned test). F1 oracle: gain = GT highlight frames covered. A strong reference, not a
+proven optimum: a selector can beat it. Report `system / oracle` as "% of
+oracle". Measured ceilings (report split): coverage 0.724, F1 0.708.
 
 ### 9.6 Weighted total
 `0.40·coverage + 0.25·mAP + 0.25·F1 + 0.10·label_acc`. Computed per split for the
 leaderboard; it is our estimate, not the official score.
 
+The fraction capture threshold θ of the metric is `cfg.eval.capture_theta` (0.5), not
+the selector's `select.fraction_theta`, so tuning the selector never changes what a
+leaderboard column measures. `--pred` files that fail kit-severity validation score as
+empty (0), like a missing file.
+
 ### 9.7 Splits (`configs/splits.yaml`)
-- `tune`: ~20 EPIC-100 **train** videos (chosen to match the val duration
-  distribution) + FPVSum 5-fold CV.
+- `tune`: 20 EPIC-100 **train** videos (chosen to match the val duration
+  distribution) + FPVSum 5-fold CV. `score --split tune` includes FPVSum only with
+  `--fold k` (the held-out fold); without it the FPVSum columns are blank.
 - `report`: the 138 EPIC val + 49 FPVSum videos in `kit/manifest.csv`.
 
 ---
@@ -511,6 +551,7 @@ Fill each row in before the model is used **[verify all]**.
 | Hands | MediaPipe Hand Landmarker (`mediapipe==1.2.2`, Tasks API, VIDEO mode) | `hand_landmarker.task` float16 v1 from storage.googleapis.com/mediapipe-models, SHA-256 pinned in `tools/fetch_weights.sh` | Apache-2.0 (library and model) | CPU. Presence = max handedness score of detected hands, 0 if none |
 | Optical flow | OpenCV Farneback | — | Apache-2.0 (OpenCV) | Low resolution (160 px) |
 | Verb–noun prior | Counts from `EPIC_100_train.csv` | Built by tool | EPIC-KITCHENS license | Train split only |
+| GT annotations (eval only) | `epic-kitchens-100-annotations` @ `ea8b404`, `azuxmioy/fpvsum` @ `9af31f9` | `tools/fetch_annotations.sh` (sha256-checked) | EPIC: CC BY-NC 4.0; FPVSum: research use (no license file) | Never read by `rewind/` |
 
 ### 10.1 Feature strategy (CPU-first; neither team member has a GPU)
 
