@@ -209,14 +209,17 @@ minute (`rewind_eval/sim.py`). Oracle (4.05/5/6 s windows) = 0.740; uniform = 0.
 
 | Variant | clean cov | noisy cov | noisy % oracle |
 |---|---|---|---|
-| expected, h = 1/8 | 0.668 | 0.422 | 57.0% |
-| dedup, h = 1/8 | 0.668 | 0.419 | 56.6% |
-| expected, h = 0 | 0.744 | 0.500 | 67.6% |
-| expected, h = 0, T = 2 | 0.744 | 0.502 | 67.8% |
-| expected, h = 0, 4.05 s only | 0.723 | 0.491 | 66.4% |
-| dedup, h = 0 | 0.744 | 0.507 | 68.5% |
+| expected, h = 1/8 | 0.668 | 0.447 | 60.3% |
+| dedup, h = 1/8 | 0.668 | 0.443 | 59.8% |
+| expected, h = 0 | 0.744 | 0.499 | 67.4% |
+| expected, h = 0, T = 2 | 0.744 | 0.502 | 67.9% |
+| expected, h = 0, 4.05 s only | 0.721 | 0.495 | 66.9% |
+| dedup, h = 0 | 0.744 | 0.510 | 68.8% |
 
-- Hedging without activity signals costs ~0.08 → `h = 0` for now.
+(Re-run 2026-11-12 after review: farthest-point hedges, short-video selection, simulator
+edge fix. Hedges improved from 0.422 to 0.447 but still trail h = 0.)
+
+- Hedging without activity signals costs ~0.05 → `h = 0` for now.
 - Mixed window lengths beat 4.05 s only (+0.02 clean, +0.009 noisy).
 - Expected vs dedup: within noise on simulated proposals (one seed, 20 videos).
   **Kill-rule decision waits for P4's real proposals** (calibrated top-k scores are
@@ -365,6 +368,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
 - 2026-11-12 · DA · P1 · Review fixes on the pipeline: salvage valid parts before the full fallback, output files 0644, infinite durations rejected; tests for each · #10
+- 2026-11-12 · DA · P5 · Review fixes on hedge/selector entry: farthest-point hedges (they bunched), exact hedge count, short videos get the best single window, simulator can't invert segments, eval rows carry a config hash and use `eval.capture_theta`; `select_epic` property test; sim rows regenerated · #16
 - 2026-11-12 · DA · P1 · Review fixes on post-processing/output: budget on the written (2-decimal) duration, action times clamped into [0, T] and non-finite actions dropped, 4.0 s highlight for 3.5–4 s videos; tests for best-value placement, trim tie-break, merged value · #9
 - 2026-11-12 · DA · P2 · Review fixes on scoring: oracle = better of greedy and uniform (counterexample pinned), tune scores FPVSum only per `--fold`, invalid `--pred` files score 0, metric θ moved to `eval.capture_theta`, random baseline seeded by video id; leaderboard rows regenerated · #14
 - 2026-11-12 · DA · P5 · Review fixes on the selector: windows next to each pick re-scored (counterexample pinned), coverage looked up only in nearby components (2000 proposals: 11.2 s → 1.4 s), candidate ends clamped to T; tests for filled gaps, confidence, values; perf tests marked `slow`. Correction to the #15 log line: the 0.742 coverage was measured on `report` (a check, no tuning); the tune numbers are in the P5 result block · #15

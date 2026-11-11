@@ -315,12 +315,17 @@ Activity score `a(t) = z(flow)·w_f + hands·w_h` on the dense grid. Mask out ti
 inside selected windows (± `cfg.hedge.gap`) and inside clusters with
 `confidence ≥ cfg.hedge.strong`. Take peaks of the smoothed `a(t)` spaced
 ≥ `cfg.hedge.min_spacing`; place `MIN_SEG_EMIT` windows centered on them, highest
-first, until the hedge budget is used. Without an activity profile, a centre's score
-is its distance to the nearest selected highlight (hedges spread into the largest
-uncovered stretches). The hedge budget is `B − |U|`: the reserve `h · B` plus any
-coverage budget the selector didn't use. Default `h = 0`: on simulated proposals a
-reserve of 1/8 cost ~0.08 coverage (no activity signals yet); re-tune once P3's
-flow/hands profile exists.
+first, until the hedge budget is used. Without an activity profile, farthest-point
+sampling: each hedge goes where the distance to the nearest selected highlight, video end
+or earlier hedge is largest, so hedges spread over the uncovered stretches. Hedges stay
+≥ one window + `max(hedge.gap, merge_gap)` from each other and from selected highlights.
+The hedge budget is `B − |U|`: the reserve `h · B` plus any coverage budget the selector
+didn't use. Default `h = 0`: on simulated proposals a reserve of 1/8 cost ~0.05 coverage
+(no activity signals yet); re-tune once P3's flow/hands profile exists.
+
+**Short videos** (`B < 4.05 s`, i.e. T < 27.93 s at 14.5%): `select_epic` picks the single
+best `min(4.05, T)` window with the same expected-coverage gain instead of leaving it to
+post-processing, which would centre it on the middle of the video.
 
 ### 5.6 Post-processing (`postprocess.py`), shared by both routes
 
