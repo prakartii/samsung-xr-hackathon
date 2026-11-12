@@ -23,15 +23,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "code"))
 
-STANDARD_FPS = (
-    24000 / 1001, 24.0, 25.0, 30000 / 1001, 30.0, 48.0, 50.0, 60000 / 1001, 60.0,
-)  # fmt: skip
-
-
-def gt_rate_suspect(n_gt: int, duration: float, tol: float) -> bool:
-    """True if n_gt / duration is more than `tol` (relative) from every standard rate."""
-    implied = n_gt / duration
-    return min(abs(implied - f) / f for f in STANDARD_FPS) > tol
+from rewind_eval.gt_fpvsum import gt_rate_suspect  # noqa: E402
 
 
 def main() -> None:
