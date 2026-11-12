@@ -347,3 +347,13 @@ def test_config_importance_grid_step_zero_is_rejected(default_cfg_dict, key):
 
     with pytest.raises(ConfigError, match=rf"importance\.{key}: 0\.0 must be > 0"):
         config_from_dict(default_cfg_dict)
+
+
+def test_config_detect_released_features_is_a_path_string(default_cfg_dict):
+    cfg = config_from_dict(default_cfg_dict)
+    assert cfg.detect.released_features == "weights/released_features"
+
+    default_cfg_dict["detect"]["released_features"] = ""
+    msg = r"detect\.released_features: expected a non-empty string"
+    with pytest.raises(ConfigError, match=msg):
+        config_from_dict(default_cfg_dict)
