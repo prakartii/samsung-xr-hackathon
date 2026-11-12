@@ -1,0 +1,200 @@
+"""rewind.analyze.summarize: routing rules end to end on hand-made embeddings.
+
+Every embedding is a sum of orthonormal basis vectors, so each cosine is 0 or 1/sqrt(k)
+and every softmax is near one-hot (logit scale 100). Expected values are worked out
+in each test's comment.
+"""
+
+import math
+from dataclasses import replace
+
+import numpy as np
+import pytest
+
+from rewind.analyze import Text, key_phrase, summarize
+from rewind.config import load_config
+from rewind.detect.pairing import VNPrior
+from rewind.output import to_document
+from rewind.schema import validate
+from rewind.vocab import load_vocab
+from tests.conftest import DEFAULT_CONFIG
+
+CFG = load_config(DEFAULT_CONFIG)
+D = 32
+T = 60.0
+LABELS = tuple(CFG.label.classes)  # 15 classes: 14 FPVSum + cooking
+VERBS, NOUNS = ("take", "put"), ("knife", "plate")
+# basis: label i -> e_i (i < 15); verbs -> e_20, e_21; nouns -> e_22, e_23
+VERB_DIM, NOUN_DIM = {"take": 20, "put": 21}, {"knife": 22, "plate": 23}
+
+
+def e(*dims: int) -> np.ndarray:
+    v = np.zeros(D)
+    v[list(dims)] = 1.0
+    return v / np.linalg.norm(v)
+
+
+TEXT = Text(
+    logit_scale=100.0,
+    label_keys=LABELS,
+    label=np.stack([e(i) for i in range(len(LABELS))]),
+    verb_keys=VERBS,
+    verbs=np.stack([e(VERB_DIM[v]) for v in VERBS]),
+    noun_keys=NOUNS,
+    nouns=np.stack([e(NOUN_DIM[n]) for n in NOUNS]),
+)
+# uniform prior over the 2 x 2 pairs: (0 + eps) / (2 * (0 + eps)) = 0.5
+PRIOR = VNPrior.from_counts(VERBS, NOUNS, np.zeros((2, 2)), eps=1.0)
+
+
+def signals(frame_emb: np.ndarray) -> dict:
+    t_dense = np.arange(int(T * 4)) / 4.0  # 4 fps
+    t_clip = np.arange(int(T), dtype=float)  # 1 fps
+    flat = np.zeros(len(t_dense))
+    return {
+        "flow": {"t": t_dense, "flow": flat, "global_motion": flat},
+        "hands": {"t": t_dense, "hands": flat},
+        "clip": {"t": t_clip, "clip_emb": np.tile(frame_emb, (len(t_clip), 1))},
+    }
+
+
+COOKING_TAKE_KNIFE = e(LABELS.index("cooking"), VERB_DIM["take"], NOUN_DIM["knife"])
+BIKE = e(LABELS.index("bike"))
+BIKE_TAKE_KNIFE = e(LABELS.index("bike"), VERB_DIM["take"], NOUN_DIM["knife"])
+
+
+def strict_errors(result) -> list[str]:
+    errors, _ = validate(to_document(result), load_vocab(), filename_stem="v", strict=True)
+    return errors
+
+
+def test_summarize_cooking_video_routes_epic_with_zero_shot_actions():
+    # cos(frame, cooking) = 1/sqrt(3), 0 for the other 14 labels -> P(cooking) ~ 1
+    # >= 0.5 with margin ~0.5 >= min_conf 0.1 -> EPIC route, label ("cooking", 1.0).
+    # Zero-shot: windows(60, 2, 1) = [0,2] .. [58,60] = 59 windows; top_k = min(3, 2)
+    # = 2 verbs and 2 nouns each. Neighbouring windows have tIoU 1/3 < 0.5, so each
+    # window is its own anchor: 59 proposals x (2 verbs x 2 nouns) = 236 actions.
+    # Best pair: P(take) ~ P(knife) ~ 1 -> (1 * 1 * 0.5) ** 0.5 = sqrt(0.5).
+    r = summarize("v", T, signals(COOKING_TAKE_KNIFE), TEXT, PRIOR, CFG)
+
+    assert r.label == ("cooking", 1.0)
+    assert len(r.actions) == 236
+    _seg, verb, noun, score = r.actions[0]
+    assert (verb, noun) == ("take", "knife")
+    assert score == pytest.approx(math.sqrt(0.5), abs=1e-9)
+    assert strict_errors(r) == []
+
+
+def test_summarize_fpvsum_video_has_no_actions_and_zero_shot_label():
+    # Frames are pure "bike": P(cooking) ~ 0, margin 0.5 >= 0.1 -> FPVSum route.
+    # Label: softmax over the 14 FPVSum classes = 1 / (1 + 13 e^-100) ~ 1 for bike.
+    r = summarize("v", T, signals(BIKE), TEXT, PRIOR, CFG)
+
+    assert r.actions == ()
+    assert r.label[0] == "bike"
+    assert r.label[1] == pytest.approx(1.0, abs=1e-9)
+    assert strict_errors(r) == []
+
+
+def test_summarize_fpvsum_route_never_runs_the_detector():
+    def detect():
+        raise AssertionError("ActionFormer must not run on the FPVSum route")
+
+    r = summarize("v", T, signals(BIKE), TEXT, PRIOR, CFG, detect)
+    assert r.actions == ()
+
+
+def test_summarize_uncertain_route_always_emits_actions():
+    # min_conf 0.6 > the largest possible margin (0.5), so every video is uncertain.
+    # P(cooking) ~ 0 < 0.5 -> FPVSum label "bike" (score ~1 >= other_thr), but the
+    # uncertain route still runs the detector: same 59 windows x 4 pairs = 236.
+    cfg = replace(CFG, routing=replace(CFG.routing, min_conf=0.6))
+    r = summarize("v", T, signals(BIKE_TAKE_KNIFE), TEXT, PRIOR, cfg)
+
+    assert r.label[0] == "bike"
+    assert len(r.actions) == 236
+    assert strict_errors(r) == []
+
+
+def test_summarize_uses_actionformer_detections_when_available():
+    # One verb and one noun detection on the same span (tIoU 1):
+    # score = (0.9 * 0.8 * prior 0.5) ** 0.5 = 0.36 ** 0.5 = 0.6
+    dets = ([((3.0, 7.0), "put", 0.9)], [((3.0, 7.0), "plate", 0.8)])
+    r = summarize("v", T, signals(COOKING_TAKE_KNIFE), TEXT, PRIOR, CFG, lambda: dets)
+
+    assert len(r.actions) == 1
+    seg, verb, noun, score = r.actions[0]
+    assert (seg, verb, noun) == ((3.0, 7.0), "put", "plate")
+    assert score == pytest.approx(0.6, abs=1e-12)
+
+
+def test_summarize_falls_back_to_zero_shot_when_no_features_are_cached():
+    # detect() returns None (no SlowFast entry) -> the zero-shot detector: 236 actions.
+    r = summarize("v", T, signals(COOKING_TAKE_KNIFE), TEXT, PRIOR, CFG, lambda: None)
+    assert len(r.actions) == 236
+
+
+def test_summarize_short_video_gives_one_highlight():
+    # T = 20 s < SHORT_VIDEO_T (27 s): exactly one segment, 4.05 s in min_seg mode.
+    t = 20.0
+    sig = signals(BIKE)
+    sig = {
+        "flow": {k: v[: int(t * 4)] for k, v in sig["flow"].items()},
+        "hands": {k: v[: int(t * 4)] for k, v in sig["hands"].items()},
+        "clip": {k: v[: int(t)] for k, v in sig["clip"].items()},
+    }
+    r = summarize("v", t, sig, TEXT, PRIOR, CFG)
+
+    assert len(r.highlights) == 1
+    s, end = r.highlights[0]
+    assert end - s == pytest.approx(4.05, abs=1e-9)
+
+
+@pytest.mark.parametrize(
+    ("key", "phrase"),
+    [("take", "take"), ("turn-on", "turn on"), ("board:chopping", "chopping board")],
+)
+def test_key_phrase_turns_kit_keys_into_prompt_words(key, phrase):
+    assert key_phrase(key) == phrase
+
+
+def test_summarize_cooking_label_uses_expected_coverage_selector():
+    # One ActionFormer action on [30, 34]. With flat signals the importance proxy would
+    # take the first windows from t = 0 (budget 0.145 * 60 = 8.7 s), so only the
+    # coverage selector puts a highlight over [30, 34].
+    dets = ([((30.0, 34.0), "put", 0.9)], [((30.0, 34.0), "plate", 0.8)])
+    r = summarize("v", T, signals(COOKING_TAKE_KNIFE), TEXT, PRIOR, CFG, lambda: dets)
+
+    assert r.label[0] == "cooking"
+    assert any(s < 34.0 and end > 30.0 for s, end in r.highlights)
+
+
+def test_summarize_fpvsum_label_excludes_cooking_class():
+    # cos(frame, cooking) = cos(frame, bike) = cos(frame, ski) = 1/sqrt(3), so over all 15
+    # labels P(cooking) = 1/3: margin |1/3 - 0.5| = 1/6 >= 0.1 -> FPVSum route.
+    # Over the 14 FPVSum classes bike and ski tie at 1/2 (1/3 each if cooking leaked in);
+    # bike comes first in label order and wins.
+    frame = e(LABELS.index("cooking"), LABELS.index("bike"), LABELS.index("ski"))
+    r = summarize("v", T, signals(frame), TEXT, PRIOR, CFG)
+
+    assert r.label[0] == "bike"
+    assert r.label[1] == pytest.approx(0.5, abs=1e-6)
+
+
+def test_summarize_actionformer_failure_falls_back_to_zero_shot_actions():
+    # An ActionFormer error (bad features, torch mismatch) must cost the detector, not
+    # the video: the zero-shot detector still gives the 236 actions.
+    def detect():
+        raise RuntimeError("feature shape mismatch")
+
+    r = summarize("v", T, signals(COOKING_TAKE_KNIFE), TEXT, PRIOR, CFG, detect)
+    assert len(r.actions) == 236
+
+
+def test_summarize_mismatched_dense_grids_raise():
+    # flow and hands come from one pass on the same grid; a mismatch means a broken
+    # cache and must fail loudly (the pipeline then writes the fallback).
+    sig = signals(BIKE)
+    sig["hands"] = {"t": sig["hands"]["t"][:-1], "hands": sig["hands"]["hands"][:-1]}
+    with pytest.raises(ValueError, match="grid"):
+        summarize("v", T, sig, TEXT, PRIOR, CFG)
