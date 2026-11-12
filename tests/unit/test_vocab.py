@@ -24,3 +24,14 @@ def test_load_vocab_label_names_use_kit_spelling():
     assert "ski" in v.labels
     assert "skiing" not in v.labels
     assert "cooking" in v.labels
+
+
+def test_load_vocab_keys_keep_kit_order_so_index_i_is_class_i():
+    # ActionFormer's class index i is kit key i (EPIC class id order, `other` last;
+    # checked against EPIC_100_{verb,noun}_classes.csv by tools/build_vn_prior.py).
+    v = load_vocab()
+
+    assert v.verb_keys[:4] == ("take", "put", "wash", "open")
+    assert v.verb_keys[-1] == "other" and v.noun_keys[-1] == "other"
+    assert set(v.verb_keys) == v.verbs and set(v.noun_keys) == v.nouns
+    assert (len(v.verb_keys), len(v.noun_keys)) == (98, 301)

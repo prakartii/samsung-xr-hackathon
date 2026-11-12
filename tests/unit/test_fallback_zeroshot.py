@@ -5,6 +5,7 @@ import pytest
 
 from rewind.detect.fallback_zeroshot import (
     ZeroShotParams,
+    class_phrase,
     detect_zeroshot,
     window_embeddings,
     windows,
@@ -75,3 +76,19 @@ def test_zeroshot_empty_embeddings():
 def test_windows_bad_params_raise():
     with pytest.raises(ValueError):
         windows(5.0, 0.0, 1.0)
+
+
+# --- class phrases for prompts --------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("key", "phrase"),
+    [
+        ("take", "take"),
+        ("turn-on", "turn on"),  # hyphenated verbs read as words
+        ("board:chopping", "chopping board"),  # EPIC "noun:modifier" -> "modifier noun"
+        ("container:plastic:empty", "empty plastic container"),
+    ],
+)
+def test_class_phrase_turns_kit_keys_into_prompt_text(key, phrase):
+    assert class_phrase(key) == phrase
