@@ -236,12 +236,12 @@ are blank.)
 - [x] `cluster.py`
 - [x] `select/candidates.py` (both capture rules)
 - [x] `select/coverage.py` (expected-coverage lazy greedy, new-seconds cost; no fragment check needed, every component holds a whole window)
-- [ ] `select/hedge.py`
-- [ ] Label-dedup baseline selector (for the ablation and the kill rule)
+- [x] `select/hedge.py` (#16)
+- [x] Label-dedup baseline selector (for the ablation and the kill rule) (#16)
 - [x] `select/coverage.py` (expected-coverage lazy greedy, new-seconds cost, fragment check)
 - [x] `select/hedge.py`
 - [x] Label-dedup baseline selector (for the ablation and the kill rule) — `select_epic(mode="dedup")`
-- [ ] Wire into `pipeline.py` (EPIC route → `highlights[]`)
+- [x] Wire into `pipeline.py` (EPIC route → `highlights[]`) (P7 wiring PR)
 - [ ] Tune `window_lengths`, `stride`, `h`, `cluster.*` on `tune` (first pass on simulated proposals: mixed lengths kept, `h = 0`; redo on P4 proposals)
 - [ ] **Kill rule (end of Nov 14):** if expected coverage doesn't beat label dedup, ship label dedup
 
