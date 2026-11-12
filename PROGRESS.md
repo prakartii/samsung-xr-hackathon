@@ -330,7 +330,7 @@ Label errors (8): jumping -> plane (3), bikepolo -> bike (2), bike -> motor, lon
 - [ ] Final tuning on `tune` only; commit the tuned `configs/default.yaml`
 - [ ] Score on `report`; full ablation table (`tools/ablate.py`)
 - [x] `tools/latency.py`: seconds per minute of video on CPU (add a GPU row only if a free Kaggle/Colab run is handy) — 2026-11-12, laptop CPU (Windows), empty cache, full CLI per video incl. model load: **39.4 s per video minute** over 4 videos (EPIC 47.3, FPVSum 26.3; slowest P01_11 50.9). Runs in `results/latency.csv`; rerun on more videos / in Docker at P8
-- [ ] Set metric floors in `tests/integration/floors.yaml`
+- [x] Set metric floors in `tests/integration/floors.yaml` — 2026-11-13 from the full pipeline on `tune` (`tools/predict_cached.py`): EPIC coverage 0.4687 (uniform 0.3583, oracle 0.7401), 63.3% of oracle (uniform 48.4%), mAP 0.5266 (optimistic: AF train videos); FPVSum CV F1 0.2228 (uniform 0.1636), label 0.835. `tests/integration/test_floors.py` (slow, data) regenerates and checks them, ~4 min
 - [x] Determinism check: two runs → byte-identical JSON — 2026-11-12, CLI twice on FPVSum Bike_lhTFVa0h9Rk and EPIC P01_11 (1820 actions, ActionFormer): identical apart from `video_id` (taken from the output name); still to repeat inside the P8 Docker image
 
 **Exit check:** all 187 outputs pass validation; leaderboard has the final `report` row; floors committed.
@@ -444,6 +444,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-13 · PK · P7 · `tools/predict_cached.py`: full pipeline (`analyze.summarize`) for a split from the feature cache alone, 69 tune videos in 168 s. First full tune run: weighted 0.458 vs uniform 0.184 (fold mean); EPIC coverage 0.4687 vs 0.3583, 63.3% of oracle. Floors set in `tests/integration/floors.yaml` with `test_floors.py` (raised floors seen failing). Leaderboard rows for full, uniform, oracle and the 5 folds · —
 - 2026-11-13 · PK · P3/P4 · `tune` split fully cached: Kaggle job 20/20 EPIC train videos (flow, hands, CLIP; 0 errors); `import_released_features.py` now also imports logged non-manifest ids (tests first) → 20/20 SlowFast features, 0 alignment warnings. The pipeline can now run on `tune` with ActionFormer (caveat: these are ActionFormer training videos, so its detections here are optimistic: unusable for P4 tuning (Decisions), and selector tuning on them should be checked against `report`-free CV where possible) · —
 - 2026-11-12 · PK · P7 · `tools/latency.py` (cold cache, full CLI per video, tests first): 39.4 s per minute of video on a laptop CPU (EPIC 47.3, FPVSum 26.3; 2+2 videos) · —
 - 2026-11-12 · PK · P3/P7 · CLI runs without the ffmpeg CLI and on Windows: `ffprobe_meta` falls back to PyAV when the binary is missing; `_write_atomic` uses `os.chmod` by path (POSIX-only `os.fchmod` crashed and wrote no JSON). Tests first; the `run.sh` contract tests skip without ffmpeg, which hid this. Determinism check passed on 2 videos · —

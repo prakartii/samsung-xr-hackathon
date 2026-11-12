@@ -115,6 +115,16 @@ def compute_single_pass(
     return {feat: o.result() for feat, o in online.items()}
 
 
+def signal_caches(cache_root: Path, cfg: Config, models: SignalModels) -> dict[str, FeatureCache]:
+    """The flow, hands and CLIP caches under ``cache_root`` at this config's versions."""
+    p = ExtractParams.from_config(cfg)
+    return {
+        "flow": FeatureCache(cache_root, "flow", flow_cache_version(p.flow, p.dense_fps)),
+        "hands": FeatureCache(cache_root, "hands", models.hands_version),
+        "clip": FeatureCache(cache_root, "clip", models.clip_version),
+    }
+
+
 def load_signals(
     path: Path,
     duration: float,
@@ -132,11 +142,7 @@ def load_signals(
     fp = ""
     if cache_root is not None:
         fp = content_fingerprint(path)
-        caches = {
-            "flow": FeatureCache(cache_root, "flow", flow_cache_version(p.flow, p.dense_fps)),
-            "hands": FeatureCache(cache_root, "hands", models.hands_version),
-            "clip": FeatureCache(cache_root, "clip", models.clip_version),
-        }
+        caches = signal_caches(cache_root, cfg, models)
         got = {f: caches[f].get(fp) for f in FEATURES}
     missing = [f for f in FEATURES if got[f] is None]
     if missing:
