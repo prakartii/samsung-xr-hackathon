@@ -29,7 +29,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 KAGGLE = str(Path(sys.executable).parent / "kaggle")
-PACK = ["code", "tools", "configs", "kit"]
+PACK = ["code", "tools", "configs", "kit", "requirements.txt"]  # the job installs its pins
 
 
 def run(*args: str, check: bool = True) -> str:
