@@ -303,7 +303,18 @@ edge fix. Hedges improved from 0.422 to 0.447 but still trail h = 0.)
 - unit: label picks the argmax prompt with fake CLIP embeddings; score in [0, 1]
 - property: FPVSum route output always passes R9–R13
 
-**Result:** _fill in: F1 per fold, label accuracy, confusion of the worst categories, router agreement._
+**Result (partial, 2026-11-12, default config, untuned):** exit check met: F1 > uniform on every CV fold; label accuracy reported.
+
+| Split | F1 (ours) | F1 (uniform) | Label acc |
+|---|---|---|---|
+| report (49 FPVSum) | **0.2219** | 0.1626 | **0.837** (41/49) |
+| fold 0 (11) | 0.2064 | 0.2029 | 0.909 |
+| fold 1 (10) | 0.2847 | 0.1406 | 0.800 |
+| fold 2 (10) | 0.2513 | 0.1730 | 0.800 |
+| fold 3 (9) | 0.1737 | 0.1436 | 1.000 |
+| fold 4 (9) | 0.1864 | 0.1454 | 0.667 |
+
+Label errors (8): jumping -> plane (3), bikepolo -> bike (2), bike -> motor, longboarding -> motor, plane -> horse. `tools/predict_fpvsum.py` writes the documents; scored with `rewind_eval.score`. Not yet: weights/phrases tuned on CV folds (train on 4, test on the held-out one), audio ablation, pipeline wiring, GT timing check.
 
 ---
 
@@ -430,6 +441,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-12 · PK · P6 · FPVSum route measured (default cfg): F1 0.222 vs uniform 0.163 on `report`, above uniform on all 5 CV folds; label accuracy 0.837; `tools/predict_fpvsum.py` · —
 - 2026-11-12 · PK · P6 · Router agreement with the manifest: 99.5% (186/187), 0 misrouted, 1 uncertain (P03_22); `tools/eval_router.py` · —
 - 2026-11-12 · PK · P4 · mAP measured: **0.117 on `report`** (ActionFormer + pairing) vs 0.0013 for the zero-shot fallback; `tune` 0.527 is inflated (AF trained on EPIC train). `tools/predict_epic_actions.py` (both detectors), `Vocab.verb_keys/noun_keys`, `class_phrase`; leaderboard rows added · —
 - 2026-11-12 · PK · P4 · Released SlowFast features imported for **138/138** manifest EPIC videos (0 alignment warnings): `import_released_features.py --fingerprint-logs` takes fingerprints and durations from the Kaggle job logs for videos never stored locally · —

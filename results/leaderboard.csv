@@ -24,3 +24,4 @@ date,git_sha,tag,config_hash,split,n_epic,n_fpvsum,coverage_any,coverage_frac,pc
 2026-11-12,1ace0b6,P4 ActionFormer+pairing default cfg (tune = AF train videos: mAP inflated),8ba4cd5d21,tune,20,0,0.3583,0.1776,0.4841,0.5266,,,
 2026-11-12,1ace0b6,P4 ActionFormer+pairing default cfg,8ba4cd5d21,report,138,49,0.3382,0.1768,0.4587,0.1169,0.0000,0.0000,0.1645
 2026-11-12,4e93280,P4 zero-shot CLIP fallback baseline (kill-rule reference),8ba4cd5d21,report,138,49,0.3382,0.1768,0.4587,0.0013,0.0000,0.0000,0.1356
+2026-11-12,c124c8a,P6 FPVSum route (importance + CLIP label) default cfg,8ba4cd5d21,report,138,49,0.0000,0.0000,0.0000,0.0000,0.2219,0.8367,0.1391
