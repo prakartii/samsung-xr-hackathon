@@ -21,6 +21,19 @@ class FpvGT:
     score: np.ndarray  # (N,) mean importance in [0, 1]
     highlight: np.ndarray  # (N,) bool, the dataset's top-15% frames
     label: str  # kit label, e.g. "rockclimbing"
+    # False when N / duration fits no standard frame rate: the annotation covers a
+    # different cut than our video, so its frame times are wrong (left out of F1).
+    timing_ok: bool = True
+
+
+STANDARD_FPS = (24000 / 1001, 24.0, 25.0, 30000 / 1001, 30.0, 48.0, 50.0, 60000 / 1001, 60.0)
+GT_RATE_TOL = 0.02  # relative distance from a standard rate (P6 check: 3/49 videos beyond it)
+
+
+def gt_rate_suspect(n_gt: int, duration: float, tol: float = GT_RATE_TOL) -> bool:
+    """True if n_gt / duration is more than `tol` (relative) from every standard rate."""
+    implied = n_gt / duration
+    return min(abs(implied - f) / f for f in STANDARD_FPS) > tol
 
 
 def name_key(name: str) -> tuple[str, str]:
@@ -46,5 +59,6 @@ def load_fpvsum(gt_mat: Path, durations: dict[str, float]) -> dict[str, FpvGT]:
             score=score,
             highlight=np.asarray(r.Binary_score).ravel().astype(bool),
             label=name_key(vid)[0],
+            timing_ok=not gt_rate_suspect(n, duration),
         )
     return out

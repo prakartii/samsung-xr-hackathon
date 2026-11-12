@@ -86,6 +86,7 @@ def compute_scores(
     f1s = [
         frame_f1(g.times, g.highlight, preds.get(v, empty).highlights)
         for v, g in data.fpv_gt.items()
+        if g.timing_ok  # mistimed GT (different cut) can't score highlights
     ]
     label = label_accuracy(
         {v: p.label for v, p in preds.items() if p.label is not None},
@@ -97,7 +98,7 @@ def compute_scores(
         "coverage_frac": mean_ignoring_none(cov_frac.values()),
         "pct_oracle": c_any / c_oracle if c_oracle > 0 else 0.0,
         "map": m,
-        "f1": float(np.mean(f1s)) if has_fpv else None,
+        "f1": float(np.mean(f1s)) if f1s else None,
         "label_acc": label if has_fpv else None,
     }
     parts = [scores[k] for k in WEIGHTS]
