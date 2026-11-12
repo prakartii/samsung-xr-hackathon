@@ -292,7 +292,7 @@ edge fix. Hedges improved from 0.422 to 0.447 but still trail h = 0.)
 - [ ] Wire the FPVSum route into `pipeline.py`
 - [x] Tune importance weights on FPVSum CV folds (never on all 49 at once) — done, **no gain: kept the current weights**. `tools/tune_fpvsum.py --what importance` (243 configs: each weight in {0, 0.5, 1}, σ in {1, 2, 4} s): held-out CV F1 0.199 for the search vs 0.221 for the current config; the all-folds best (σ = 1 s) is 0.232 in-sample only. Label phrases likewise (`--what label`, 49 phrase sets for the 5 confused classes): held-out accuracy 0.775 vs 0.835 current; kept
 - [ ] Check signal-router agreement with the manifest (target ≥ 95%); tune `routing.min_conf` — **agreement 99.5% (186/187), 0 misrouted** (2026-11-12, `tools/eval_router.py`, 8 keyframes): EPIC P(cooking) 0.569–1.000 (median 0.980), FPVSum 0.000–0.020; 1 uncertain (EPIC P03_22, 0.569, still gets actions on the uncertain route). `min_conf` not tuned (measured on `report` only)
-- [ ] Check FPVSum GT timing: GT frame count vs ffprobe frame count per downloaded video. `Horse_2otBDeLWCow` (21.3 fps implied), `Plane_QsL_gCDHWHA` (39.6) and `Surfing_G7lPf1gF-W4` (21.0) look like a different cut than the annotated one; exclude or re-align mismatches (`rewind_eval/gt_fpvsum.py` stretches frames linearly over T)
+- [x] Check FPVSum GT timing — `tools/check_fpvsum_gt.py`: **3/49 mistimed** (implied GT fps fits no standard rate: `Horse_2otBDeLWCow` 21.3, `Plane_QsL_gCDHWHA` 39.6, `Surfing_G7lPf1gF-W4` 21.0; the other 46 are 24–30 fps). The scorer now detects this itself (`gt_fpvsum.gt_rate_suspect`, `FpvGT.timing_ok`) and leaves those videos out of F1 only; label accuracy still counts them. No video ids hard-coded
 - [ ] Uncertain route always emits actions (EPIC detector or zero-shot fallback)
 - [ ] Ablation: audio terms (RMS, spectral flux) in the importance proxy; keep only if CV improves
 - [ ] Optional: ridge on CLIP if it beats the proxy on CV
@@ -313,6 +313,8 @@ edge fix. Hedges improved from 0.422 to 0.447 but still trail h = 0.)
 | fold 2 (10) | 0.2513 | 0.1730 | 0.800 |
 | fold 3 (9) | 0.1737 | 0.1436 | 1.000 |
 | fold 4 (9) | 0.1864 | 0.1454 | 0.667 |
+
+**Corrected (2026-11-12, mistimed GT left out of F1, 46 videos):** report F1 **0.2255** vs uniform 0.1645; CV folds 0–4: 0.2076 / 0.2847 / 0.2727 / 0.1737 / 0.1792 vs uniform 0.2184 / 0.1406 / 0.1629 / 0.1436 / 0.1523 → **CV mean 0.2236 vs 0.1636; above uniform on 4 of 5 folds** (fold 0 slightly below). The table above used the uncorrected GT.
 
 Label errors (8): jumping -> plane (3), bikepolo -> bike (2), bike -> motor, longboarding -> motor, plane -> horse. `tools/predict_fpvsum.py` writes the documents; scored with `rewind_eval.score`. Not yet: weights/phrases tuned on CV folds (train on 4, test on the held-out one), audio ablation, pipeline wiring, GT timing check.
 
@@ -442,6 +444,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-12 · PK · P6 · FPVSum GT timing check: 3/49 videos' GT covers a different cut (non-standard implied fps); scorer leaves them out of F1 (data-driven, tests first). Corrected F1 0.2255 vs uniform 0.1645; CV mean 0.2236 vs 0.1636, 4/5 folds above uniform · —
 - 2026-11-12 · PK · P3 · Kaggle job for the 20 `tune` EPIC train videos launched (`kaggle_launch.py --split tune`; `shard_ids` keeps non-manifest ids, per-run log tag `_tune`) · —
 - 2026-11-12 · PK · P4 · Released SlowFast features ship in `weights/released_features` (785 MB, 138/138, `detect.released_features`); `analyze_video` checks the local cache then weights/ via `find_slowfast` (tests first). Clean-cache run on EPIC P01_12: routed EPIC, ActionFormer used (851 actions, top close/open cupboard), 61 s. Rebuild: `RELEASED_FEATURES=1 tools/fetch_weights.sh` with `tools/data/epic_fingerprints.jsonl`. README (P8) must say submitted EPIC outputs used these published features (§10.1.4) · —
 - 2026-11-12 · PK · P6 · CV tuning (`tools/tune_fpvsum.py`, tests first): importance weights and label phrases both score lower held-out than the current config, so nothing adopted (Decisions) · —
