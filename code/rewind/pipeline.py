@@ -54,6 +54,11 @@ def run_video(
     cfg = _with_team(cfg, team_id)
 
     vocab = load_vocab()
+    # Write the fallback first: a hard kill during analysis (SIGKILL, OOM killer, a
+    # native crash) runs no except clause, and a missing JSON costs more than a weak
+    # one (CLAUDE.md §6.7). A successful analysis replaces it atomically below.
+    fallback_doc = to_document(_fallback(video_id, probe.duration_sec, cfg))
+    _write_atomic(out, dumps(fallback_doc))
     try:
         result = analyze(video, probe, video_id, cfg)
         doc = to_document(result)
@@ -67,11 +72,11 @@ def run_video(
             if errors:
                 raise ValueError(f"{len(errors)} validation error(s): {errors[:3]}")
     except Exception as exc:  # any stage failure → fallback (CLAUDE.md §6.7)
-        log.error("analysis failed for %s, writing fallback: %s", video, exc)
-        doc = to_document(_fallback(video_id, probe.duration_sec, cfg))
-        errors, _ = validate(doc, load_vocab(), filename_stem=video_id, strict=True)
-        if errors:  # should be impossible (property-tested); still write it
+        log.error("analysis failed for %s, keeping the fallback: %s", video, exc)
+        errors, _ = validate(fallback_doc, vocab, filename_stem=video_id, strict=True)
+        if errors:  # should be impossible (property-tested); it is already written
             log.error("fallback failed validation: %s", errors)
+        return
     _write_atomic(out, dumps(doc))
 
 

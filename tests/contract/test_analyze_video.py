@@ -110,3 +110,19 @@ def test_analyze_video_renamed_copy_hits_cache_and_matches_except_video_id(video
 
     assert second["video_id"] == "zz"
     assert {**second, "video_id": "a"} == first
+
+
+class NoText(NoModel):
+    def encode_texts(self, texts):
+        raise AssertionError("cached prompts must not be encoded again")
+
+
+def test_analyze_video_new_process_reuses_cached_text_embeddings(videos, tmp_path):
+    # run.sh is one process per video; the second video must not re-encode the ~450
+    # prompts (~30 s on CPU). A fresh Models whose encoder can't encode anything still
+    # gives the same JSON for a cached video.
+    cache = tmp_path / "cache"
+    first = run(videos[30], "a", models(cache))
+    second = run(videos[30], "a", models(cache, clip=NoText()))
+
+    assert second == first

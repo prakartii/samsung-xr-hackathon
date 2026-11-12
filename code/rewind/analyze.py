@@ -20,6 +20,8 @@ Routes (decided from the video's content only, never the filename or manifest):
 
 from __future__ import annotations
 
+import hashlib
+import json
 from collections.abc import Callable, Sequence
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -41,6 +43,7 @@ from rewind.detect.pairing import (
     pair_proposals,
     proposals_to_actions,
 )
+from rewind.features.cache import FeatureCache
 from rewind.features.clip import Encoder, class_embeddings, zero_shot_probs
 from rewind.features.extract import SignalModels, load_signals
 from rewind.label import COOKING, choose_label, fpvsum_label, keyframe_indices
@@ -256,10 +259,33 @@ class Models:
     _text: dict = field(default_factory=dict)
 
     def text(self, cfg: Config) -> Text:
-        key = repr((asdict(cfg.label), asdict(cfg.zeroshot)))
-        if key not in self._text:
-            self._text[key] = text_embeddings(self.signals.clip, cfg)
-        return self._text[key]
+        """Text embeddings for this config: memory, then the cache, then CLIP.
+
+        run.sh is one process per video and encoding the ~450 prompts takes ~30 s on
+        CPU, so they are cached on disk too (cache version = CLIP version; entry key =
+        hash of every prompt input).
+        """
+        verbs, nouns = class_lists()
+        inputs = [asdict(cfg.label), asdict(cfg.zeroshot), verbs, nouns]
+        key = hashlib.sha1(json.dumps(inputs, sort_keys=True).encode()).hexdigest()
+        if key in self._text:
+            return self._text[key]
+        cache = (
+            FeatureCache(self.cache_root, "text", self.signals.clip_version)
+            if self.cache_root is not None
+            else None
+        )
+        hit = cache.get(key) if cache is not None else None
+        if hit is not None:
+            text = Text(float(hit["logit_scale"]), tuple(cfg.label.classes), hit["label"],
+                        verbs, hit["verbs"], nouns, hit["nouns"])  # fmt: skip
+        else:
+            text = text_embeddings(self.signals.clip, cfg)
+            if cache is not None:
+                arrays = {"label": text.label, "verbs": text.verbs, "nouns": text.nouns}
+                cache.put(key, {**arrays, "logit_scale": np.asarray(text.logit_scale)})
+        self._text[key] = text
+        return text
 
     def prior(self, cfg: Config) -> VNPrior:
         verbs, nouns = class_lists()

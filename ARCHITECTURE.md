@@ -188,11 +188,14 @@ and crossfades for the demo only), `timeline_html.py` (stretch).
 ```
 
 1. Use `./.venv/bin/python` if present, else `$PYTHON`, else `python3`; set
-   `PYTHONPATH=code`; run `python -m rewind.cli "$1" "$2" --config configs/default.yaml`.
+   `PYTHONPATH=code`; run `python -m rewind.cli "$1" "$2" --config configs/default.yaml`
+   (or `$REWIND_CONFIG` when set; the contract tests use a config without weights).
 2. `cli` seeds everything, builds `VideoMeta` (ffprobe), routes the dataset.
    `video_id` is the **output** file's stem (R2 requires it to match the JSON name);
    the input file name is not used at all.
 3. Features: read from `cache/` if a valid versioned entry exists; else compute.
+   Prompt text embeddings are cached too (`cache/text/`, versioned by the CLIP
+   weights): `run.sh` is one process per video and encoding them costs ~30 s on CPU.
    (On a clean machine nothing is cached; everything is computed from the MP4.)
 4. EPIC route: detect → pairing → `actions[]`; cluster → coverage windows + hedge
    → postprocess → `highlights[]`; label = `cooking`.
@@ -214,7 +217,9 @@ and crossfades for the demo only), `timeline_html.py` (stretch).
 6. Any exception at any step → fallback output, error to stderr, exit code 0. The
    one exception: a video with no readable duration (missing, corrupt) gets no JSON
    and exit code 2, because R3 can't be satisfied without a duration.
-7. Write JSON atomically (temp file + rename).
+7. Write JSON atomically (temp file + rename). The validated fallback is written
+   **before** step 3, so a hard kill during analysis (SIGKILL, OOM killer, native
+   crash: no `except` runs) still leaves a valid file; a successful run replaces it.
 
 `TEAM_ID` comes from the `REWIND_TEAM_ID` env var, defaulting to `team.team_id` in
 `configs/default.yaml`. It must be identical in every file (kit). The kit examples use
