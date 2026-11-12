@@ -329,7 +329,7 @@ Label errors (8): jumping -> plane (3), bikepolo -> bike (2), bike -> motor, lon
 - [ ] Clean-run all 187 videos from raw MP4 with an empty cache (time it)
 - [ ] Final tuning on `tune` only; commit the tuned `configs/default.yaml`
 - [ ] Score on `report`; full ablation table (`tools/ablate.py`)
-- [ ] `tools/latency.py`: seconds per minute of video on CPU (add a GPU row only if a free Kaggle/Colab run is handy)
+- [x] `tools/latency.py`: seconds per minute of video on CPU (add a GPU row only if a free Kaggle/Colab run is handy) — 2026-11-12, laptop CPU (Windows), empty cache, full CLI per video incl. model load: **39.4 s per video minute** over 4 videos (EPIC 47.3, FPVSum 26.3; slowest P01_11 50.9). Runs in `results/latency.csv`; rerun on more videos / in Docker at P8
 - [ ] Set metric floors in `tests/integration/floors.yaml`
 - [x] Determinism check: two runs → byte-identical JSON — 2026-11-12, CLI twice on FPVSum Bike_lhTFVa0h9Rk and EPIC P01_11 (1820 actions, ActionFormer): identical apart from `video_id` (taken from the output name); still to repeat inside the P8 Docker image
 
@@ -444,6 +444,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-12 · PK · P7 · `tools/latency.py` (cold cache, full CLI per video, tests first): 39.4 s per minute of video on a laptop CPU (EPIC 47.3, FPVSum 26.3; 2+2 videos) · —
 - 2026-11-12 · PK · P3/P7 · CLI runs without the ffmpeg CLI and on Windows: `ffprobe_meta` falls back to PyAV when the binary is missing; `_write_atomic` uses `os.chmod` by path (POSIX-only `os.fchmod` crashed and wrote no JSON). Tests first; the `run.sh` contract tests skip without ffmpeg, which hid this. Determinism check passed on 2 videos · —
 - 2026-11-12 · PK · P4/P6 · Ticked route wiring (EPIC, FPVSum) and uncertain-route actions: done in `analyze.py` with tests in #27 · —
 - 2026-11-12 · PK · P6 · FPVSum GT timing check: 3/49 videos' GT covers a different cut (non-standard implied fps); scorer leaves them out of F1 (data-driven, tests first). Corrected F1 0.2255 vs uniform 0.1645; CV mean 0.2236 vs 0.1636, 4/5 folds above uniform · —
