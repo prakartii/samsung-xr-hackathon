@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import json
 import sys
 from pathlib import Path
 
@@ -45,6 +46,28 @@ def expected_feature_count(duration_sec: float) -> int:
 def alignment_gap_sec(n_feats: int, duration_sec: float) -> float:
     """|K - expected K| in seconds of video (one feature step = 16/30 s)."""
     return abs(n_feats - expected_feature_count(duration_sec)) * FEAT_STRIDE / FEAT_FPS
+
+
+def load_fingerprint_logs(paths: list[Path]) -> dict[str, tuple[str, float]]:
+    """{video_id: (content fingerprint, duration)} from tools/kaggle_cache_epic.py logs.
+
+    Lets features be imported for videos processed on Kaggle and never stored here.
+    Failed records (no fingerprint) are skipped. One id with two fingerprints means
+    two different files, so it is an error rather than a guess.
+    """
+    out: dict[str, tuple[str, float]] = {}
+    for path in paths:
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            rec = json.loads(line)
+            if "fingerprint" not in rec:
+                continue
+            vid, fp = rec["video_id"], rec["fingerprint"]
+            if vid in out and out[vid][0] != fp:
+                raise ValueError(f"{vid}: two fingerprints in the logs ({out[vid][0]}, {fp})")
+            out[vid] = (fp, float(rec["duration"]))
+    return out
 
 
 def video_duration(path: Path) -> float:
