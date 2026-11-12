@@ -6,7 +6,7 @@ import subprocess
 import av
 import numpy as np
 import pytest
-from fixtures.videos import frame_index, write_index_video
+from fixtures.videos import corrupt_frame, frame_index, write_index_video
 
 from rewind.video_io import (
     DecodeError,
@@ -125,6 +125,15 @@ def test_bad_packet_is_skipped_and_decoding_continues():
     # whole video on Kaggle. Frames before and after it must still come through.
     packets = [_Packet(["f0"]), _Packet(bad=True), _Packet(["f1", "f2"])]
     assert list(frames_skipping_bad_packets(packets, max_bad=5)) == ["f0", "f1", "f2"]
+
+
+def test_iter_frames_undecodable_frame_gets_the_previous_frame(video_10fps_3s):
+    # End to end on a real file: frame 10's packet is zeroed, so FFmpeg rejects it.
+    # 10 fps samples t = 0.0 .. 2.9 map to frames 0 .. 29; t = 1.0 falls in the hole
+    # and gets frame 9 (the last decoded one); every other sample is exact.
+    corrupt_frame(video_10fps_3s, 10)
+    out = list(iter_frames(video_10fps_3s, duration_sec=3.0, target_fps=10.0))
+    assert [frame_index(f) for _, f in out] == [*range(10), 9, *range(11, 30)]
 
 
 def test_too_many_bad_packets_raise_decode_error():

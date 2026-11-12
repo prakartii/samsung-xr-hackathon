@@ -18,6 +18,7 @@ After collecting, expire the token (Kaggle -> Settings -> API).
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import shutil
 import subprocess
@@ -73,6 +74,21 @@ def push_code(user: str, epic_scripts: Path, work: Path) -> None:
             return
         time.sleep(10)
     raise SystemExit("dataset not ready after 10 minutes")
+
+
+def parse_only_ids(text: str, known: set[str]) -> list[str]:
+    """Split a comma list of EPIC ids; any id not in the kit manifest is an error
+    (a typo would otherwise be dropped silently and the retry would do nothing)."""
+    ids = [v.strip() for v in text.split(",") if v.strip()]
+    unknown = sorted(set(ids) - known)
+    if not ids or unknown:
+        raise SystemExit(f"--only-ids: not EPIC ids in kit/manifest.csv: {unknown or text!r}")
+    return ids
+
+
+def epic_ids() -> set[str]:
+    with (REPO / "kit" / "manifest.csv").open(newline="", encoding="utf-8") as f:
+        return {r["video_id"] for r in csv.DictReader(f) if r["dataset"] == "epic_kitchens_100"}
 
 
 def push_kernels(user: str, shards: int, work: Path, only_ids: list[str] | None = None) -> None:
@@ -157,7 +173,7 @@ def main() -> None:
             if args.epic_scripts is None:
                 ap.error("--epic-scripts is required to package the downloader CSVs")
             push_code(user, args.epic_scripts, work)
-        only = [v.strip() for v in args.only_ids.split(",")] if args.only_ids else None
+        only = parse_only_ids(args.only_ids, epic_ids()) if args.only_ids else None
         push_kernels(user, args.shards, work, only)
 
 

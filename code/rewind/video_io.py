@@ -218,8 +218,12 @@ def iter_frames(
     streams (audio, GoPro metadata) are ignored. OpenCV's backend stopped silently
     after < 1 s on EPIC GoPro files, which is why this module doesn't use it.
 
-    Raises DecodeError if the stream ends more than one frame before the last
-    requested t, so a truncated decode can never be mistaken for a short video.
+    Packets the decoder rejects are skipped (up to `_MAX_BAD_PACKETS`); samples in
+    the gap get the last frame decoded before it.
+
+    Raises DecodeError if the stream ends more than one frame plus `_END_SLACK_SEC`
+    before the last requested t, so a truncated decode can never be mistaken for a
+    short video.
     """
     import av
 

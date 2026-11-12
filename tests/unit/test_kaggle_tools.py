@@ -74,3 +74,25 @@ def test_collect_replaces_a_stale_local_entry(tmp_path):
     assert launch.needs_copy(src, local)  # stale version locally
     _entry(local, "flow-v2")
     assert not launch.needs_copy(src, local)  # same version: keep
+
+
+def test_only_ids_accepts_known_ids_and_strips_spaces():
+    launch = _load("kaggle_launch")
+    assert launch.parse_only_ids("P08_09, P29_05", {"P08_09", "P29_05", "P01_11"}) == [
+        "P08_09",
+        "P29_05",
+    ]
+
+
+def test_only_ids_rejects_an_unknown_id():
+    # A typo (P8_09) must stop the launch, not silently retry nothing.
+    launch = _load("kaggle_launch")
+    with pytest.raises(SystemExit, match="P8_09"):
+        launch.parse_only_ids("P8_09,P29_05", {"P08_09", "P29_05"})
+
+
+def test_only_ids_are_all_epic_ids_in_the_kit_manifest():
+    launch = _load("kaggle_launch")
+    ids = launch.epic_ids()
+    assert len(ids) == 138  # EPIC-KITCHENS-100 val videos in kit/manifest.csv
+    assert "P08_09" in ids and not any(v.startswith("Ski_") for v in ids)
