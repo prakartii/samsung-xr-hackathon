@@ -80,6 +80,7 @@ select:
   capture_rule: any_overlap  # any_overlap | fraction (PROGRESS.md Q4)
   fraction_theta: 0.5      # fraction rule: overlap/span midpoint of the sigmoid
   fraction_tau: 0.05       # fraction rule: sigmoid temperature
+  mode: expected           # expected | dedup: expected coverage (§5.4), or the label-dedup baseline (P5 kill rule)
 
 hedge:
   share: 0.0               # budget fraction for hedge windows; 0 until activity signals exist (P5 sim: 0.125 cost ~0.08 coverage)

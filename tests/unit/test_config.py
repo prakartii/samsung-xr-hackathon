@@ -82,6 +82,17 @@ def test_config_unknown_capture_rule_is_rejected(default_cfg_dict):
         config_from_dict(default_cfg_dict)
 
 
+def test_config_unknown_select_mode_is_rejected(default_cfg_dict):
+    default_cfg_dict["select"]["mode"] = "greedy"
+
+    with pytest.raises(ConfigError, match=r"select\.mode: 'greedy' is not one of"):
+        config_from_dict(default_cfg_dict)
+
+
+def test_config_select_mode_defaults_to_expected_coverage(default_cfg_dict):
+    assert config_from_dict(default_cfg_dict).select.mode == "expected"
+
+
 def test_config_unknown_short_video_mode_is_rejected(default_cfg_dict):
     default_cfg_dict["post"]["short_video_mode"] = "skip"
 

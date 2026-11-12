@@ -170,7 +170,7 @@ def epic_highlights(
     h = cfg.hedge
     activity = h.w_flow * np.asarray(flow["flow"]) + h.w_hands * np.asarray(hands["hands"])
     profile = (np.asarray(flow["t"]), activity)
-    segs, values = select_epic(clusters, duration, cfg, profile=profile)
+    segs, values = select_epic(clusters, duration, cfg, mode=cfg.select.mode, profile=profile)
     return segs, values, profile
 
 

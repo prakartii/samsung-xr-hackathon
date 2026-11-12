@@ -146,6 +146,7 @@ class SelectCfg:
     capture_rule: Literal["any_overlap", "fraction"]
     fraction_theta: float
     fraction_tau: float
+    mode: Literal["expected", "dedup"]
 
 
 @dataclass(frozen=True)
