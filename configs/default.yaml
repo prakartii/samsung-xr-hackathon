@@ -72,7 +72,7 @@ calibration:
 
 select:
   window_lengths: [4.05, 5.0, 6.0]  # candidate window lengths in s; each >= 4.05
-  stride: 0.5              # candidate window start grid in s
+  stride: 1.0              # candidate window start grid in s; P7 tune: 1.0 > 0.5 (real AF tune 0.4883 vs 0.4687, noisy sim 0.5217 vs 0.5112; clean sim 0.7305 vs 0.7438)
   budget_frac: 0.145       # highlight budget as a fraction of T (kit 0.15 minus a margin)
   capture_rule: any_overlap  # any_overlap | fraction (PROGRESS.md Q4)
   fraction_theta: 0.5      # fraction rule: overlap/span midpoint of the sigmoid

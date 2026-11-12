@@ -274,7 +274,7 @@ detections:
 ### 5.3 Candidate windows (`select/candidates.py`)
 
 For lengths `L ∈ cfg.select.window_lengths` (default `[4.05, 5.0, 6.0]`) and starts on
-a grid of `cfg.select.stride` (default 0.5 s), keep windows inside `[0, T]` that
+a grid of `cfg.select.stride` (default 1.0 s; tuned on `tune`, PROGRESS Decisions 2026-11-13), keep windows inside `[0, T]` that
 overlap ≥ 1 cluster span (window ends clamped to `≤ T`). A cluster's capture
 probability is computed from how many seconds of its span the union covers:
 
