@@ -156,3 +156,45 @@ def test_summarize_short_video_gives_one_highlight():
 )
 def test_key_phrase_turns_kit_keys_into_prompt_words(key, phrase):
     assert key_phrase(key) == phrase
+
+
+def test_summarize_cooking_label_uses_expected_coverage_selector():
+    # One ActionFormer action on [30, 34]. With flat signals the importance proxy would
+    # take the first windows from t = 0 (budget 0.145 * 60 = 8.7 s), so only the
+    # coverage selector puts a highlight over [30, 34].
+    dets = ([((30.0, 34.0), "put", 0.9)], [((30.0, 34.0), "plate", 0.8)])
+    r = summarize("v", T, signals(COOKING_TAKE_KNIFE), TEXT, PRIOR, CFG, lambda: dets)
+
+    assert r.label[0] == "cooking"
+    assert any(s < 34.0 and end > 30.0 for s, end in r.highlights)
+
+
+def test_summarize_fpvsum_label_excludes_cooking_class():
+    # cos(frame, cooking) = cos(frame, bike) = cos(frame, ski) = 1/sqrt(3), so over all 15
+    # labels P(cooking) = 1/3: margin |1/3 - 0.5| = 1/6 >= 0.1 -> FPVSum route.
+    # Over the 14 FPVSum classes bike and ski tie at 1/2 (1/3 each if cooking leaked in);
+    # bike comes first in label order and wins.
+    frame = e(LABELS.index("cooking"), LABELS.index("bike"), LABELS.index("ski"))
+    r = summarize("v", T, signals(frame), TEXT, PRIOR, CFG)
+
+    assert r.label[0] == "bike"
+    assert r.label[1] == pytest.approx(0.5, abs=1e-6)
+
+
+def test_summarize_actionformer_failure_falls_back_to_zero_shot_actions():
+    # An ActionFormer error (bad features, torch mismatch) must cost the detector, not
+    # the video: the zero-shot detector still gives the 236 actions.
+    def detect():
+        raise RuntimeError("feature shape mismatch")
+
+    r = summarize("v", T, signals(COOKING_TAKE_KNIFE), TEXT, PRIOR, CFG, detect)
+    assert len(r.actions) == 236
+
+
+def test_summarize_mismatched_dense_grids_raise():
+    # flow and hands come from one pass on the same grid; a mismatch means a broken
+    # cache and must fail loudly (the pipeline then writes the fallback).
+    sig = signals(BIKE)
+    sig["hands"] = {"t": sig["hands"]["t"][:-1], "hands": sig["hands"]["hands"][:-1]}
+    with pytest.raises(ValueError, match="grid"):
+        summarize("v", T, sig, TEXT, PRIOR, CFG)

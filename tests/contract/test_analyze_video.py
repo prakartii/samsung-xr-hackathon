@@ -14,10 +14,10 @@ import pytest
 
 from rewind.analyze import Models, analyze_video
 from rewind.config import load_config
-from rewind.features.extract import SignalModels
+from rewind.features.extract import ExtractParams, SignalModels, compute_single_pass
 from rewind.output import dumps, to_document
 from rewind.schema import validate
-from rewind.video_io import ffprobe_meta
+from rewind.video_io import ffprobe_meta, sample_times
 from rewind.vocab import load_vocab
 from tests.conftest import DEFAULT_CONFIG
 
@@ -126,3 +126,61 @@ def test_analyze_video_new_process_reuses_cached_text_embeddings(videos, tmp_pat
     second = run(videos[30], "a", models(cache, clip=NoText()))
 
     assert second == first
+
+
+def test_analyze_video_read_only_cache_still_analyzes(videos, tmp_path):
+    # Regression (review of #21): an unwritable cache (read-only mount, full disk) made
+    # FeatureCache.put raise, so every video fell back. The cache is only a speed-up.
+    ro = tmp_path / "ro"
+    ro.mkdir()
+    ro.chmod(0o555)
+    try:
+        doc = run(videos[12], "b", models(ro / "cache"))
+    finally:
+        ro.chmod(0o755)
+
+    assert doc == run(videos[12], "b", models(None))
+
+
+def test_text_cache_follows_label_class_order(videos, tmp_path):
+    # Regression (review of #21): the text-cache key sorted label.classes, so a config
+    # with the same classes in another order reused rows in the wrong order.
+    from dataclasses import replace
+
+    cache = tmp_path / "cache"
+    m = models(cache)
+    m.text(CFG)
+    order = dict(reversed(list(CFG.label.classes.items())))
+    cfg2 = replace(CFG, label=replace(CFG.label, classes=order))
+
+    fresh = models(None).text(cfg2)
+    cached = models(cache).text(cfg2)
+
+    assert cached.label_keys == fresh.label_keys
+    assert np.array_equal(cached.label, fresh.label)
+
+
+def test_compute_single_pass_clip_uses_every_rth_dense_sample(videos):
+    # dense 4 fps, clip 1 fps -> r = 4: clip t = 0, 1, 2, ... exactly as a 1 fps pass.
+    video = videos[12]
+    duration = ffprobe_meta(video).duration_sec
+    p = ExtractParams.from_config(CFG)
+    both = compute_single_pass(video, duration, ["flow", "clip"], FakeClip(), None, p)
+    alone = compute_single_pass(video, duration, ["clip"], FakeClip(), None, p)
+
+    assert np.array_equal(both["clip"]["t"], sample_times(duration, 1.0))
+    assert np.array_equal(both["clip"]["clip_emb"], alone["clip"]["clip_emb"])
+    assert np.array_equal(both["flow"]["t"], sample_times(duration, 4.0))
+
+
+def test_compute_single_pass_flow_does_not_depend_on_other_missing_features(videos):
+    # Regression (review of #21): frames were decoded at the widest *missing* feature's
+    # width, so flow computed alone (160 px) differed from flow computed with CLIP
+    # (448 px, then resized) by up to 3.5 z-units: same MP4, different JSON.
+    video = videos[12]
+    duration = ffprobe_meta(video).duration_sec
+    p = ExtractParams.from_config(CFG)
+    alone = compute_single_pass(video, duration, ["flow"], None, None, p)
+    both = compute_single_pass(video, duration, ["flow", "clip"], FakeClip(), None, p)
+
+    assert np.array_equal(alone["flow"]["flow"], both["flow"]["flow"])

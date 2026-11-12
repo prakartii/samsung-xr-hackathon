@@ -64,6 +64,8 @@ from rewind.vocab import class_lists
 log = get_logger("rewind.analyze")
 
 Arrays = dict[str, np.ndarray]
+# Bump when key_phrase or the prompt construction changes (invalidates cache/text).
+TEXT_VERSION = "text-v1"
 Detections = tuple[list[Detection], list[Detection]]
 
 
@@ -202,6 +204,8 @@ def summarize(
     otherwise); called only on routes that emit actions.
     """
     flow, hands, clip = signals["flow"], signals["hands"], signals["clip"]
+    if not np.array_equal(np.asarray(flow["t"]), np.asarray(hands["t"])):
+        raise ValueError("flow and hands must share the dense time grid")
     decision = route_video(clip["clip_emb"], text, cfg)
     label = video_label(clip["clip_emb"], text, decision, cfg)
     log.info("route %s (margin %.3f), label %s", decision.dataset, decision.route_conf, label)
@@ -209,7 +213,12 @@ def summarize(
     proposals: list[Proposal] = []
     actions: list = []
     if decision.dataset != "fpvsum":  # EPIC or uncertain: always emit actions
-        dets = detect() if detect is not None else None
+        dets = None
+        if detect is not None:
+            try:
+                dets = detect()
+            except Exception as exc:  # never lose the route's actions to ActionFormer
+                log.error("ActionFormer failed, using the zero-shot detector: %s", exc)
         if dets is None:
             dets = zeroshot_detections(clip, duration, text, cfg)
         proposals = proposals_from(dets, prior, cfg)
@@ -266,8 +275,9 @@ class Models:
         hash of every prompt input).
         """
         verbs, nouns = class_lists()
-        inputs = [asdict(cfg.label), asdict(cfg.zeroshot), verbs, nouns]
-        key = hashlib.sha1(json.dumps(inputs, sort_keys=True).encode()).hexdigest()
+        # No sort_keys: the label.classes order is the row order of the cached arrays.
+        inputs = [TEXT_VERSION, asdict(cfg.label), asdict(cfg.zeroshot), verbs, nouns]
+        key = hashlib.sha1(json.dumps(inputs).encode()).hexdigest()
         if key in self._text:
             return self._text[key]
         cache = (
@@ -276,6 +286,8 @@ class Models:
             else None
         )
         hit = cache.get(key) if cache is not None else None
+        if hit is not None and tuple(hit["label_keys"].tolist()) != tuple(cfg.label.classes):
+            hit = None  # can't happen with the ordered key; never trust misaligned rows
         if hit is not None:
             text = Text(float(hit["logit_scale"]), tuple(cfg.label.classes), hit["label"],
                         verbs, hit["verbs"], nouns, hit["nouns"])  # fmt: skip
@@ -283,7 +295,11 @@ class Models:
             text = text_embeddings(self.signals.clip, cfg)
             if cache is not None:
                 arrays = {"label": text.label, "verbs": text.verbs, "nouns": text.nouns}
-                cache.put(key, {**arrays, "logit_scale": np.asarray(text.logit_scale)})
+                arrays["label_keys"] = np.asarray(text.label_keys)
+                try:
+                    cache.put(key, {**arrays, "logit_scale": np.asarray(text.logit_scale)})
+                except OSError as exc:  # read-only mount, full disk
+                    log.warning("text embeddings not cached: %s", exc)
         self._text[key] = text
         return text
 
@@ -318,21 +334,30 @@ def load_models(cfg: Config, repo_root: Path) -> Models:
 
     d = cfg.detect
     prior = repo_root / d.vn_prior
+    verbs, nouns = class_lists()
     if prior.exists():
-        models.prior_counts = np.load(prior, allow_pickle=False)
+        counts = np.load(prior, allow_pickle=False)
+        if counts.shape == (len(verbs), len(nouns)):
+            models.prior_counts = counts
+        else:
+            log.error("%s has shape %s, not %s: uniform prior", prior, counts.shape,
+                      (len(verbs), len(nouns)))  # fmt: skip
     else:
         log.warning("%s missing: pairing uses a uniform verb-noun prior", prior)
     ckpts = [repo_root / d.verb_checkpoint, repo_root / d.noun_checkpoint]
     if all(c.exists() for c in ckpts):
         from rewind.detect.actionformer import ActionFormerDetector, ActionFormerParams
 
-        verbs, nouns = class_lists()
-        models.verb_detector = ActionFormerDetector(
-            ActionFormerParams(d.verb_config, d.verb_checkpoint), verbs, repo_root
-        )
-        models.noun_detector = ActionFormerDetector(
-            ActionFormerParams(d.noun_config, d.noun_checkpoint), nouns, repo_root
-        )
+        try:
+            verb = ActionFormerDetector(
+                ActionFormerParams(d.verb_config, d.verb_checkpoint), verbs, repo_root
+            )
+            noun = ActionFormerDetector(
+                ActionFormerParams(d.noun_config, d.noun_checkpoint), nouns, repo_root
+            )
+            models.verb_detector, models.noun_detector = verb, noun
+        except Exception as exc:  # e.g. a checkpoint the installed torch can't load
+            log.error("ActionFormer failed to load, EPIC actions use zero-shot: %s", exc)
     else:
         log.warning("ActionFormer checkpoints missing: EPIC actions use the zero-shot detector")
     return models

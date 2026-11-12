@@ -21,7 +21,10 @@ from rewind.features.cache import FeatureCache, content_fingerprint
 from rewind.features.clip import ClipOnline, ClipParams, Encoder
 from rewind.features.flow import FlowOnline, FlowParams, flow_cache_version
 from rewind.features.hands import HandParams, HandScorer, HandsOnline
+from rewind.utils import get_logger
 from rewind.video_io import iter_frames
+
+log = get_logger("rewind.features.extract")
 
 FEATURES = ("flow", "hands", "clip")
 Arrays = dict[str, np.ndarray]
@@ -81,11 +84,10 @@ def compute_single_pass(
     if need_dense and abs(ratio - round(ratio)) > 1e-9:
         raise ValueError("signals.dense_fps must be a multiple of signals.clip_fps")
     rate, step = (p.dense_fps, round(ratio)) if need_dense else (p.clip_fps, 1)
-    width = max(
-        [p.flow.width] * ("flow" in missing)
-        + [p.hands.width] * ("hands" in missing)
-        + [p.clip.width] * ("clip" in missing)
-    )
+    # Always the widest any feature needs, whatever is missing: each feature resizes
+    # from there, and flow from a 448 px decode differs from a 160 px one (by up to
+    # 3.5 z-units), so a width tied to the cache state would change the output.
+    width = max(p.flow.width, p.hands.width, p.clip.width)
     online: dict = {}
     scorer = None
     if "flow" in missing:
@@ -141,6 +143,9 @@ def load_signals(
         new = compute_single_pass(path, duration, missing, models.clip, models.new_hands, p)
         for feat, arrays in new.items():
             if caches:
-                caches[feat].put(fp, arrays)
+                try:
+                    caches[feat].put(fp, arrays)
+                except OSError as exc:  # read-only mount, full disk: the cache is a speed-up
+                    log.warning("%s not cached: %s", feat, exc)
             got[feat] = arrays
     return {f: got[f] for f in FEATURES}  # type: ignore[misc]
