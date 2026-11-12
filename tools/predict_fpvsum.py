@@ -51,8 +51,8 @@ def fpvsum_document(
 ) -> dict:
     """Kit document: post-processed segments as highlights, the label, no actions.
 
-    If post-processing leaves no highlight (no segment selected), the uniform
-    fallback's highlights are used so the document still satisfies kit R11.
+    With no segments, post-processing itself places one window (ARCHITECTURE §5.6
+    step 6), so the document still satisfies kit R11.
     """
     highlights = postprocess(
         segments,
@@ -70,7 +70,7 @@ def fpvsum_document(
         merge_gap=cfg.post.merge_gap,
         short_video_mode=cfg.post.short_video_mode,
     )
-    return to_document(replace(base, label=label, highlights=highlights or base.highlights))
+    return to_document(replace(base, label=label, highlights=highlights))
 
 
 def _sha256(path: Path) -> str:
