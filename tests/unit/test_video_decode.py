@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 from fixtures.videos import corrupt_frame, frame_index, write_index_video
 
+from rewind import video_io
 from rewind.video_io import (
     DecodeError,
     frames_skipping_bad_packets,
@@ -141,3 +142,26 @@ def test_too_many_bad_packets_raise_decode_error():
     packets = [_Packet(bad=True)] * 3 + [_Packet(["f0"])]
     with pytest.raises(DecodeError):
         list(frames_skipping_bad_packets(packets, max_bad=2))
+
+
+def test_ffprobe_meta_without_ffprobe_binary_uses_pyav(video_10fps_3s, monkeypatch):
+    # A machine with no ffprobe on PATH: subprocess.run raises FileNotFoundError.
+    # The probe must still succeed via PyAV: 30 frames at 10 fps = 3.0 s, 64x48.
+    def no_binary(*args, **kwargs):
+        raise FileNotFoundError("ffprobe")
+
+    monkeypatch.setattr(video_io.subprocess, "run", no_binary)
+    meta = video_io.ffprobe_meta(video_10fps_3s)
+    assert meta.duration_sec == pytest.approx(3.0, abs=0.11)
+    assert meta.fps == pytest.approx(10.0, abs=1e-6)
+    assert (meta.width, meta.height) == (64, 48)
+
+
+def test_ffprobe_meta_ffprobe_error_still_raises(tmp_path, monkeypatch):
+    # ffprobe present but failing (e.g. a corrupt file) stays a VideoError.
+    def fails(*args, **kwargs):
+        raise subprocess.CalledProcessError(1, "ffprobe")
+
+    monkeypatch.setattr(video_io.subprocess, "run", fails)
+    with pytest.raises(video_io.VideoError):
+        video_io.ffprobe_meta(tmp_path / "x.mp4")
