@@ -19,7 +19,6 @@ Who is A and who is B: **A = prakartii**, **B = Daksh Arora (DA)**.
 | P2 | Evaluation harness | B | Nov 11–12 | done | Leaderboard has uniform + oracle rows on `tune` and `report` |
 | P3 | Video I/O, signals, feature cache | A | Nov 10–12 | in progress | Flow, hands and CLIP cached for all 187 + `tune` videos |
 | P4 | Action detection → `actions[]` | A | Nov 11–13 | in progress | mAP measured on `tune` and `report`; beats the zero-shot fallback |
-| P4 | Action detection → `actions[]` | A | Nov 11–13 | not started | mAP measured on `tune` and `report`; beats the zero-shot fallback |
 | P5 | Clustering + EPIC coverage selector | B | Nov 12–14 | in progress | EPIC coverage > uniform; % of oracle reported; ablation done |
 | P6 | FPVSum route: importance, segments, label | A | Nov 13–15 | in progress | F1 > uniform on FPVSum CV; label accuracy reported |
 | P7 | Integration, tuning, ablations | A + B | Nov 15–16 | not started | All 187 outputs from raw MP4 pass validation; tuned config committed; floors set |
