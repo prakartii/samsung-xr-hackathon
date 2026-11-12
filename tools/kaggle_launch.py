@@ -3,6 +3,8 @@
     python tools/kaggle_launch.py --shards 5 --epic-scripts <epic-kitchens-download-scripts clone>
     python tools/kaggle_launch.py --status --shards 5
     python tools/kaggle_launch.py --collect --shards 5      # merge outputs into ./cache
+    python tools/kaggle_launch.py --shards 5 --epic-scripts <clone> --only-ids P08_09,P29_05
+                                                            # retry only these videos
 
 Needs the Kaggle CLI and a token in ~/.kaggle (never committed, never printed). Uses
 only free CPU notebooks with internet; nothing is billed. Everything is PRIVATE:
@@ -73,12 +75,13 @@ def push_code(user: str, epic_scripts: Path, work: Path) -> None:
     raise SystemExit("dataset not ready after 10 minutes")
 
 
-def push_kernels(user: str, shards: int, work: Path) -> None:
+def push_kernels(user: str, shards: int, work: Path, only_ids: list[str] | None = None) -> None:
     body = (REPO / "tools" / "kaggle_cache_epic.py").read_text(encoding="utf-8")
     for i in range(shards):
         kdir = work / f"kernel_{i}"
         kdir.mkdir()
-        (kdir / "run.py").write_text(f"SHARD = {i}\nN_SHARDS = {shards}\n{body}", encoding="utf-8")
+        header = f"SHARD = {i}\nN_SHARDS = {shards}\nONLY_IDS = {only_ids!r}\n"
+        (kdir / "run.py").write_text(header + body, encoding="utf-8")
         meta = {
             "id": f"{user}/rewind-epic-cache-{i}",
             "title": f"rewind-epic-cache-{i}",
@@ -138,6 +141,7 @@ def main() -> None:
     ap.add_argument("--status", action="store_true")
     ap.add_argument("--collect", action="store_true")
     ap.add_argument("--kernels-only", action="store_true", help="re-push kernels, keep dataset")
+    ap.add_argument("--only-ids", help="comma list of EPIC ids to (re)process, e.g. failed ones")
     args = ap.parse_args()
     user = username()
     if args.status:
@@ -153,7 +157,8 @@ def main() -> None:
             if args.epic_scripts is None:
                 ap.error("--epic-scripts is required to package the downloader CSVs")
             push_code(user, args.epic_scripts, work)
-        push_kernels(user, args.shards, work)
+        only = [v.strip() for v in args.only_ids.split(",")] if args.only_ids else None
+        push_kernels(user, args.shards, work, only)
 
 
 if __name__ == "__main__":
