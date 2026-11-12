@@ -22,7 +22,6 @@ from __future__ import annotations
 
 import argparse
 import csv
-import hashlib
 import sys
 import time
 import traceback
@@ -33,31 +32,23 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "code"))
 
 from rewind.config import load_config  # noqa: E402
-from rewind.features.cache import FeatureCache, content_fingerprint  # noqa: E402
+from rewind.features import extract  # noqa: E402
+from rewind.features.cache import FeatureCache, content_fingerprint, sha256_file  # noqa: E402
 from rewind.features.clip import (  # noqa: E402
-    ClipOnline,
     ClipParams,
     OpenClipEncoder,
     clip_cache_version,
 )
-from rewind.features.flow import FlowOnline, FlowParams, flow_cache_version  # noqa: E402
+from rewind.features.extract import ExtractParams  # noqa: E402
+from rewind.features.flow import FlowParams, flow_cache_version  # noqa: E402
 from rewind.features.hands import (  # noqa: E402
     HandParams,
-    HandsOnline,
     MediaPipeHands,
     hands_cache_version,
 )
-from rewind.video_io import iter_frames, probe_video  # noqa: E402
+from rewind.video_io import probe_video  # noqa: E402
 
 FEATURES = ("flow", "hands", "clip")
-
-
-def sha256_file(path: Path) -> str:
-    h = hashlib.sha256()
-    with path.open("rb") as f:
-        for chunk in iter(lambda: f.read(1 << 20), b""):
-            h.update(chunk)
-    return h.hexdigest()
 
 
 def main() -> None:
@@ -152,46 +143,12 @@ def main() -> None:
 
 
 def compute_single_pass(path, duration, missing, models, cfg_bits) -> dict:
-    """Decode once and feed every missing feature (ARCHITECTURE.md §12 budget).
-
-    Flow and hands use the dense grid; CLIP uses every r-th dense sample, where
-    r = dense_fps / clip_fps, with its own timestamps j / clip_fps (identical to
-    sample_times(T, clip_fps)). Frames are decoded at the widest size any feature
-    needs; each feature downsizes from there.
-    """
-    dense_fps, clip_fps, flow_p, hand_p, clip_p = cfg_bits
-    need_dense = bool({"flow", "hands"} & set(missing))
-    ratio = dense_fps / clip_fps
-    if need_dense and abs(ratio - round(ratio)) > 1e-9:
-        raise ValueError("signals.dense_fps must be a multiple of signals.clip_fps")
-    rate, step = (dense_fps, round(ratio)) if need_dense else (clip_fps, 1)
-    width = max(
-        [flow_p.width] * ("flow" in missing)
-        + [hand_p.width] * ("hands" in missing)
-        + [clip_p.width] * ("clip" in missing)
+    """rewind.features.extract.compute_single_pass with this tool's (and the Kaggle
+    job's) arguments: models = {"clip": encoder}, cfg_bits = ExtractParams fields."""
+    p = ExtractParams(*cfg_bits)
+    return extract.compute_single_pass(
+        path, duration, missing, models.get("clip"), lambda: MediaPipeHands(p.hands, REPO), p
     )
-    online = {}
-    hands_model = None
-    if "flow" in missing:
-        online["flow"] = FlowOnline(flow_p)
-    if "hands" in missing:
-        # A fresh landmarker per video: VIDEO mode needs increasing timestamps.
-        hands_model = MediaPipeHands(hand_p, REPO)
-        online["hands"] = HandsOnline(hands_model)
-    if "clip" in missing:
-        online["clip"] = ClipOnline(models["clip"], clip_p.batch_size)
-    try:
-        for k, (t, frame) in enumerate(iter_frames(path, duration, rate, width)):
-            if "flow" in online:
-                online["flow"].add(t, frame)
-            if "hands" in online:
-                online["hands"].add(t, frame)
-            if "clip" in online and k % step == 0:
-                online["clip"].add((k // step) / clip_fps, frame)
-    finally:
-        if hands_model is not None:
-            hands_model.close()
-    return {feat: o.result() for feat, o in online.items()}
 
 
 if __name__ == "__main__":
