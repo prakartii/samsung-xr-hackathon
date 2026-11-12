@@ -291,7 +291,7 @@ edge fix. Hedges improved from 0.422 to 0.447 but still trail h = 0.)
 - [x] `label/` (EPIC → cooking; FPVSum CLIP zero-shot with a prompt ensemble); uncertain route per ARCHITECTURE.md §4
 - [ ] Wire the FPVSum route into `pipeline.py`
 - [ ] Tune importance weights on FPVSum CV folds (never on all 49 at once)
-- [ ] Check signal-router agreement with the manifest (target ≥ 95%); tune `routing.min_conf`
+- [ ] Check signal-router agreement with the manifest (target ≥ 95%); tune `routing.min_conf` — **agreement 99.5% (186/187), 0 misrouted** (2026-11-12, `tools/eval_router.py`, 8 keyframes): EPIC P(cooking) 0.569–1.000 (median 0.980), FPVSum 0.000–0.020; 1 uncertain (EPIC P03_22, 0.569, still gets actions on the uncertain route). `min_conf` not tuned (measured on `report` only)
 - [ ] Check FPVSum GT timing: GT frame count vs ffprobe frame count per downloaded video. `Horse_2otBDeLWCow` (21.3 fps implied), `Plane_QsL_gCDHWHA` (39.6) and `Surfing_G7lPf1gF-W4` (21.0) look like a different cut than the annotated one; exclude or re-align mismatches (`rewind_eval/gt_fpvsum.py` stretches frames linearly over T)
 - [ ] Uncertain route always emits actions (EPIC detector or zero-shot fallback)
 - [ ] Ablation: audio terms (RMS, spectral flux) in the importance proxy; keep only if CV improves
@@ -430,6 +430,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-12 · PK · P6 · Router agreement with the manifest: 99.5% (186/187), 0 misrouted, 1 uncertain (P03_22); `tools/eval_router.py` · —
 - 2026-11-12 · PK · P4 · mAP measured: **0.117 on `report`** (ActionFormer + pairing) vs 0.0013 for the zero-shot fallback; `tune` 0.527 is inflated (AF trained on EPIC train). `tools/predict_epic_actions.py` (both detectors), `Vocab.verb_keys/noun_keys`, `class_phrase`; leaderboard rows added · —
 - 2026-11-12 · PK · P4 · Released SlowFast features imported for **138/138** manifest EPIC videos (0 alignment warnings): `import_released_features.py --fingerprint-logs` takes fingerprints and durations from the Kaggle job logs for videos never stored locally · —
 - 2026-11-12 · DA · P7 · Review fixes on #21: an unwritable cache (read-only mount, full disk) no longer sends every video to the fallback (cache writes are best-effort); text-cache key keeps `label.classes` order and a `TEXT_VERSION`; ActionFormer load or runtime errors and a wrong-shape VN prior degrade to zero-shot / uniform instead of the fallback; frames always decode at the widest feature width, so flow no longer depends on which features were cached (was up to 3.5 z-units); flow/hands grid mismatch fails loudly; tests for the selector choice per label, the FPVSum label excluding cooking and CLIP subsampling. Open (P4 code): zero-shot pairing on a 2000 s video takes ~8 s and ~1 GB (dense tIoU matrices) · #21
