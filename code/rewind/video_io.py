@@ -175,6 +175,32 @@ def probe_video(path: str | Path) -> ProbeInfo:
         return ProbeInfo(duration, fps, stream.codec_context.width, stream.codec_context.height)
 
 
+# Undecodable packets tolerated per video before giving up: about 1 s at 60 fps. EPIC
+# P29_05 and P30_08 (MD5-verified, so genuine recordings) each contain a packet that
+# FFmpeg rejects ("Invalid data found when processing input"); one bad chunk must not
+# cost the whole video, but a badly damaged file should still fail loudly.
+_MAX_BAD_PACKETS = 60
+
+
+def frames_skipping_bad_packets(packets, max_bad: int = _MAX_BAD_PACKETS):
+    """Decoded frames from demuxed packets, skipping packets the decoder rejects.
+
+    Raises DecodeError after more than `max_bad` rejected packets.
+    """
+    import av
+
+    bad = 0
+    for packet in packets:
+        try:
+            frames = packet.decode()
+        except av.error.InvalidDataError as exc:
+            bad += 1
+            if bad > max_bad:
+                raise DecodeError(f"more than {max_bad} undecodable packets ({exc})") from exc
+            continue
+        yield from frames
+
+
 def iter_frames(
     path: Path,
     duration_sec: float,
@@ -223,7 +249,7 @@ def iter_frames(
             cached = (frame, img)
             return img
 
-        for frame in container.decode(stream):
+        for frame in frames_skipping_bad_packets(container.demux(stream)):
             ft = (
                 frame.time - t0
                 if frame.time is not None
