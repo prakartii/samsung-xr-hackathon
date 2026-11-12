@@ -21,3 +21,4 @@ date,git_sha,tag,config_hash,split,n_epic,n_fpvsum,coverage_any,coverage_frac,pc
 2026-11-11,00ecff0,P5 sim noisy: dedup h=0,53e0518d89,tune,20,0,0.5095,0.3231,0.6884,,,,
 2026-11-11,00ecff0,oracle baseline (window lengths 4.05/5/6),53e0518d89,tune,20,0,0.7401,0.3689,1.0000,1.0000,,,
 2026-11-11,00ecff0,oracle baseline (window lengths 4.05/5/6),53e0518d89,report,138,49,0.7374,0.3283,1.0000,1.0000,0.7178,1.0000,0.8244
+2026-11-12,c124c8a,P6 FPVSum route (importance + CLIP label) default cfg,8ba4cd5d21,report,138,49,0.0000,0.0000,0.0000,0.0000,0.2219,0.8367,0.1391
