@@ -297,7 +297,18 @@ edge fix. Hedges improved from 0.422 to 0.447 but still trail h = 0.)
 - unit: label picks the argmax prompt with fake CLIP embeddings; score in [0, 1]
 - property: FPVSum route output always passes R9–R13
 
-**Result:** _fill in: F1 per fold, label accuracy, confusion of the worst categories, router agreement._
+**Result (partial, 2026-11-12, default config, untuned):** exit check met: F1 > uniform on every CV fold; label accuracy reported.
+
+| Split | F1 (ours) | F1 (uniform) | Label acc |
+|---|---|---|---|
+| report (49 FPVSum) | **0.2219** | 0.1626 | **0.837** (41/49) |
+| fold 0 (11) | 0.2064 | 0.2029 | 0.909 |
+| fold 1 (10) | 0.2847 | 0.1406 | 0.800 |
+| fold 2 (10) | 0.2513 | 0.1730 | 0.800 |
+| fold 3 (9) | 0.1737 | 0.1436 | 1.000 |
+| fold 4 (9) | 0.1864 | 0.1454 | 0.667 |
+
+Label errors (8): jumping -> plane (3), bikepolo -> bike (2), bike -> motor, longboarding -> motor, plane -> horse. `tools/predict_fpvsum.py` writes the documents; scored with `rewind_eval.score`. Not yet: weights/phrases tuned on CV folds (train on 4, test on the held-out one), audio ablation, pipeline wiring, GT timing check.
 
 ---
 
@@ -420,6 +431,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-12 · PK · P6 · FPVSum route measured (default cfg): F1 0.222 vs uniform 0.163 on `report`, above uniform on all 5 CV folds; label accuracy 0.837; `tools/predict_fpvsum.py` · —
 - 2026-11-12 · DA · P3 · Review fixes (B took over on request): end-to-end test that a real file with one undecodable frame (zeroed MJPEG packet, same `InvalidDataError`) decodes with only that sample repeated, so `iter_frames` is covered and not just the helper; `--only-ids` rejects ids not in the kit manifest instead of silently retrying nothing; `iter_frames` docstring states the skip and the 0.25 s end slack; P3 log lines cite #20 · #20
 - 2026-11-12 · PK · P3 · Kaggle retry launched for the 9 failed EPIC videos with both decode fixes (`--only-ids`); first attempt failed at startup because the code dataset lacked `requirements.txt` (now packed) · #20
 - 2026-11-12 · PK · P3 · Kaggle EPIC cache: **129/138 videos done**; 9 failed: 7 on the end-slack bug (fixed below), 2 (P29_05, P30_08; MD5-verified files) on a packet FFmpeg rejects (`Invalid data found when processing input`). `iter_frames` now decodes packet by packet and skips up to 60 rejected packets (~1 s at 60 fps) before raising `DecodeError`; regression tests with fake packets. The 9 are re-run on Kaggle · #20
