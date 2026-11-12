@@ -257,6 +257,11 @@ whose verb and noun are both in the kit vocabulary. Rescale scores to [0, 1] per
 video using a fixed monotone map (not per-video min-max, which would break
 cross-video ranking). Emit up to `cfg.actions.max_per_video` (≤ 2000) sorted by score.
 
+α differs by use (PROGRESS Decisions 2026-11-13): the proposals given to clustering and
+the selector use α = `cfg.pairing.alpha` (the prior helps coverage), while the emitted
+`actions[]` are paired again with α = `cfg.actions.prior_alpha` (0: the prior lowered
+mAP on `tune`, 0.527 → 0.653 without it).
+
 ### 5.2 Clustering (`cluster.py`)
 
 Proposals are clustered so the selector reasons about *distinct actions*, not raw

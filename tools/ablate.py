@@ -36,7 +36,7 @@ VARIANTS: dict[str, tuple[dict, bool]] = {
     "full pipeline": ({}, True),
     "zero-shot actions (no ActionFormer)": ({}, False),
     "label-dedup selector (no expected coverage)": ({"select.mode": "dedup"}, True),
-    "no verb-noun prior in pairing": ({"pairing.alpha": 0.0}, True),
+    "no verb-noun prior (selector too)": ({"pairing.alpha": 0.0}, True),
     "no audio terms (FPVSum)": (
         {"importance.w_audio_rms": 0.0, "importance.w_audio_flux": 0.0}, True),
     "no hand signal": ({"importance.w_hands": 0.0, "hedge.w_hands": 0.0}, True),
