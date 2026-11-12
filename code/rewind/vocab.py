@@ -35,7 +35,17 @@ def vocab_from_dict(data: dict) -> Vocab:
 
 
 @cache
-def load_vocab() -> Vocab:
-    """Load the bundled class list once per process."""
+def _classes() -> dict:
     text = resources.files("rewind").joinpath("resources/classes.json").read_text("utf-8")
-    return vocab_from_dict(json.loads(text))
+    return json.loads(text)
+
+
+def load_vocab() -> Vocab:
+    """Load the bundled class list (read once per process)."""
+    return vocab_from_dict(_classes())
+
+
+def class_lists() -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """(verbs, nouns) in kit order: index i is EPIC class id i (detector outputs)."""
+    data = _classes()
+    return tuple(data["verbs"]), tuple(data["nouns"])

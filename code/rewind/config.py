@@ -97,6 +97,17 @@ class PairingCfg:
 
 
 @dataclass(frozen=True)
+class DetectCfg:
+    """ActionFormer models and the verb-noun prior (paths relative to the repo root)."""
+
+    verb_config: str
+    noun_config: str
+    verb_checkpoint: str
+    noun_checkpoint: str
+    vn_prior: str
+
+
+@dataclass(frozen=True)
 class ZeroShotCfg:
     """Sliding-window CLIP zero-shot detector (detect/fallback_zeroshot.py)."""
 
@@ -187,6 +198,7 @@ class Config:
     features: FeaturesCfg
     actions: ActionsCfg
     pairing: PairingCfg
+    detect: DetectCfg
     zeroshot: ZeroShotCfg
     cluster: ClusterCfg
     calibration: CalibrationCfg
