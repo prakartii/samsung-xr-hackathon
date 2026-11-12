@@ -92,6 +92,7 @@ class FeaturesCfg:
 class ActionsCfg:
     max_per_video: int
     min_score: float
+    prior_alpha: float
 
 
 @dataclass(frozen=True)
@@ -423,6 +424,7 @@ def _check_ranges(cfg: Config) -> None:
         "post.merge_gap": cfg.post.merge_gap,
         "eval.coverage_lambda": cfg.eval.coverage_lambda,
         "importance.shot_thr": imp.shot_thr,
+        "actions.prior_alpha": cfg.actions.prior_alpha,
         "importance.w_audio_rms": imp.w_audio_rms,
         "importance.w_audio_flux": imp.w_audio_flux,
     }
