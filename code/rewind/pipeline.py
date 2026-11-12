@@ -117,9 +117,11 @@ def _write_atomic(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
     try:
-        os.fchmod(fd, 0o644)  # mkstemp makes 0600; the scorer may run as another user
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(text)
+        # mkstemp makes 0600; the scorer may run as another user. os.chmod on the path,
+        # after closing: os.fchmod is POSIX-only (Windows has no fchmod).
+        os.chmod(tmp, 0o644)
         os.replace(tmp, path)
     except BaseException:
         Path(tmp).unlink(missing_ok=True)
