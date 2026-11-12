@@ -43,7 +43,8 @@ from rewind.detect.pairing import (
     pair_proposals,
     proposals_to_actions,
 )
-from rewind.features.cache import FeatureCache
+from rewind.features.audio import audio_cache_version, audio_signals
+from rewind.features.cache import FeatureCache, content_fingerprint
 from rewind.features.clip import Encoder, class_embeddings, zero_shot_probs
 from rewind.features.extract import SignalModels, load_signals
 from rewind.label import COOKING, choose_label, fpvsum_label, keyframe_indices
@@ -174,14 +175,21 @@ def epic_highlights(
 
 
 def fpvsum_highlights(
-    flow: Arrays, hands: Arrays, clip: Arrays, duration: float, cfg: Config
+    flow: Arrays,
+    hands: Arrays,
+    clip: Arrays,
+    duration: float,
+    cfg: Config,
+    audio: Arrays | None = None,
 ) -> tuple[list[Segment], list[float], tuple[np.ndarray, np.ndarray]]:
-    """§6.2: importance proxy → best windows per shot. Value = mean importance."""
+    """§6.2: importance proxy → best windows per shot. Value = mean importance.
+    ``audio``: {"rms", "flux"} on the dense grid, or None (no audio terms)."""
     p = ImportanceParams(**asdict(cfg.importance))
     t = np.asarray(flow["t"])
     imp = importance_signal(
-        t, flow["flow"], hands["hands"], flow["global_motion"], clip["t"], clip["clip_emb"], p
-    )
+        t, flow["flow"], hands["hands"], flow["global_motion"], clip["t"], clip["clip_emb"], p,
+        audio,
+    )  # fmt: skip
     spans = shots(clip["t"], clip["clip_emb"], duration, p.shot_thr)
     segs = select_segments(t, imp, spans, duration, cfg.select.budget_frac * duration, p)
     values = [float(imp[(t >= s) & (t <= e)].mean()) if np.any((t >= s) & (t <= e)) else 0.0
@@ -197,11 +205,15 @@ def summarize(
     prior: VNPrior,
     cfg: Config,
     detect: Callable[[], Detections | None] | None = None,
+    audio: Callable[[np.ndarray], Arrays | None] | None = None,
 ) -> VideoResult:
-    """Route, then actions, label and highlights for one video. Pure given ``detect``.
+    """Route, then actions, label and highlights for one video. Pure given ``detect``
+    and ``audio``.
 
     detect: runs ActionFormer when this video has SlowFast features (returns None
     otherwise); called only on routes that emit actions.
+    audio: dense time grid → {"rms", "flux"} (None: no audio stream); called only for
+    importance-based (non-cooking) highlights. A failure drops the audio terms.
     """
     flow, hands, clip = signals["flow"], signals["hands"], signals["clip"]
     if not np.array_equal(np.asarray(flow["t"]), np.asarray(hands["t"])):
@@ -227,7 +239,13 @@ def summarize(
     if label[0] == COOKING:
         segs, values, profile = epic_highlights(proposals, flow, hands, clip, duration, cfg)
     else:
-        segs, values, profile = fpvsum_highlights(flow, hands, clip, duration, cfg)
+        aud = None
+        if audio is not None:
+            try:
+                aud = audio(np.asarray(flow["t"]))
+            except Exception as exc:  # audio only refines importance; never lose highlights
+                log.error("audio failed, importance without audio terms: %s", exc)
+        segs, values, profile = fpvsum_highlights(flow, hands, clip, duration, cfg, aud)
     highlights = postprocess(
         segs,
         values,
@@ -369,6 +387,39 @@ def load_models(cfg: Config, repo_root: Path) -> Models:
     return models
 
 
+def audio_loader(
+    video: Path | None, fingerprint: str | None, cfg: Config, cache_root: Path | None
+) -> Callable[[np.ndarray], Arrays | None]:
+    """``audio`` for ``summarize``: the cached entry for ``fingerprint``, else decoded
+    from ``video`` (and cached). A video without an audio stream is cached as such and
+    gives None; so does a missing MP4 with no cache entry."""
+    a = cfg.features.audio
+    version = f"{audio_cache_version(a.sample_rate, a.window)}-fps{cfg.signals.dense_fps}"
+    cache = (
+        FeatureCache(cache_root, "audio", version)
+        if cache_root is not None and fingerprint is not None
+        else None
+    )
+
+    def load(t: np.ndarray) -> Arrays | None:
+        hit = cache.get(fingerprint) if cache is not None else None  # type: ignore[arg-type]
+        if hit is not None and "no_audio" in hit:
+            return None
+        if hit is not None and len(hit["rms"]) == len(t):
+            return {"rms": hit["rms"], "flux": hit["flux"]}
+        if video is None or not video.exists():
+            return None
+        out = audio_signals(video, t, a.sample_rate, a.window)
+        if cache is not None:
+            try:
+                cache.put(fingerprint, out if out is not None else {"no_audio": np.ones(1)})  # type: ignore[arg-type]
+            except OSError as exc:  # read-only mount, full disk: the cache is a speed-up
+                log.warning("audio not cached: %s", exc)
+        return out
+
+    return load
+
+
 def analyze_video(
     video: Path, probe: ProbeInfo, video_id: str, cfg: Config, models: Models
 ) -> VideoResult:
@@ -379,7 +430,6 @@ def analyze_video(
     def detect() -> Detections | None:
         if models.verb_detector is None or models.noun_detector is None:
             return None
-        from rewind.features.cache import content_fingerprint
         from rewind.features.slowfast import find_slowfast
 
         # Local cache first, then the features shipped in weights/ (clean machines).
@@ -394,4 +444,8 @@ def analyze_video(
             models.noun_detector.detect(feats, duration),
         )
 
-    return summarize(video_id, duration, signals, models.text(cfg), models.prior(cfg), cfg, detect)
+    fp = content_fingerprint(video) if models.cache_root is not None else None
+    audio = audio_loader(video, fp, cfg, models.cache_root)
+    return summarize(
+        video_id, duration, signals, models.text(cfg), models.prior(cfg), cfg, detect, audio
+    )

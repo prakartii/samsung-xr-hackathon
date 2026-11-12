@@ -1,5 +1,6 @@
 """FPVSum importance proxy and segment selection (PROGRESS.md P6 tests)."""
 
+from dataclasses import replace
 from itertools import pairwise
 
 import numpy as np
@@ -173,3 +174,34 @@ def test_fpvsum_segments_reject_mismatched_dense_grids():
     clip = {"t": np.arange(10.0), "clip_emb": np.ones((10, 4))}
     with pytest.raises(ValueError):
         fpvsum_segments(flow, hands, clip, 10.0, 0.145, P)
+
+
+def test_importance_signal_audio_terms_are_z_scored_log_rms_and_flux():
+    # Only audio, sigma 0. rms [e^-1, e^-1, e^1] - floor-free enough: log ~ [-1, -1, 1]
+    # (floor 1e-4 shifts it by < 3e-4) -> z = [-1/√2, -1/√2, √2]; flux [0, 0, 3] -> same
+    # z. imp = 1.0 * z_rms + 0.5 * z_flux = 1.5 * [-1/√2, -1/√2, √2].
+    p = replace(
+        ImportanceParams(0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 4.05, 6.05, 1.0, 0.5),
+        w_audio_rms=1.0, w_audio_flux=0.5,
+    )  # fmt: skip
+    t = np.arange(3.0)
+    zeros = np.zeros(3)
+    audio = {"rms": np.exp([-1.0, -1.0, 1.0]), "flux": np.array([0.0, 0.0, 3.0])}
+
+    imp = importance_signal(t, zeros, zeros, zeros, t, np.ones((3, 2)), p, audio)
+
+    z = np.array([-1 / np.sqrt(2), -1 / np.sqrt(2), np.sqrt(2)])
+    np.testing.assert_allclose(imp, 1.5 * z, atol=1e-3)
+
+
+def test_importance_signal_without_audio_ignores_audio_weights():
+    # Same inputs with and without audio=None: audio weights have no effect without audio.
+    p = replace(
+        ImportanceParams(1.0, 0.0, 0.0, 0.0, 0.0, 0.5, 4.05, 6.05, 1.0, 0.5),
+        w_audio_rms=1.0, w_audio_flux=1.0,
+    )  # fmt: skip
+    t = np.arange(4) / 4
+    flow = np.array([1.0, 0, 0, 0])
+    zeros = np.zeros(4)
+    imp = importance_signal(t, flow, zeros, zeros, np.arange(1.0), np.ones((1, 2)), p, None)
+    np.testing.assert_allclose(imp, flow, atol=1e-12)

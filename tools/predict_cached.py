@@ -4,8 +4,9 @@
     python -m rewind_eval.score --split tune --pred results/preds/full_tune --tag "full tune"
 
 Runs exactly `rewind.analyze.summarize` (route, actions, highlights, label) per video,
-reading flow, hands and CLIP from cache/ and SlowFast features from cache/ or
-weights/ by content fingerprint, as `run.sh` would on a machine where everything is
+reading flow, hands, CLIP and audio from cache/ (audio decoded from the local MP4
+when not cached yet) and SlowFast features from cache/ or weights/ by content
+fingerprint, as `run.sh` would on a machine where everything is
 cached. That lets the `tune` split (EPIC train videos processed on Kaggle and never
 stored here) and all of `report` be scored in minutes, which tuning needs (P5, P7).
 
@@ -56,7 +57,7 @@ def _local(mp4: Path) -> tuple[str, float]:
 def main() -> None:
     from import_released_features import load_fingerprint_logs
 
-    from rewind.analyze import load_models, summarize
+    from rewind.analyze import audio_loader, load_models, summarize
     from rewind.config import load_config
     from rewind.features.extract import FEATURES, signal_caches
     from rewind.features.slowfast import find_slowfast
@@ -110,7 +111,8 @@ def main() -> None:
                 models.noun_detector.detect(feats, duration),
             )
 
-        result = summarize(vid, duration, signals, text, prior, cfg, detect)
+        audio = audio_loader(args.videos / f"{vid}.mp4", fp, cfg, models.cache_root)
+        result = summarize(vid, duration, signals, text, prior, cfg, detect, audio)
         (args.out / f"{vid}.json").write_text(dumps(to_document(result)), encoding="utf-8")
         print(f"[{i}/{len(ids)}] {vid}: {result.label[0]}, {len(result.actions)} actions,"
               f" {len(result.highlights)} highlights", flush=True)  # fmt: skip

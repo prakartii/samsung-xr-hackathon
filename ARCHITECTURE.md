@@ -395,9 +395,14 @@ column on all 187 videos; the target is ≥ 95%, and P6 tunes the threshold on `
 ### 6.2 Importance and segments (`select/importance.py`)
 
 Per dense timestep:
-`imp(t) = w1·z(flow) + w2·hands + w3·z(global_motion) + w4·z(scene_change)`, then a
-Gaussian smoothing of σ = `cfg.importance.sigma` s. Scene change = 1 − cosine
-similarity of consecutive CLIP embeddings, interpolated to the dense grid.
+`imp(t) = w1·z(flow) + w2·hands + w3·z(global_motion) + w4·z(scene_change)
++ w5·z(log(rms + 1e-4)) + w6·z(flux)`, then a Gaussian smoothing of σ =
+`cfg.importance.sigma` s. Scene change = 1 − cosine similarity of consecutive CLIP
+embeddings, interpolated to the dense grid. The audio terms (w5 = `w_audio_rms`,
+w6 = `w_audio_flux`) use loudness and spectral flux of the mono track resampled to
+`cfg.features.audio.sample_rate`, each summarised over `cfg.features.audio.window` s
+around every dense timestep (`features/audio.py`); they are decoded only on this
+route, cached by fingerprint, and left out when the video has no audio stream.
 Weights are tuned on FPVSum cross-validation folds only.
 
 Segments: find shots from CLIP change points (change > `cfg.importance.shot_thr`).

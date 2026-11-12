@@ -74,11 +74,18 @@ class ClipCfg:
 
 
 @dataclass(frozen=True)
+class AudioCfg:
+    sample_rate: int
+    window: float
+
+
+@dataclass(frozen=True)
 class FeaturesCfg:
     cache_dir: str
     flow: FlowCfg
     hands: HandsCfg
     clip: ClipCfg
+    audio: AudioCfg
 
 
 @dataclass(frozen=True)
@@ -169,6 +176,8 @@ class ImportanceCfg:
     max_window: float
     len_step: float
     stride: float
+    w_audio_rms: float
+    w_audio_flux: float
 
 
 @dataclass(frozen=True)
@@ -392,6 +401,8 @@ def _check_ranges(cfg: Config) -> None:
         "features.hands.num_hands": cfg.features.hands.num_hands,
         "features.clip.width": cfg.features.clip.width,
         "features.clip.batch_size": cfg.features.clip.batch_size,
+        "features.audio.sample_rate": cfg.features.audio.sample_rate,
+        "features.audio.window": cfg.features.audio.window,
         "pairing.top_k": cfg.pairing.top_k,
         "pairing.eps": cfg.pairing.eps,
         "pairing.score_power": cfg.pairing.score_power,
@@ -411,6 +422,8 @@ def _check_ranges(cfg: Config) -> None:
         "post.merge_gap": cfg.post.merge_gap,
         "eval.coverage_lambda": cfg.eval.coverage_lambda,
         "importance.shot_thr": imp.shot_thr,
+        "importance.w_audio_rms": imp.w_audio_rms,
+        "importance.w_audio_flux": imp.w_audio_flux,
     }
     for key, v in non_negative.items():
         if v < 0:
