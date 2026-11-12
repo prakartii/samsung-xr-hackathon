@@ -216,7 +216,7 @@ are blank.)
 - [ ] Extract any gap videos on Kaggle/Colab, one at a time
 - [x] `tools/build_vn_prior.py` → `weights/vn_prior.npy` (train split only): 67,217 train segments, 3,568 distinct pairs; refuses CSVs containing manifest videos. Source: `epic-kitchens-100-annotations` @ `ea8b404`
 - [ ] `detect/actionformer.py`, `detect/pairing.py`; cache proposals — `pairing.py` done (§5.1; proposals anchored on the group's top verb, scores `(p_v·p_n·prior^α)^power`)
-- [ ] Wire into `pipeline.py` (EPIC route → `actions[]`)
+- [x] Wire into `pipeline.py` (EPIC route → `actions[]`) — `analyze.summarize`: ActionFormer when SlowFast features are found, else zero-shot (#27)
 - [ ] Tune `max_per_video` and the minimum score on `tune` — **blocked: `tune` is contaminated for the detector** (EPIC train videos = ActionFormer's training set; mAP 0.527 there vs 0.117 on `report`). Defaults (2000, 0.0) kept untuned; see Decisions 2026-11-12
 - [x] **Kill rule (end of Nov 13):** not triggered — ActionFormer mAP 0.117 vs zero-shot 0.0013 on `report`. Fallback kept for the uncertain route. Was: if no working mAP, switch to `detect/fallback_zeroshot.py` — fallback implemented (2 s windows / 1 s stride over 1 fps CLIP, top-k verbs and nouns per window, paired by `pairing.py`); also serves the uncertain route (ARCHITECTURE.md §4)
 
@@ -289,11 +289,11 @@ edge fix. Hedges improved from 0.422 to 0.447 but still trail h = 0.)
 
 - [x] `select/importance.py` (proxy, shots, windows of 4.05–10 s); unit + Hypothesis property tests (`tests/property/`)
 - [x] `label/` (EPIC → cooking; FPVSum CLIP zero-shot with a prompt ensemble); uncertain route per ARCHITECTURE.md §4
-- [ ] Wire the FPVSum route into `pipeline.py`
+- [x] Wire the FPVSum route into `pipeline.py` — importance proxy highlights, zero-shot label, no actions (#27)
 - [x] Tune importance weights on FPVSum CV folds (never on all 49 at once) — done, **no gain: kept the current weights**. `tools/tune_fpvsum.py --what importance` (243 configs: each weight in {0, 0.5, 1}, σ in {1, 2, 4} s): held-out CV F1 0.199 for the search vs 0.221 for the current config; the all-folds best (σ = 1 s) is 0.232 in-sample only. Label phrases likewise (`--what label`, 49 phrase sets for the 5 confused classes): held-out accuracy 0.775 vs 0.835 current; kept
 - [ ] Check signal-router agreement with the manifest (target ≥ 95%); tune `routing.min_conf` — **agreement 99.5% (186/187), 0 misrouted** (2026-11-12, `tools/eval_router.py`, 8 keyframes): EPIC P(cooking) 0.569–1.000 (median 0.980), FPVSum 0.000–0.020; 1 uncertain (EPIC P03_22, 0.569, still gets actions on the uncertain route). `min_conf` not tuned (measured on `report` only)
 - [x] Check FPVSum GT timing — `tools/check_fpvsum_gt.py`: **3/49 mistimed** (implied GT fps fits no standard rate: `Horse_2otBDeLWCow` 21.3, `Plane_QsL_gCDHWHA` 39.6, `Surfing_G7lPf1gF-W4` 21.0; the other 46 are 24–30 fps). The scorer now detects this itself (`gt_fpvsum.gt_rate_suspect`, `FpvGT.timing_ok`) and leaves those videos out of F1 only; label accuracy still counts them. No video ids hard-coded
-- [ ] Uncertain route always emits actions (EPIC detector or zero-shot fallback)
+- [x] Uncertain route always emits actions (EPIC detector or zero-shot fallback) — `test_summarize_uncertain_route_always_emits_actions` (#27)
 - [ ] Ablation: audio terms (RMS, spectral flux) in the importance proxy; keep only if CV improves
 - [ ] Optional: ridge on CLIP if it beats the proxy on CV
 
@@ -444,6 +444,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-12 · PK · P4/P6 · Ticked route wiring (EPIC, FPVSum) and uncertain-route actions: done in `analyze.py` with tests in #27 · —
 - 2026-11-12 · PK · P6 · FPVSum GT timing check: 3/49 videos' GT covers a different cut (non-standard implied fps); scorer leaves them out of F1 (data-driven, tests first). Corrected F1 0.2255 vs uniform 0.1645; CV mean 0.2236 vs 0.1636, 4/5 folds above uniform · —
 - 2026-11-12 · PK · P3 · Kaggle job for the 20 `tune` EPIC train videos launched (`kaggle_launch.py --split tune`; `shard_ids` keeps non-manifest ids, per-run log tag `_tune`) · —
 - 2026-11-12 · PK · P4 · Released SlowFast features ship in `weights/released_features` (785 MB, 138/138, `detect.released_features`); `analyze_video` checks the local cache then weights/ via `find_slowfast` (tests first). Clean-cache run on EPIC P01_12: routed EPIC, ActionFormer used (851 actions, top close/open cupboard), 61 s. Rebuild: `RELEASED_FEATURES=1 tools/fetch_weights.sh` with `tools/data/epic_fingerprints.jsonl`. README (P8) must say submitted EPIC outputs used these published features (§10.1.4) · —
