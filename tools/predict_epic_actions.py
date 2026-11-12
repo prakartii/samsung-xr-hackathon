@@ -17,6 +17,7 @@ EPIC_100_video_info.csv (data/annotations, tools/fetch_annotations.sh).
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 import time
@@ -26,7 +27,7 @@ from pathlib import Path
 import numpy as np
 
 REPO = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO / "code"))
+sys.path[:0] = [str(REPO / "code"), str(REPO / "tools")]
 
 from rewind.config import Config, load_config  # noqa: E402
 from rewind.detect.actionformer import ActionFormerDetector, ActionFormerParams  # noqa: E402
@@ -69,6 +70,19 @@ def main() -> None:
         default=REPO / "data" / "actionformer" / "epic_kitchens" / "features",
     )
     ap.add_argument("--config", type=Path, default=REPO / "configs" / "default.yaml")
+    ap.add_argument(
+        "--detector",
+        choices=["actionformer", "zeroshot"],
+        default="actionformer",
+        help="zeroshot: CLIP sliding windows (P4 kill-rule baseline); report split only",
+    )
+    ap.add_argument(
+        "--fingerprint-logs",
+        type=Path,
+        nargs="*",
+        default=sorted((REPO / "cache" / "kaggle_logs").glob("shard_*.jsonl")),
+        help="zeroshot: Kaggle job logs mapping ids to cache fingerprints",
+    )
     args = ap.parse_args()
 
     cfg = load_config(args.config)
@@ -79,6 +93,33 @@ def main() -> None:
     )
     vocab = load_vocab()
     verbs, nouns = list(vocab.verb_keys), list(vocab.noun_keys)
+    if args.detector == "zeroshot":
+        detect = zeroshot_detector(cfg, verbs, nouns, args.fingerprint_logs)
+    else:
+        detect = actionformer_detector(verbs, nouns, args.features_dir)
+    prior = VNPrior.from_counts(
+        verbs, nouns, np.load(REPO / "weights" / "vn_prior.npy"), cfg.pairing.eps
+    )
+    params = PairingParams(**asdict(cfg.pairing))
+
+    args.out.mkdir(parents=True, exist_ok=True)
+    t0 = time.perf_counter()
+    for i, vid in enumerate(ids, 1):
+        duration = durations[vid]
+        v_dets, n_dets = detect(vid, duration)
+        proposals = pair_proposals(v_dets, n_dets, prior, set(verbs), set(nouns), params)
+        actions = proposals_to_actions(proposals, cfg.actions.max_per_video, cfg.actions.min_score)
+        doc = epic_document(vid, duration, actions, cfg)
+        (args.out / f"{vid}.json").write_text(dumps(doc), encoding="utf-8")
+        print(f"[{i}/{len(ids)}] {vid}: {len(actions)} actions", flush=True)
+    elapsed = time.perf_counter() - t0
+    minutes = sum(durations[v] for v in ids) / 60
+    print(json.dumps({"videos": len(ids), "seconds": round(elapsed, 1),
+                      "sec_per_video_min": round(elapsed / minutes, 2)}))  # fmt: skip
+
+
+def actionformer_detector(verbs, nouns, features_dir: Path):
+    """(video_id, duration) -> (verb dets, noun dets) from released SlowFast features."""
     detectors = {
         kind: ActionFormerDetector(
             ActionFormerParams(
@@ -90,28 +131,51 @@ def main() -> None:
         )
         for kind, keys in (("verb", verbs), ("noun", nouns))
     }
-    prior = VNPrior.from_counts(
-        verbs, nouns, np.load(REPO / "weights" / "vn_prior.npy"), cfg.pairing.eps
-    )
-    params = PairingParams(**asdict(cfg.pairing))
 
-    args.out.mkdir(parents=True, exist_ok=True)
-    t0 = time.perf_counter()
-    for i, vid in enumerate(ids, 1):
-        with np.load(args.features_dir / f"{vid}.npz") as npz:
+    def detect(vid: str, duration: float):
+        with np.load(features_dir / f"{vid}.npz") as npz:
             feats = npz["feats"]
-        duration = durations[vid]
-        v_dets = detectors["verb"].detect(feats, duration)
-        n_dets = detectors["noun"].detect(feats, duration)
-        proposals = pair_proposals(v_dets, n_dets, prior, set(verbs), set(nouns), params)
-        actions = proposals_to_actions(proposals, cfg.actions.max_per_video, cfg.actions.min_score)
-        doc = epic_document(vid, duration, actions, cfg)
-        (args.out / f"{vid}.json").write_text(dumps(doc), encoding="utf-8")
-        print(f"[{i}/{len(ids)}] {vid}: {len(actions)} actions", flush=True)
-    elapsed = time.perf_counter() - t0
-    minutes = sum(durations[v] for v in ids) / 60
-    print(json.dumps({"videos": len(ids), "seconds": round(elapsed, 1),
-                      "sec_per_video_min": round(elapsed / minutes, 2)}))  # fmt: skip
+        return detectors["verb"].detect(feats, duration), detectors["noun"].detect(feats, duration)
+
+    return detect
+
+
+def zeroshot_detector(cfg: Config, verbs, nouns, fingerprint_logs: list[Path]):
+    """(video_id, duration) -> (verb dets, noun dets) from cached 1 fps CLIP embeddings."""
+    from import_released_features import load_fingerprint_logs
+
+    from rewind.detect.fallback_zeroshot import ZeroShotParams, class_phrase, detect_zeroshot
+    from rewind.features.cache import FeatureCache
+    from rewind.features.clip import (
+        ClipParams,
+        OpenClipEncoder,
+        class_embeddings,
+        clip_cache_version,
+    )
+
+    clip_p = ClipParams(**asdict(cfg.features.clip))
+    weights_sha = hashlib.sha256((REPO / clip_p.weights).read_bytes()).hexdigest()
+    cache = FeatureCache(
+        REPO / cfg.features.cache_dir,
+        "clip",
+        clip_cache_version(clip_p, cfg.signals.clip_fps, weights_sha),
+    )
+    fingerprints = load_fingerprint_logs(fingerprint_logs)
+    encoder = OpenClipEncoder(clip_p, REPO)
+    zp = ZeroShotParams(**asdict(cfg.zeroshot))
+    verb_text = class_embeddings(encoder, {k: class_phrase(k) for k in verbs}, [zp.verb_template])
+    noun_text = class_embeddings(encoder, {k: class_phrase(k) for k in nouns}, [zp.noun_template])
+
+    def detect(vid: str, duration: float):
+        entry = cache.get(fingerprints[vid][0])
+        if entry is None:
+            raise SystemExit(f"{vid}: no CLIP cache entry (zeroshot needs the report split)")
+        return detect_zeroshot(
+            entry["t"], entry["clip_emb"], duration, verbs, verb_text, nouns, noun_text,
+            encoder.logit_scale, zp,
+        )  # fmt: skip
+
+    return detect
 
 
 if __name__ == "__main__":
