@@ -420,6 +420,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-12 · PK · P3 · Kaggle retry, 4 of 5 shards back: 7/7 done (incl. P30_08, the bad-packet case); cache now 185/187 videos (136/138 EPIC + 49 FPVSum); P29_05 and P13_03 still running · —
 - 2026-11-12 · PK · P3 · Kaggle retry launched for the 9 failed EPIC videos with both decode fixes (`--only-ids`); first attempt failed at startup because the code dataset lacked `requirements.txt` (now packed) · —
 - 2026-11-12 · PK · P3 · Kaggle EPIC cache: **129/138 videos done**; 9 failed: 7 on the end-slack bug (fixed below), 2 (P29_05, P30_08; MD5-verified files) on a packet FFmpeg rejects (`Invalid data found when processing input`). `iter_frames` now decodes packet by packet and skips up to 60 rejected packets (~1 s at 60 fps) before raising `DecodeError`; regression tests with fake packets. The 9 are re-run on Kaggle · —
 - 2026-11-12 · PK · P3 · **Bug fixed** (seen on Kaggle, EPIC P08_09): `iter_frames` raised `DecodeError` when the container duration (with audio) ran 0.03 s past the last video frame. Samples up to 0.25 s past the last frame now get that frame; truncation (seconds to minutes short) still raises. Regression test first · —
