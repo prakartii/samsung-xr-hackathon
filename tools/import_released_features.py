@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import json
 import sys
 from pathlib import Path
 
@@ -47,6 +48,28 @@ def alignment_gap_sec(n_feats: int, duration_sec: float) -> float:
     return abs(n_feats - expected_feature_count(duration_sec)) * FEAT_STRIDE / FEAT_FPS
 
 
+def load_fingerprint_logs(paths: list[Path]) -> dict[str, tuple[str, float]]:
+    """{video_id: (content fingerprint, duration)} from tools/kaggle_cache_epic.py logs.
+
+    Lets features be imported for videos processed on Kaggle and never stored here.
+    Failed records (no fingerprint) are skipped. One id with two fingerprints means
+    two different files, so it is an error rather than a guess.
+    """
+    out: dict[str, tuple[str, float]] = {}
+    for path in paths:
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            rec = json.loads(line)
+            if "fingerprint" not in rec:
+                continue
+            vid, fp = rec["video_id"], rec["fingerprint"]
+            if vid in out and out[vid][0] != fp:
+                raise ValueError(f"{vid}: two fingerprints in the logs ({out[vid][0]}, {fp})")
+            out[vid] = (fp, float(rec["duration"]))
+    return out
+
+
 def video_duration(path: Path) -> float:
     cap = cv2.VideoCapture(str(path))
     try:
@@ -62,6 +85,13 @@ def main() -> None:
     ap.add_argument("--videos", type=Path, default=REPO / "data" / "videos")
     ap.add_argument("--cache", type=Path, default=REPO / "cache")
     ap.add_argument("--max-gap", type=float, default=2.0, help="alignment warning, seconds")
+    ap.add_argument(
+        "--fingerprint-logs",
+        type=Path,
+        nargs="*",
+        default=[],
+        help="Kaggle job logs (shard_*.jsonl): fingerprints for videos not on this machine",
+    )
     args = ap.parse_args()
 
     with (REPO / "kit" / "manifest.csv").open(newline="", encoding="utf-8") as f:
@@ -73,31 +103,34 @@ def main() -> None:
     for v in no_features:
         print(f"  NO RELEASED FEATURES: {v}")
 
+    logged = load_fingerprint_logs(args.fingerprint_logs)
     cache = slowfast_cache(args.cache)
     imported = skipped = not_downloaded = suspect = 0
     for vid in epic_ids:
         if vid not in released:
             continue
         mp4 = args.videos / f"{vid}.mp4"
-        if not mp4.exists():
+        if mp4.exists():
+            fp, duration = content_fingerprint(mp4), video_duration(mp4)
+        elif vid in logged:
+            fp, duration = logged[vid]
+        else:
             not_downloaded += 1
             continue
-        fp = content_fingerprint(mp4)
         if cache.get(fp) is not None:
             skipped += 1
             continue
         with np.load(released[vid]) as npz:
             feats = npz["feats"]
-        gap = alignment_gap_sec(len(feats), video_duration(mp4))
+        gap = alignment_gap_sec(len(feats), duration)
         if not gap <= args.max_gap:
             suspect += 1
-            dur = video_duration(mp4)
-            print(f"  ALIGNMENT? {vid}: {len(feats)} feats vs {dur:.1f} s (gap {gap:.1f} s)")
+            print(f"  ALIGNMENT? {vid}: {len(feats)} feats vs {duration:.1f} s (gap {gap:.1f} s)")
         cache.put(fp, slowfast_entry(feats))
         imported += 1
     print(
-        f"imported {imported}, already cached {skipped}, MP4 not downloaded yet {not_downloaded},"
-        f" alignment warnings {suspect}"
+        f"imported {imported}, already cached {skipped},"
+        f" no MP4 or logged fingerprint {not_downloaded}, alignment warnings {suspect}"
     )
 
 
