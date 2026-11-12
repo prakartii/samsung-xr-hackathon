@@ -589,6 +589,12 @@ Fill each row in before the model is used **[verify all]**.
    only heavy GPU job.
    P4 first checks that every EPIC `video_id` in `kit/manifest.csv` and every `tune`
    video is present.
+   **Shipped with the submission** (2026-11-12): the features for the 138 manifest EPIC
+   videos (~0.8 GB) live in a read-only cache under `weights/released_features`
+   (`detect.released_features`). `analyze_video` looks for SlowFast features in the
+   local cache, then there, always by the MP4's content fingerprint, so `run.sh` on the
+   organizers' clean machine reproduces our ActionFormer actions instead of falling
+   back to zero-shot. Rebuilt by `RELEASED_FEATURES=1 tools/fetch_weights.sh`.
 2. **`run.sh` on a clean machine:** extracts features from the MP4 with the matching
    extractor. This is slow on CPU but must work. A test on 1–2 videos checks that our
    extraction matches the released features (cosine similarity ≥ 0.95 per timestep,
