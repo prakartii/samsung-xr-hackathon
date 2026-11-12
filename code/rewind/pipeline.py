@@ -1,7 +1,7 @@
 """Run one video end to end and write its JSON. Never writes invalid output.
 
 ARCHITECTURE.md §4. ``analyze`` is the model part (features → detect → select →
-label); in P1 it is the fallback itself, and later phases plug in the real stages.
+label), ``rewind.analyze`` by default; tests pass fakes.
 Whatever it returns or raises, the file written is either its validated result or
 the validated fallback.
 """
@@ -12,7 +12,7 @@ from collections.abc import Callable
 from dataclasses import replace
 from pathlib import Path
 
-from rewind.config import Config
+from rewind.config import Config, config_hash
 from rewind.fallback import fallback_result
 from rewind.output import dumps, to_document
 from rewind.schema import validate
@@ -25,9 +25,21 @@ Analyze = Callable[[Path, ProbeInfo, str, Config], VideoResult]
 log = get_logger("rewind.pipeline")
 
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
+_models: dict[str, object] = {}  # config hash -> analyze.Models, loaded once per process
+
+
 def default_analyze(video: Path, probe: ProbeInfo, video_id: str, cfg: Config) -> VideoResult:
-    """P1: no models yet, so the result is the fallback."""
-    return _fallback(video_id, probe.duration_sec, cfg)
+    """Features → route → actions, highlights, label (``rewind.analyze``).
+
+    Models load lazily (torch only when the weights exist) and once per process.
+    """
+    from rewind.analyze import analyze_video, load_models
+
+    key = config_hash(cfg)
+    if key not in _models:
+        _models[key] = load_models(cfg, REPO_ROOT)
+    return analyze_video(video, probe, video_id, cfg, _models[key])  # type: ignore[arg-type]
 
 
 def run_video(
@@ -42,6 +54,11 @@ def run_video(
     cfg = _with_team(cfg, team_id)
 
     vocab = load_vocab()
+    # Write the fallback first: a hard kill during analysis (SIGKILL, OOM killer, a
+    # native crash) runs no except clause, and a missing JSON costs more than a weak
+    # one (CLAUDE.md §6.7). A successful analysis replaces it atomically below.
+    fallback_doc = to_document(_fallback(video_id, probe.duration_sec, cfg))
+    _write_atomic(out, dumps(fallback_doc))
     try:
         result = analyze(video, probe, video_id, cfg)
         doc = to_document(result)
@@ -55,11 +72,11 @@ def run_video(
             if errors:
                 raise ValueError(f"{len(errors)} validation error(s): {errors[:3]}")
     except Exception as exc:  # any stage failure → fallback (CLAUDE.md §6.7)
-        log.error("analysis failed for %s, writing fallback: %s", video, exc)
-        doc = to_document(_fallback(video_id, probe.duration_sec, cfg))
-        errors, _ = validate(doc, load_vocab(), filename_stem=video_id, strict=True)
-        if errors:  # should be impossible (property-tested); still write it
+        log.error("analysis failed for %s, keeping the fallback: %s", video, exc)
+        errors, _ = validate(fallback_doc, vocab, filename_stem=video_id, strict=True)
+        if errors:  # should be impossible (property-tested); it is already written
             log.error("fallback failed validation: %s", errors)
+        return
     _write_atomic(out, dumps(doc))
 
 

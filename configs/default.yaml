@@ -47,6 +47,13 @@ pairing:
   eps: 1.0                 # additive smoothing for prior counts
   score_power: 0.5         # fixed monotone rescale: (p_v * p_n * prior^alpha) ** power; P4
 
+detect:                    # ActionFormer (detect/actionformer.py); files from tools/fetch_weights.sh
+  verb_config: code/third_party/actionformer/configs/epic_slowfast_verb.yaml
+  noun_config: code/third_party/actionformer/configs/epic_slowfast_noun.yaml
+  verb_checkpoint: weights/actionformer_epic_verb.pth.tar
+  noun_checkpoint: weights/actionformer_epic_noun.pth.tar
+  vn_prior: weights/vn_prior.npy  # verb-noun counts, EPIC train only (tools/build_vn_prior.py)
+
 zeroshot:                  # detect/fallback_zeroshot.py: kill-rule + uncertain-route detector (P4)
   window_sec: 2.0          # sliding window over 1 fps CLIP embeddings (REWIND_v2.3_plan §7)
   stride_sec: 1.0          # window step

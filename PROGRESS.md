@@ -19,10 +19,9 @@ Who is A and who is B: **A = prakartii**, **B = Daksh Arora (DA)**.
 | P2 | Evaluation harness | B | Nov 11–12 | done | Leaderboard has uniform + oracle rows on `tune` and `report` |
 | P3 | Video I/O, signals, feature cache | A | Nov 10–12 | in progress | Flow, hands and CLIP cached for all 187 + `tune` videos |
 | P4 | Action detection → `actions[]` | A | Nov 11–13 | in progress | mAP measured on `tune` and `report`; beats the zero-shot fallback |
-| P4 | Action detection → `actions[]` | A | Nov 11–13 | not started | mAP measured on `tune` and `report`; beats the zero-shot fallback |
 | P5 | Clustering + EPIC coverage selector | B | Nov 12–14 | in progress | EPIC coverage > uniform; % of oracle reported; ablation done |
 | P6 | FPVSum route: importance, segments, label | A | Nov 13–15 | in progress | F1 > uniform on FPVSum CV; label accuracy reported |
-| P7 | Integration, tuning, ablations | A + B | Nov 15–16 | not started | All 187 outputs from raw MP4 pass validation; tuned config committed; floors set |
+| P7 | Integration, tuning, ablations | A + B | Nov 15–16 | in progress | All 187 outputs from raw MP4 pass validation; tuned config committed; floors set |
 | P8 | Packaging, demo, deck | B (pkg) + A (demo) | Nov 16–17 | not started | Fresh clone + Docker reproduces one video; demo video + deck done |
 | P9 | Submission | A + B | Nov 18 | not started | Submitted via Google Form before 11:59 PM IST |
 
@@ -237,12 +236,10 @@ are blank.)
 - [x] `cluster.py`
 - [x] `select/candidates.py` (both capture rules)
 - [x] `select/coverage.py` (expected-coverage lazy greedy, new-seconds cost; no fragment check needed, every component holds a whole window)
-- [ ] `select/hedge.py`
-- [ ] Label-dedup baseline selector (for the ablation and the kill rule)
 - [x] `select/coverage.py` (expected-coverage lazy greedy, new-seconds cost, fragment check)
 - [x] `select/hedge.py`
 - [x] Label-dedup baseline selector (for the ablation and the kill rule) — `select_epic(mode="dedup")`
-- [ ] Wire into `pipeline.py` (EPIC route → `highlights[]`)
+- [x] Wire into `pipeline.py` (EPIC route → `highlights[]`) (P7 wiring PR)
 - [ ] Tune `window_lengths`, `stride`, `h`, `cluster.*` on `tune` (first pass on simulated proposals: mixed lengths kept, `h = 0`; redo on P4 proposals)
 - [ ] **Kill rule (end of Nov 14):** if expected coverage doesn't beat label dedup, ship label dedup
 
@@ -313,8 +310,11 @@ Label errors (8): jumping -> plane (3), bikepolo -> bike (2), bike -> motor, lon
 ---
 
 ### P7 — Integration, tuning, ablations
-**Owner:** A + B · **Planned:** Nov 15–16 · **Status:** not started · **Depends on:** P4, P5, P6
+**Owner:** A + B · **Planned:** Nov 15–16 · **Status:** in progress (started 2026-11-12 by B) · **Depends on:** P4, P5, P6
 
+- [x] Wire every stage into `run.sh`: `rewind/analyze.py` (route → actions → label → highlights) and `features/extract.py` (signals from the cache or one decoding pass); fake-model tests end to end
+- [ ] Confirm MediaPipe hands run inside the P8 Docker image (killed at creation on DA's laptop; fine on Kaggle). If it fails there, decide: drop hands (weights 0) or pin another mediapipe
+- [ ] SlowFast extraction from the MP4 (P4 open item): until then an EPIC video without cached features gets zero-shot actions, also under `run.sh` on a clean machine
 - [ ] Clean-run all 187 videos from raw MP4 with an empty cache (time it)
 - [ ] Final tuning on `tune` only; commit the tuned `configs/default.yaml`
 - [ ] Score on `report`; full ablation table (`tools/ablate.py`)
@@ -432,6 +432,9 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
 - 2026-11-12 · PK · P6 · FPVSum route measured (default cfg): F1 0.222 vs uniform 0.163 on `report`, above uniform on all 5 CV folds; label accuracy 0.837; `tools/predict_fpvsum.py` · —
+- 2026-11-12 · DA · P7 · Review fixes on #21: an unwritable cache (read-only mount, full disk) no longer sends every video to the fallback (cache writes are best-effort); text-cache key keeps `label.classes` order and a `TEXT_VERSION`; ActionFormer load or runtime errors and a wrong-shape VN prior degrade to zero-shot / uniform instead of the fallback; frames always decode at the widest feature width, so flow no longer depends on which features were cached (was up to 3.5 z-units); flow/hands grid mismatch fails loudly; tests for the selector choice per label, the FPVSum label excluding cooking and CLIP subsampling. Open (P4 code): zero-shot pairing on a 2000 s video takes ~8 s and ~1 GB (dense tIoU matrices) · #21
+- 2026-11-12 · DA · P7 · Real-model smoke run (CLIP ViT-B/16 + PyAV + flow; hands stubbed) on 45 s and 12 s synthetic videos: valid JSON, routed FPVSum, cached re-run 0.1 s. Fixes it found: (1) **`run_video` now writes the validated fallback before analysis**, so a hard kill (SIGKILL, OOM, native crash) still leaves a valid JSON; regression test first. (2) Prompt text embeddings (~450 prompts, ~30 s CPU per process) are cached in `cache/text/`; a second `run.sh` process skipped it (3.5 s for a 12 s video). (3) Contract tests take the fallback via `REWIND_CONFIG` (new: run.sh/CLI config override), so the default suite never loads real models even when `weights/` exists. **Known local issue:** MediaPipe 1.2.2 Hand Landmarker is SIGKILLed at creation on DA's laptop (Intel Core Ultra 5 125U, kernel 7.2; not memory, not seccomp); it ran on Kaggle for 129 videos. P8 Docker run must confirm hands work on a clean Linux image · #21
+- 2026-11-12 · DA · P7 · Pipeline wired end to end: `run.sh` now routes from CLIP P(cooking), emits actions on the EPIC and uncertain routes (ActionFormer when SlowFast features are cached, else zero-shot), labels, and selects highlights (expected coverage for `cooking`, importance proxy otherwise). Signals come from the cache or one decoding pass (`features/extract.py`, shared with `tools/cache_features.py`). New `detect:` config section (ActionFormer files, VN prior). Missing CLIP/hand weights still mean the fallback. Removed a stale duplicate P4 row from the phase table · #21
 - 2026-11-12 · DA · P3 · Review fixes (B took over on request): end-to-end test that a real file with one undecodable frame (zeroed MJPEG packet, same `InvalidDataError`) decodes with only that sample repeated, so `iter_frames` is covered and not just the helper; `--only-ids` rejects ids not in the kit manifest instead of silently retrying nothing; `iter_frames` docstring states the skip and the 0.25 s end slack; P3 log lines cite #20 · #20
 - 2026-11-12 · PK · P3 · Kaggle retry launched for the 9 failed EPIC videos with both decode fixes (`--only-ids`); first attempt failed at startup because the code dataset lacked `requirements.txt` (now packed) · #20
 - 2026-11-12 · PK · P3 · Kaggle EPIC cache: **129/138 videos done**; 9 failed: 7 on the end-slack bug (fixed below), 2 (P29_05, P30_08; MD5-verified files) on a packet FFmpeg rejects (`Invalid data found when processing input`). `iter_frames` now decodes packet by packet and skips up to 60 rejected packets (~1 s at 60 fps) before raising `DecodeError`; regression tests with fake packets. The 9 are re-run on Kaggle · #20

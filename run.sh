@@ -16,4 +16,5 @@ else
 fi
 export PYTHONPATH="$ROOT/code${PYTHONPATH:+:$PYTHONPATH}"
 
-exec "$PY" -m rewind.cli "$1" "$2" --config "$ROOT/configs/default.yaml"
+# REWIND_CONFIG picks another config (tests use one without model weights).
+exec "$PY" -m rewind.cli "$1" "$2" --config "${REWIND_CONFIG:-$ROOT/configs/default.yaml}"
