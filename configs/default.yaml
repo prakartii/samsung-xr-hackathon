@@ -42,6 +42,7 @@ features:
 actions:
   max_per_video: 2000      # cap on actions[] per video (kit max 2000); initial, tuned in P4
   min_score: 0.0           # drop actions below this score; initial, tuned in P4
+  prior_alpha: 0.0         # verb-noun prior exponent for output action scores (pairing.alpha is for the selector's proposals); P7 ablation
 
 pairing:
   match_tiou: 0.5          # min tIoU to pair a verb proposal with a noun proposal; initial, P4
@@ -80,6 +81,7 @@ select:
   capture_rule: any_overlap  # any_overlap | fraction (PROGRESS.md Q4)
   fraction_theta: 0.5      # fraction rule: overlap/span midpoint of the sigmoid
   fraction_tau: 0.05       # fraction rule: sigmoid temperature
+  mode: expected           # expected | dedup: expected coverage (§5.4), or the label-dedup baseline (P5 kill rule)
 
 hedge:
   share: 0.0               # budget fraction for hedge windows; 0 until activity signals exist (P5 sim: 0.125 cost ~0.08 coverage)

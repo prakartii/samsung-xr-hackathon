@@ -250,7 +250,7 @@ Not done yet: wiring into `pipeline.py`; SlowFast extraction from the raw MP4 (c
 - [x] Label-dedup baseline selector (for the ablation and the kill rule) — `select_epic(mode="dedup")`
 - [x] Wire into `pipeline.py` (EPIC route → `highlights[]`) (P7 wiring PR)
 - [ ] Tune `window_lengths`, `stride`, `h`, `cluster.*` on `tune` (first pass on simulated proposals: mixed lengths kept, `h = 0`; redo on P4 proposals)
-- [ ] **Kill rule (end of Nov 14):** if expected coverage doesn't beat label dedup, ship label dedup
+- [x] **Kill rule (end of Nov 14):** if expected coverage doesn't beat label dedup, ship label dedup — 2026-11-13, real ActionFormer proposals on `tune` (`tools/ablate.py`, `select.mode`): expected coverage 0.4883 vs label dedup 0.4299 (% of oracle 67.6 vs 59.5) → **keep expected coverage**
 
 **Exit check:** EPIC coverage > uniform on `report`; % of oracle recorded; ablation table below.
 **Tests required:**
@@ -328,7 +328,7 @@ Label errors (8): jumping -> plane (3), bikepolo -> bike (2), bike -> motor, lon
 - [ ] SlowFast extraction from the MP4 (P4 open item): until then an EPIC video without cached features gets zero-shot actions, also under `run.sh` on a clean machine
 - [ ] Clean-run all 187 videos from raw MP4 with an empty cache (time it)
 - [ ] Final tuning on `tune` only; commit the tuned `configs/default.yaml` — EPIC selector done 2026-11-13 (`tools/tune_epic_selector.py`, real ActionFormer proposals, coordinate search over cluster/select/hedge/pairing/post, adopt rule: mean gain ≥ 0.005 and more wins than losses): only `select.stride` 0.5 → 1.0 adopted (coverage 0.4687 → 0.4883). FPVSum importance CV-tuned (weights unchanged; audio terms added, see P6)
-- [ ] Score on `report`; full ablation table (`tools/ablate.py`)
+- [x] Score on `report`; full ablation table (`tools/ablate.py`) — 2026-11-13, `results/ablation_{tune,report}.md`. **Report, full pipeline: weighted 0.3614** (uniform 0.1763, oracle 0.8178): coverage 0.4368 (59.8% of oracle), mAP 0.1493, F1 0.2626, label 0.8367. Every component helps on both splits; largest: ActionFormer (−0.053 weighted without it on report), expected-coverage selector (−0.012), audio (−0.010)
 - [x] `tools/latency.py`: seconds per minute of video on CPU (add a GPU row only if a free Kaggle/Colab run is handy) — 2026-11-12, laptop CPU (Windows), empty cache, full CLI per video incl. model load: **39.4 s per video minute** over 4 videos (EPIC 47.3, FPVSum 26.3; slowest P01_11 50.9). Runs in `results/latency.csv`; rerun on more videos / in Docker at P8
 - [x] Set metric floors in `tests/integration/floors.yaml` — 2026-11-13 from the full pipeline on `tune` (`tools/predict_cached.py`): EPIC coverage 0.4687 (uniform 0.3583, oracle 0.7401), 63.3% of oracle (uniform 48.4%), mAP 0.5266 (optimistic: AF train videos); FPVSum CV F1 0.2228 (uniform 0.1636), label 0.835. `tests/integration/test_floors.py` (slow, data) regenerates and checks them, ~4 min
 - [x] Determinism check: two runs → byte-identical JSON — 2026-11-12, CLI twice on FPVSum Bike_lhTFVa0h9Rk and EPIC P01_11 (1820 actions, ActionFormer): identical apart from `video_id` (taken from the output name); still to repeat inside the P8 Docker image
@@ -348,7 +348,7 @@ Label errors (8): jumping -> plane (3), bikepolo -> bike (2), bike -> motor, lon
 - [ ] Fresh clone → Docker build → `run.sh` on one video → identical JSON to ours
 - [ ] `tools/make_reel.py`: demo reel with padding/crossfades (demo only, not outputs)
 - [ ] Demo video (length per Q7; default ≤ 3 min) uploaded; link recorded here
-- [ ] Deck `CollegeName_TeamName`: problem, architecture diagram, tech stack, innovation, results, limitations; the three numbers (% of oracle, tokens pruned, latency)
+- [ ] Deck `CollegeName_TeamName`: problem, architecture diagram, tech stack, innovation, results, limitations; the three numbers (% of oracle, tokens pruned, latency) — numbers ready (`tools/deck_numbers.py`, report): **59.8% of oracle coverage, 85.8% of visual tokens pruned, 39.4 s CPU per video minute**
 - [ ] Repo shared with the organizers (public, or invite as required)
 
 **Exit check:** reproduction from a fresh clone works; demo video and deck links recorded.
@@ -416,6 +416,8 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 | Date | Decision | Why | By |
 |---|---|---|---|
+| 2026-11-13 | Output actions scored without the verb-noun prior (`actions.prior_alpha` 0); selector proposals keep it (`pairing.alpha` 1) | Ablation on `tune`: without the prior mAP 0.5266 → 0.6532 but coverage 0.4883 → 0.4691; splitting keeps both (weighted 0.4764 → 0.5080). The prior comes from train counts, so it should help most on these train videos, yet it lowers mAP. Chosen by PK before any report run. Report afterwards (measurement only): mAP 0.1493 (was 0.117 with the prior). Observed, not acted on: on report the selector does slightly better without the prior too (coverage 0.4464 vs 0.4368), the opposite of tune | PK |
+| 2026-11-13 | P5 kill rule: keep the expected-coverage selector | Real proposals on `tune`: coverage 0.4883 vs label dedup 0.4299 (rule set in advance; `select.mode` switch added for it) | PK |
 | 2026-11-13 | FPVSum importance gets audio terms: `w_audio_rms` 1.0 (z of log loudness), `w_audio_flux` 0.25 (z of spectral flux) | P6 ablation on FPVSum CV (46 videos with usable GT timing, pick on 4 folds, score the 5th): F1 0.2236 → 0.2477 (0.2405 with a wider weight grid); better on 27 videos, worse on 17; folds 0, 3, 4 up, 1, 2 down. Decoded only on the FPVSum route; no audio stream → terms left out. ARCHITECTURE §6.2 updated | PK |
 | 2026-11-13 | `select.stride` 0.5 → 1.0 (P7 tuning on `tune`) | Real ActionFormer proposals on tune: coverage 0.4883 vs 0.4687 (better on more videos than worse); B's noisy simulation (3 seeds) 0.5217 vs 0.5112; clean simulation prefers 0.5 (0.7438 vs 0.7305). Report detections are far noisier than tune ones (mAP 0.117 vs 0.527), so the noisy case decides. Every other selector knob: no change cleared the adopt rule (best near-misses cluster.k 10 +0.0044, pairing.alpha 0.5 +0.0015) | PK |
 | 2026-11-12 | Keep the current FPVSum importance weights and label phrases (no CV tuning adopted) | 5-fold CV on the 49 videos: grid-tuned settings score lower on held-out folds (F1 0.199 vs 0.221; label 0.775 vs 0.835) than the current ones; with 49 videos the grids overfit | PK |
@@ -446,6 +448,8 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-13 · PK · P7/P8 · Output actions without the verb-noun prior (`actions.prior_alpha`, tests first; Decisions): tune weighted 0.5080. First full-pipeline **report** score: weighted 0.3614 vs uniform 0.1763 (leaderboard). Ablation tables for tune and report. `tools/deck_numbers.py`: 59.8% of oracle, 85.8% tokens pruned, 39.4 s/min. mAP floor raised · —
+- 2026-11-13 · PK · P7 · `tools/ablate.py` (variants through `predict_cached.Predictor`, AF detections memoized; `select.mode` switch; tests first). `tune` table in `results/ablation_tune.md`: full 0.4764; without ActionFormer 0.3057, label dedup 0.4530, no audio 0.4662, no flow 0.4734, no hands 0.4746, no scene change 0.4760; without the verb-noun prior 0.5004 (mAP 0.6532 vs 0.5266, coverage 0.4691 vs 0.4883): open question. P5 kill rule: keep expected coverage · —
 - 2026-11-13 · PK · P6 · Audio terms in the FPVSum importance proxy (`features/audio.py`, `tools/ablate_audio.py`, tests first): CV F1 0.2236 → 0.24–0.25, kept (Decisions). `summarize` takes an `audio` loader (FPVSum route only, cached, failure-safe). Tune fold-mean F1 0.2636, weighted 0.476 (was 0.466); EPIC unchanged. Floors raised · —
 - 2026-11-13 · PK · P7 · EPIC selector tuned on `tune` with real proposals (`tools/tune_epic_selector.py`, tests first): `select.stride` 1.0 adopted (Decisions). Tune: coverage 0.4883 (was 0.4687), 67.6% of oracle, weighted fold mean 0.466 (was 0.458); FPVSum unchanged. Floors raised; leaderboard rows · —
 - 2026-11-13 · PK · P7 · `tools/predict_cached.py`: full pipeline (`analyze.summarize`) for a split from the feature cache alone, 69 tune videos in 168 s. First full tune run: weighted 0.458 vs uniform 0.184 (fold mean); EPIC coverage 0.4687 vs 0.3583, 63.3% of oracle. Floors set in `tests/integration/floors.yaml` with `test_floors.py` (raised floors seen failing). Leaderboard rows for full, uniform, oracle and the 5 folds · —

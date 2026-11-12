@@ -54,69 +54,91 @@ def _local(mp4: Path) -> tuple[str, float]:
     return content_fingerprint(mp4), probe_video(mp4).duration_sec
 
 
-def main() -> None:
-    from import_released_features import load_fingerprint_logs
-
-    from rewind.analyze import audio_loader, load_models, summarize
-    from rewind.config import load_config
-    from rewind.features.extract import FEATURES, signal_caches
-    from rewind.features.slowfast import find_slowfast
-    from rewind.output import dumps, to_document
-    from rewind.utils import seed_all
+def split_ids(split: str) -> list[str]:
+    """EPIC then FPVSum ids of a split (`tune` FPVSum = all CV-fold videos)."""
     from rewind_eval.splits import load_splits
+
+    s = load_splits()
+    epic = s.tune_epic if split == "tune" else s.report_epic
+    return [*epic, *sorted(s.fpvsum_folds if split == "tune" else s.report_fpvsum)]
+
+
+class Predictor:
+    """Models loaded once; `run` writes one JSON per video for any config variant that
+    uses the same model files. ActionFormer detections are memoized per video (they
+    depend on the features and weights only)."""
+
+    def __init__(self, cfg, videos: Path, fingerprint_logs: list[Path]) -> None:
+        from import_released_features import load_fingerprint_logs
+
+        from rewind.analyze import load_models
+
+        self.videos = videos
+        self.logged = load_fingerprint_logs(fingerprint_logs)
+        self.models = load_models(cfg, REPO)
+        self._dets: dict[str, object] = {}
+
+    def run(self, cfg, ids: list[str], out: Path, actionformer: bool = True) -> None:
+        from rewind.analyze import audio_loader, summarize
+        from rewind.features.extract import FEATURES, signal_caches
+        from rewind.features.slowfast import find_slowfast
+        from rewind.output import dumps, to_document
+        from rewind.utils import seed_all
+
+        seed_all(cfg.run.seed)
+        index, missing = video_index(ids, self.logged, self.videos, _local)
+        if missing:
+            raise SystemExit(f"no fingerprint (not in the logs, no MP4): {missing}")
+        m = self.models
+        caches = signal_caches(m.cache_root, cfg, m.signals)
+        text, prior = m.text(cfg), m.prior(cfg)
+        roots = [m.cache_root, m.released_root]
+        out.mkdir(parents=True, exist_ok=True)
+        t0 = time.perf_counter()
+        for i, vid in enumerate(ids, 1):
+            fp, duration = index[vid]
+            signals = {f: caches[f].get(fp) for f in FEATURES}
+            if any(v is None for v in signals.values()):
+                raise SystemExit(
+                    f"{vid}: not cached: {[f for f, v in signals.items() if v is None]}"
+                )
+
+            def detect(vid=vid, fp=fp, duration=duration):
+                if not actionformer or m.verb_detector is None or m.noun_detector is None:
+                    return None
+                if vid not in self._dets:
+                    entry = find_slowfast(fp, roots)
+                    self._dets[vid] = None if entry is None else (
+                        m.verb_detector.detect(entry["feats"], duration),
+                        m.noun_detector.detect(entry["feats"], duration),
+                    )  # fmt: skip
+                return self._dets[vid]
+
+            audio = audio_loader(self.videos / f"{vid}.mp4", fp, cfg, m.cache_root)
+            result = summarize(vid, duration, signals, text, prior, cfg, detect, audio)
+            (out / f"{vid}.json").write_text(dumps(to_document(result)), encoding="utf-8")
+            print(f"[{i}/{len(ids)}] {vid}: {result.label[0]}, {len(result.actions)} actions,"
+                  f" {len(result.highlights)} highlights", flush=True)  # fmt: skip
+        print(f"{len(ids)} videos in {time.perf_counter() - t0:.0f} s", flush=True)
+
+
+def default_logs() -> list[Path]:
+    return sorted((REPO / "cache" / "kaggle_logs").glob("shard_*.jsonl"))
+
+
+def main() -> None:
+    from rewind.config import load_config
 
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     ap.add_argument("--split", choices=["tune", "report"], required=True)
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--config", type=Path, default=REPO / "configs" / "default.yaml")
     ap.add_argument("--videos", type=Path, default=REPO / "data" / "videos")
-    ap.add_argument(
-        "--fingerprint-logs",
-        type=Path,
-        nargs="*",
-        default=sorted((REPO / "cache" / "kaggle_logs").glob("shard_*.jsonl")),
-    )
+    ap.add_argument("--fingerprint-logs", type=Path, nargs="*", default=default_logs())
     args = ap.parse_args()
 
     cfg = load_config(args.config)
-    seed_all(cfg.run.seed)
-    s = load_splits()
-    epic = s.tune_epic if args.split == "tune" else s.report_epic
-    ids = [*epic, *sorted(s.fpvsum_folds if args.split == "tune" else s.report_fpvsum)]
-    index, missing = video_index(
-        ids, load_fingerprint_logs(args.fingerprint_logs), args.videos, _local
-    )
-    if missing:
-        raise SystemExit(f"no fingerprint (not in the logs, no MP4): {missing}")
-
-    models = load_models(cfg, REPO)
-    caches = signal_caches(models.cache_root, cfg, models.signals)
-    text, prior = models.text(cfg), models.prior(cfg)
-    roots = [models.cache_root, models.released_root]
-    args.out.mkdir(parents=True, exist_ok=True)
-    t0 = time.perf_counter()
-    for i, vid in enumerate(ids, 1):
-        fp, duration = index[vid]
-        signals = {f: caches[f].get(fp) for f in FEATURES}
-        if any(v is None for v in signals.values()):
-            raise SystemExit(f"{vid}: not cached: {[f for f, v in signals.items() if v is None]}")
-
-        def detect(fp=fp, duration=duration):
-            entry = find_slowfast(fp, roots)
-            if entry is None or models.verb_detector is None or models.noun_detector is None:
-                return None
-            feats = entry["feats"]
-            return (
-                models.verb_detector.detect(feats, duration),
-                models.noun_detector.detect(feats, duration),
-            )
-
-        audio = audio_loader(args.videos / f"{vid}.mp4", fp, cfg, models.cache_root)
-        result = summarize(vid, duration, signals, text, prior, cfg, detect, audio)
-        (args.out / f"{vid}.json").write_text(dumps(to_document(result)), encoding="utf-8")
-        print(f"[{i}/{len(ids)}] {vid}: {result.label[0]}, {len(result.actions)} actions,"
-              f" {len(result.highlights)} highlights", flush=True)  # fmt: skip
-    print(f"{len(ids)} videos in {time.perf_counter() - t0:.0f} s")
+    Predictor(cfg, args.videos, args.fingerprint_logs).run(cfg, split_ids(args.split), args.out)
 
 
 if __name__ == "__main__":

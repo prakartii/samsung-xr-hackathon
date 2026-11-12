@@ -14,7 +14,7 @@ tune_epic:          # 20 EPIC train videos
   coverage_any: 0.4883   # uniform 0.3583
   coverage_frac: 0.2883  # uniform 0.1776
   pct_oracle: 0.6760     # oracle on the same 1 s grid
-  map: 0.5266
+  map: 0.6532              # output actions without the verb-noun prior (actions.prior_alpha 0)
 
 tune_fpvsum_cv:     # mean over the 5 FPVSum CV folds (49 videos, 46 with usable GT timing)
   f1: 0.2636             # with audio terms (in-sample; held-out CV 0.24-0.25); uniform 0.1636

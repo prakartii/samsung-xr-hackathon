@@ -23,7 +23,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Callable, Sequence
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 from typing import Protocol
 
@@ -128,11 +128,15 @@ def video_label(clip_emb: np.ndarray, text: Text, decision: RouteDecision, cfg: 
     return choose_label(decision, cfg.routing.cooking_thr, fpv, cfg.label.other_thr)
 
 
-def proposals_from(dets: Detections, prior: VNPrior, cfg: Config) -> list[Proposal]:
+def proposals_from(
+    dets: Detections, prior: VNPrior, cfg: Config, alpha: float | None = None
+) -> list[Proposal]:
+    """Paired proposals; ``alpha`` overrides `pairing.alpha` (the prior's exponent)."""
     verbs, nouns = class_lists()
-    return pair_proposals(
-        dets[0], dets[1], prior, set(verbs), set(nouns), PairingParams(**asdict(cfg.pairing))
-    )
+    params = PairingParams(**asdict(cfg.pairing))
+    if alpha is not None:
+        params = replace(params, alpha=alpha)
+    return pair_proposals(dets[0], dets[1], prior, set(verbs), set(nouns), params)
 
 
 def zeroshot_detections(clip: Arrays, duration: float, text: Text, cfg: Config) -> Detections:
@@ -170,7 +174,7 @@ def epic_highlights(
     h = cfg.hedge
     activity = h.w_flow * np.asarray(flow["flow"]) + h.w_hands * np.asarray(hands["hands"])
     profile = (np.asarray(flow["t"]), activity)
-    segs, values = select_epic(clusters, duration, cfg, profile=profile)
+    segs, values = select_epic(clusters, duration, cfg, mode=cfg.select.mode, profile=profile)
     return segs, values, profile
 
 
@@ -233,8 +237,15 @@ def summarize(
                 log.error("ActionFormer failed, using the zero-shot detector: %s", exc)
         if dets is None:
             dets = zeroshot_detections(clip, duration, text, cfg)
-        proposals = proposals_from(dets, prior, cfg)
-        actions = proposals_to_actions(proposals, cfg.actions.max_per_video, cfg.actions.min_score)
+        proposals = proposals_from(dets, prior, cfg)  # for the selector: prior on
+        # Output actions use their own prior exponent (Decisions 2026-11-13: the prior
+        # helps coverage but hurts mAP); re-pair only when it differs.
+        scored = (
+            proposals
+            if cfg.actions.prior_alpha == cfg.pairing.alpha
+            else proposals_from(dets, prior, cfg, alpha=cfg.actions.prior_alpha)
+        )
+        actions = proposals_to_actions(scored, cfg.actions.max_per_video, cfg.actions.min_score)
 
     if label[0] == COOKING:
         segs, values, profile = epic_highlights(proposals, flow, hands, clip, duration, cfg)

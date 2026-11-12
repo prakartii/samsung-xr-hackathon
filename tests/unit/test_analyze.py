@@ -5,7 +5,6 @@ and every softmax is near one-hot (logit scale 100). Expected values are worked 
 in each test's comment.
 """
 
-import math
 from dataclasses import replace
 
 import numpy as np
@@ -74,14 +73,15 @@ def test_summarize_cooking_video_routes_epic_with_zero_shot_actions():
     # Zero-shot: windows(60, 2, 1) = [0,2] .. [58,60] = 59 windows; top_k = min(3, 2)
     # = 2 verbs and 2 nouns each. Neighbouring windows have tIoU 1/3 < 0.5, so each
     # window is its own anchor: 59 proposals x (2 verbs x 2 nouns) = 236 actions.
-    # Best pair: P(take) ~ P(knife) ~ 1 -> (1 * 1 * 0.5) ** 0.5 = sqrt(0.5).
+    # Best pair: P(take) ~ P(knife) ~ 1 -> output actions carry no prior
+    # (actions.prior_alpha 0): (1 * 1) ** 0.5 = 1.
     r = summarize("v", T, signals(COOKING_TAKE_KNIFE), TEXT, PRIOR, CFG)
 
     assert r.label == ("cooking", 1.0)
     assert len(r.actions) == 236
     _seg, verb, noun, score = r.actions[0]
     assert (verb, noun) == ("take", "knife")
-    assert score == pytest.approx(math.sqrt(0.5), abs=1e-9)
+    assert score == pytest.approx(1.0, abs=1e-9)
     assert strict_errors(r) == []
 
 
@@ -118,14 +118,14 @@ def test_summarize_uncertain_route_always_emits_actions():
 
 def test_summarize_uses_actionformer_detections_when_available():
     # One verb and one noun detection on the same span (tIoU 1):
-    # score = (0.9 * 0.8 * prior 0.5) ** 0.5 = 0.36 ** 0.5 = 0.6
+    # output score, no prior (actions.prior_alpha 0) = (0.9 * 0.8) ** 0.5 = 0.72 ** 0.5
     dets = ([((3.0, 7.0), "put", 0.9)], [((3.0, 7.0), "plate", 0.8)])
     r = summarize("v", T, signals(COOKING_TAKE_KNIFE), TEXT, PRIOR, CFG, lambda: dets)
 
     assert len(r.actions) == 1
     seg, verb, noun, score = r.actions[0]
     assert (seg, verb, noun) == ((3.0, 7.0), "put", "plate")
-    assert score == pytest.approx(0.6, abs=1e-12)
+    assert score == pytest.approx(0.72**0.5, abs=1e-12)
 
 
 def test_summarize_falls_back_to_zero_shot_when_no_features_are_cached():
@@ -238,3 +238,37 @@ def test_summarize_audio_failure_keeps_fpvsum_highlights():
     r = summarize("v", T, signals(BIKE), TEXT, PRIOR, CFG, audio=audio)
     assert len(r.highlights) >= 1
     assert strict_errors(r) == []
+
+
+# prior from counts take/put x knife/plate = [[0, 8], [0, 8]], eps 1:
+# prior(v, knife) = 1 / 10 = 0.1, prior(v, plate) = 9 / 10 = 0.9
+PLATE_PRIOR = VNPrior.from_counts(VERBS, NOUNS, np.array([[0.0, 8.0], [0.0, 8.0]]), eps=1.0)
+KNIFE_OR_PLATE = (
+    [((3.0, 7.0), "take", 0.9)],
+    [((3.0, 7.0), "knife", 0.8), ((3.0, 7.0), "plate", 0.3)],
+)
+
+
+def test_summarize_output_actions_scored_without_the_prior_by_default():
+    # actions.prior_alpha 0: score = (p_v * p_n) ** 0.5
+    #   take knife (0.9 * 0.8) ** 0.5 = 0.72 ** 0.5 = 0.84853; take plate 0.27 ** 0.5 = 0.51962
+    r = summarize(
+        "v", T, signals(COOKING_TAKE_KNIFE), TEXT, PLATE_PRIOR, CFG, lambda: KNIFE_OR_PLATE
+    )
+
+    (_, v0, n0, s0), (_, v1, n1, s1) = r.actions
+    assert (v0, n0, v1, n1) == ("take", "knife", "take", "plate")
+    assert (s0, s1) == (pytest.approx(0.72**0.5, abs=1e-12), pytest.approx(0.27**0.5, abs=1e-12))
+
+
+def test_summarize_output_actions_with_prior_alpha_one_follow_the_prior():
+    # actions.prior_alpha 1: take knife (0.72 * 0.1) ** 0.5 = 0.26833,
+    # take plate (0.27 * 0.9) ** 0.5 = 0.243 ** 0.5 = 0.49295 -> plate first
+    cfg = replace(CFG, actions=replace(CFG.actions, prior_alpha=1.0))
+    r = summarize(
+        "v", T, signals(COOKING_TAKE_KNIFE), TEXT, PLATE_PRIOR, cfg, lambda: KNIFE_OR_PLATE
+    )
+
+    (_, _, n0, s0), (_, _, n1, s1) = r.actions
+    assert (n0, n1) == ("plate", "knife")
+    assert (s0, s1) == (pytest.approx(0.243**0.5, abs=1e-12), pytest.approx(0.072**0.5, abs=1e-12))
