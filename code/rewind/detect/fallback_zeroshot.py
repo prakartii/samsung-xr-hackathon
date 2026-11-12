@@ -34,6 +34,13 @@ class ZeroShotParams:
     noun_template: str
 
 
+def class_phrase(key: str) -> str:
+    """Readable prompt text for a kit key: hyphens to spaces, and EPIC's
+    "noun:modifier[:modifier]" order reversed ("board:chopping" -> "chopping board")."""
+    parts = key.split(":")
+    return " ".join(reversed(parts)).replace("-", " ")
+
+
 def windows(duration: float, window_sec: float, stride_sec: float) -> list[tuple[float, float]]:
     """[s, s + window] for s = 0, stride, ... while the window fits, plus one final window
     ending exactly at T when the grid stops short of it (otherwise up to one stride at the
