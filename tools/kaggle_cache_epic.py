@@ -35,6 +35,21 @@ SHARD = globals().get("SHARD", 0)
 N_SHARDS = globals().get("N_SHARDS", 1)
 # Retry pass: only these EPIC ids (set by kaggle_launch.py --only-ids), else the manifest.
 ONLY_IDS = globals().get("ONLY_IDS")
+# Suffix of this run's log file, so a collect never overwrites an earlier run's log.
+RUN_TAG = globals().get("RUN_TAG", "_retry" if ONLY_IDS else "")
+
+
+def shard_ids(
+    manifest: dict[str, float], only_ids: list[str] | None, shard: int, n_shards: int
+) -> list[str]:
+    """This shard's ids: `only_ids` (may include non-manifest ids, e.g. the `tune`
+    EPIC train videos) or the whole manifest; longest known duration first, unknown
+    durations after (by id), then every n-th."""
+    pool = list(only_ids) if only_ids else list(manifest)
+    ordered = sorted(pool, key=lambda v: (v not in manifest, -manifest.get(v, 0.0), v))
+    return ordered[shard::n_shards]
+
+
 DOWNLOAD_THREADS = 12
 BACKLOG = 4
 WORK = Path("/kaggle/working")
@@ -154,13 +169,12 @@ def main() -> None:
     cfg_bits = (dense, clip_fps, flow_p, hand_p, clip_p)
 
     manifest = dv.read_manifest(repo / "kit" / "manifest.csv")["epic_kitchens_100"]
-    pool = [v for v in manifest if v in set(ONLY_IDS)] if ONLY_IDS else list(manifest)
-    ids = sorted(pool, key=lambda v: -manifest[v])[SHARD::N_SHARDS]
+    ids = shard_ids(manifest, ONLY_IDS, SHARD, N_SHARDS)
     data = repo / "epic_download_data"
     splits = {r["video_id"]: r["split"] for r in dv._read_csv(data / "epic_55_splits.csv")}
     md5_rows = dv._read_csv(data / "md5.csv")
     md5s = {(r["version"], r["file_remote_path"]): r["md5"] for r in md5_rows}
-    minutes = sum(manifest[v] for v in ids) / 60
+    minutes = sum(manifest.get(v, 0.0) for v in ids) / 60  # tune ids: not in the manifest
     print(f"shard {SHARD}/{N_SHARDS}: {len(ids)} videos, {minutes:.0f} min", flush=True)
 
     ready: queue.Queue = queue.Queue()
@@ -179,7 +193,7 @@ def main() -> None:
 
     libs = library_versions()
     print("libraries:", libs, flush=True)
-    tag = "_retry" if ONLY_IDS else ""  # keeps the first pass's log when collected
+    tag = RUN_TAG
     log = (WORK / f"shard_{SHARD}{tag}.jsonl").open("a", encoding="utf-8")
     with ThreadPoolExecutor(DOWNLOAD_THREADS) as pool:
         for vid in ids:

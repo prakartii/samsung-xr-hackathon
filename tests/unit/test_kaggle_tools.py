@@ -96,3 +96,30 @@ def test_only_ids_are_all_epic_ids_in_the_kit_manifest():
     ids = launch.epic_ids()
     assert len(ids) == 138  # EPIC-KITCHENS-100 val videos in kit/manifest.csv
     assert "P08_09" in ids and not any(v.startswith("Ski_") for v in ids)
+
+
+# --- tune split (EPIC train videos, not in the manifest) -----------------------------
+
+
+def test_shard_ids_keeps_requested_ids_outside_the_manifest():
+    # tune videos are EPIC train videos: absent from the manifest, but still processed.
+    job = _load("kaggle_cache_epic")
+    manifest = {"P01_11": 561.5, "P01_12": 173.8}
+    got = job.shard_ids(manifest, ["P01_02", "P01_11"], shard=0, n_shards=1)
+    # known duration first (longest first), unknown ones after, by id
+    assert got == ["P01_11", "P01_02"]
+
+
+def test_shard_ids_without_only_ids_is_the_manifest_longest_first_round_robin():
+    job = _load("kaggle_cache_epic")
+    manifest = {"a": 10.0, "b": 30.0, "c": 20.0}
+    # longest first: b, c, a -> shard 0 of 2 takes b, a; shard 1 takes c
+    assert job.shard_ids(manifest, None, shard=0, n_shards=2) == ["b", "a"]
+    assert job.shard_ids(manifest, None, shard=1, n_shards=2) == ["c"]
+
+
+def test_tune_ids_are_the_20_epic_train_videos_from_the_splits_file():
+    launch = _load("kaggle_launch")
+    ids = launch.tune_ids()
+    assert len(ids) == 20
+    assert not set(ids) & launch.epic_ids()  # never manifest (val) videos
