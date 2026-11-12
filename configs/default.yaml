@@ -53,6 +53,7 @@ detect:                    # ActionFormer (detect/actionformer.py); files from t
   verb_checkpoint: weights/actionformer_epic_verb.pth.tar
   noun_checkpoint: weights/actionformer_epic_noun.pth.tar
   vn_prior: weights/vn_prior.npy  # verb-noun counts, EPIC train only (tools/build_vn_prior.py)
+  released_features: weights/released_features  # ActionFormer's released SlowFast features, read-only cache (tools/import_released_features.py --cache); found by content fingerprint
 
 zeroshot:                  # detect/fallback_zeroshot.py: kill-rule + uncertain-route detector (P4)
   window_sec: 2.0          # sliding window over 1 fps CLIP embeddings (REWIND_v2.3_plan §7)

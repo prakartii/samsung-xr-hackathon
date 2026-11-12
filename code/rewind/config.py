@@ -105,6 +105,7 @@ class DetectCfg:
     verb_checkpoint: str
     noun_checkpoint: str
     vn_prior: str
+    released_features: str  # read-only SlowFast cache shipped in weights/ (ARCHITECTURE §10.1)
 
 
 @dataclass(frozen=True)

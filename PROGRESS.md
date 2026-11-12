@@ -442,6 +442,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-12 · PK · P4 · Released SlowFast features ship in `weights/released_features` (785 MB, 138/138, `detect.released_features`); `analyze_video` checks the local cache then weights/ via `find_slowfast` (tests first). Clean-cache run on EPIC P01_12: routed EPIC, ActionFormer used (851 actions, top close/open cupboard), 61 s. Rebuild: `RELEASED_FEATURES=1 tools/fetch_weights.sh` with `tools/data/epic_fingerprints.jsonl`. README (P8) must say submitted EPIC outputs used these published features (§10.1.4) · —
 - 2026-11-12 · PK · P6 · CV tuning (`tools/tune_fpvsum.py`, tests first): importance weights and label phrases both score lower held-out than the current config, so nothing adopted (Decisions) · —
 - 2026-11-12 · PK · P4 · Pairing memory fix (open item from #21): `match_lists` gives each detection its tIoU neighbours from overlapping segments only, identical to the dense matrix (Hypothesis-checked); 6000 + 6000 zero-shot detections over 2000 s now 1.3 s and 3.3 MiB peak (was ~8 s, ~1 GB). Regression test caps pairing at 100 MB · —
 - 2026-11-12 · PK · P6 · FPVSum route measured (default cfg): F1 0.222 vs uniform 0.163 on `report`, above uniform on all 5 CV folds; label accuracy 0.837; `tools/predict_fpvsum.py` · —

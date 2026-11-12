@@ -262,6 +262,8 @@ class Models:
 
     signals: SignalModels
     cache_root: Path | None
+    # Released SlowFast features shipped read-only in weights/ (detect.released_features)
+    released_root: Path | None = None
     verb_detector: Detector | None = None
     noun_detector: Detector | None = None
     prior_counts: np.ndarray | None = None
@@ -330,7 +332,11 @@ def load_models(cfg: Config, repo_root: Path) -> Models:
         clip_version=clip_cache_version(p.clip, p.clip_fps, sha256_file(clip_w)),
         hands_version=hands_cache_version(p.hands, p.dense_fps, sha256_file(hand_w)),
     )
-    models = Models(signals=signals, cache_root=repo_root / cfg.features.cache_dir)
+    models = Models(
+        signals=signals,
+        cache_root=repo_root / cfg.features.cache_dir,
+        released_root=repo_root / cfg.detect.released_features,
+    )
 
     d = cfg.detect
     prior = repo_root / d.vn_prior
@@ -373,12 +379,12 @@ def analyze_video(
     def detect() -> Detections | None:
         if models.verb_detector is None or models.noun_detector is None:
             return None
-        if models.cache_root is None:
-            return None
         from rewind.features.cache import content_fingerprint
-        from rewind.features.slowfast import slowfast_cache
+        from rewind.features.slowfast import find_slowfast
 
-        entry = slowfast_cache(models.cache_root).get(content_fingerprint(video))
+        # Local cache first, then the features shipped in weights/ (clean machines).
+        roots = [models.cache_root, models.released_root]
+        entry = find_slowfast(content_fingerprint(video), roots)
         if entry is None:
             log.info("no SlowFast features cached for this video: zero-shot detector")
             return None
