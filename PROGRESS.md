@@ -141,14 +141,14 @@ are blank.)
 > scaffolding; P1 has since merged and this branch was reconciled with `main` (P1 owns
 > probing via `ffprobe_meta`; P3 adds PyAV decoding).
 
-- [ ] Download the 187 videos into `data/videos/` + the `tune` videos — in progress (2026-11-11) with `tools/download_videos.py`; `tune` videos wait for B's `configs/splits.yaml`
+- [ ] Download the 187 videos into `data/videos/` + the `tune` videos — **features for all 187 done (2026-11-12)**: FPVSum 49 downloaded locally; EPIC 138 downloaded and processed on Kaggle (videos deleted there, features kept). `tune` videos not yet
 - [x] `video_io.py`: decoding at a target fps, frame ↔ seconds (also ffprobe parsing, so P1's `ffprobe_meta` item is covered)
 - [x] `features/flow.py` (residual + global motion)
 - [x] `features/hands.py` (MediaPipe Hand Landmarker), `features/clip.py` (open_clip ViT-B/16, prompt ensemble, zero-shot); weights via `tools/fetch_weights.sh` (SHA-256 pinned)
 - [x] `features/cache.py` (versioned, atomic)
 - [x] `tools/cache_features.py` (longest first, resumable; logs `cache/throughput.csv`)
 - [x] `routing.py` (video signals only; no manifest, no filename): pure decision from per-keyframe CLIP P(cooking); the CLIP prompts that produce it come with `features/clip.py`
-- [ ] Start caching on Nov 10; record throughput (seconds of compute per minute of video)
+- [x] Start caching on Nov 10; record throughput (seconds of compute per minute of video): flow + hands + CLIP in one pass ≈ 43–63 s per video minute (laptop, 8 torch threads) and ≈ 63 s on a 4-core Kaggle CPU notebook
 
 **Exit check:** caches complete for all 187 + `tune`; throughput recorded below.
 **Tests required:**
@@ -420,6 +420,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-12 · PK · P3 · **Feature cache complete: 187/187 manifest videos** (138 EPIC + 49 FPVSum) verified at the current cache versions, each signal reaching the end of its video. Kaggle retry: 9/9 done (incl. both bad-packet videos); 2 FPVSum videos the reaped local run had missed were cached locally · —
 - 2026-11-12 · DA · P3 · Review fixes (B took over on request): end-to-end test that a real file with one undecodable frame (zeroed MJPEG packet, same `InvalidDataError`) decodes with only that sample repeated, so `iter_frames` is covered and not just the helper; `--only-ids` rejects ids not in the kit manifest instead of silently retrying nothing; `iter_frames` docstring states the skip and the 0.25 s end slack; P3 log lines cite #20 · #20
 - 2026-11-12 · PK · P3 · Kaggle retry launched for the 9 failed EPIC videos with both decode fixes (`--only-ids`); first attempt failed at startup because the code dataset lacked `requirements.txt` (now packed) · #20
 - 2026-11-12 · PK · P3 · Kaggle EPIC cache: **129/138 videos done**; 9 failed: 7 on the end-slack bug (fixed below), 2 (P29_05, P30_08; MD5-verified files) on a packet FFmpeg rejects (`Invalid data found when processing input`). `iter_frames` now decodes packet by packet and skips up to 60 rejected packets (~1 s at 60 fps) before raising `DecodeError`; regression tests with fake packets. The 9 are re-run on Kaggle · #20
