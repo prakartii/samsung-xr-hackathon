@@ -208,3 +208,25 @@ def test_actions_capped_and_filtered():
 def test_actions_cap_above_kit_limit_rejected():
     with pytest.raises(ValueError):
         proposals_to_actions(_props(), max_per_video=2001, min_score=0.0)
+
+
+def test_pairing_long_zero_shot_video_stays_small_in_memory():
+    # Regression (#21 review): zero-shot detections on a 2000 s video (~6000 verb and
+    # ~6000 noun windows) made dense 6000 x 6000 tIoU matrices: ~1 GB and ~8 s. Only
+    # overlapping pairs matter, so peak memory must stay far below that.
+    import tracemalloc
+
+    rng = np.random.default_rng(0)
+    n = 6000
+    starts = np.sort(rng.uniform(0, 1998, n))
+    segs = [(float(s), float(s) + 2.0) for s in starts]
+    verbs = [(seg, "take", float(p)) for seg, p in zip(segs, rng.uniform(0, 1, n), strict=True)]
+    nouns = [(seg, "knife", float(p)) for seg, p in zip(segs, rng.uniform(0, 1, n), strict=True)]
+
+    tracemalloc.start()
+    props = pair_proposals(verbs, nouns, PRIOR, VOCAB_V, VOCAB_N, P1)
+    _, peak = tracemalloc.get_traced_memory()
+    tracemalloc.stop()
+
+    assert props  # the work was actually done
+    assert peak < 100 * 2**20  # dense matrices alone would be ~860 MB
