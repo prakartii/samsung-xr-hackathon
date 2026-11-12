@@ -3,11 +3,18 @@
 import shutil
 import subprocess
 
+import av
 import numpy as np
 import pytest
 from fixtures.videos import frame_index, write_index_video
 
-from rewind.video_io import DecodeError, iter_frames, probe_video, resize_to_width
+from rewind.video_io import (
+    DecodeError,
+    frames_skipping_bad_packets,
+    iter_frames,
+    probe_video,
+    resize_to_width,
+)
 
 
 @pytest.fixture
@@ -96,3 +103,32 @@ def test_iter_frames_ignores_a_nonzero_stream_start_time(video_10fps_3s, tmp_pat
     out = list(iter_frames(off, duration_sec=3.0, target_fps=2.0))
 
     assert [frame_index(f) for _, f in out] == [0, 5, 10, 15, 20, 25]
+
+
+# --- packets the decoder rejects (Kaggle: EPIC P29_05, P30_08) ------------------------
+
+
+class _Packet:
+    """Stands in for av.Packet: decode() returns frames or raises like FFmpeg does."""
+
+    def __init__(self, frames=(), bad=False):
+        self._frames, self._bad = list(frames), bad
+
+    def decode(self):
+        if self._bad:
+            raise av.error.InvalidDataError(1094995529, "Invalid data found when processing input")
+        return self._frames
+
+
+def test_bad_packet_is_skipped_and_decoding_continues():
+    # Regression: one undecodable packet (avcodec_send_packet: Invalid data) aborted the
+    # whole video on Kaggle. Frames before and after it must still come through.
+    packets = [_Packet(["f0"]), _Packet(bad=True), _Packet(["f1", "f2"])]
+    assert list(frames_skipping_bad_packets(packets, max_bad=5)) == ["f0", "f1", "f2"]
+
+
+def test_too_many_bad_packets_raise_decode_error():
+    # More than max_bad rejected packets means a damaged file, not one bad chunk.
+    packets = [_Packet(bad=True)] * 3 + [_Packet(["f0"])]
+    with pytest.raises(DecodeError):
+        list(frames_skipping_bad_packets(packets, max_bad=2))
