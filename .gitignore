@@ -20,3 +20,6 @@ __pycache__/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Scoring runs write prediction JSONs here (regenerable, large)
+/results/preds/
