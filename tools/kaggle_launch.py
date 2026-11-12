@@ -91,12 +91,24 @@ def epic_ids() -> set[str]:
         return {r["video_id"] for r in csv.DictReader(f) if r["dataset"] == "epic_kitchens_100"}
 
 
-def push_kernels(user: str, shards: int, work: Path, only_ids: list[str] | None = None) -> None:
+def tune_ids() -> list[str]:
+    """The `tune` split's EPIC train videos (configs/splits.yaml); never manifest videos."""
+    import yaml
+
+    data = yaml.safe_load((REPO / "configs" / "splits.yaml").read_text(encoding="utf-8"))
+    return list(data["tune"]["epic"])
+
+
+def push_kernels(
+    user: str, shards: int, work: Path, only_ids: list[str] | None = None, run_tag: str = ""
+) -> None:
     body = (REPO / "tools" / "kaggle_cache_epic.py").read_text(encoding="utf-8")
     for i in range(shards):
         kdir = work / f"kernel_{i}"
         kdir.mkdir()
-        header = f"SHARD = {i}\nN_SHARDS = {shards}\nONLY_IDS = {only_ids!r}\n"
+        header = (
+            f"SHARD = {i}\nN_SHARDS = {shards}\nONLY_IDS = {only_ids!r}\nRUN_TAG = {run_tag!r}\n"
+        )
         (kdir / "run.py").write_text(header + body, encoding="utf-8")
         meta = {
             "id": f"{user}/rewind-epic-cache-{i}",
@@ -158,6 +170,7 @@ def main() -> None:
     ap.add_argument("--collect", action="store_true")
     ap.add_argument("--kernels-only", action="store_true", help="re-push kernels, keep dataset")
     ap.add_argument("--only-ids", help="comma list of EPIC ids to (re)process, e.g. failed ones")
+    ap.add_argument("--split", choices=["tune"], help="process a split's videos (tune: EPIC train)")
     args = ap.parse_args()
     user = username()
     if args.status:
@@ -173,8 +186,13 @@ def main() -> None:
             if args.epic_scripts is None:
                 ap.error("--epic-scripts is required to package the downloader CSVs")
             push_code(user, args.epic_scripts, work)
-        only = parse_only_ids(args.only_ids, epic_ids()) if args.only_ids else None
-        push_kernels(user, args.shards, work, only)
+        if args.split == "tune":
+            only, tag = tune_ids(), "_tune"
+        elif args.only_ids:
+            only, tag = parse_only_ids(args.only_ids, epic_ids() | set(tune_ids())), "_retry"
+        else:
+            only, tag = None, ""
+        push_kernels(user, args.shards, work, only, tag)
 
 
 if __name__ == "__main__":
