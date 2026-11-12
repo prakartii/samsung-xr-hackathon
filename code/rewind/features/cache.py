@@ -49,6 +49,15 @@ def content_fingerprint(path: Path) -> str:
     return h.hexdigest()
 
 
+def sha256_file(path: Path) -> str:
+    """Hex SHA-256 of a whole file (model weights: part of each cache version)."""
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
 def _atomic_write_bytes(target: Path, write: Callable[[Path], None]) -> None:
     """Call `write(tmp_path)`, then rename tmp onto `target`. On error, remove tmp."""
     target.parent.mkdir(parents=True, exist_ok=True)

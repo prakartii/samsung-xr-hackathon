@@ -1,7 +1,7 @@
 """Run one video end to end and write its JSON. Never writes invalid output.
 
 ARCHITECTURE.md §4. ``analyze`` is the model part (features → detect → select →
-label); in P1 it is the fallback itself, and later phases plug in the real stages.
+label), ``rewind.analyze`` by default; tests pass fakes.
 Whatever it returns or raises, the file written is either its validated result or
 the validated fallback.
 """
@@ -12,7 +12,7 @@ from collections.abc import Callable
 from dataclasses import replace
 from pathlib import Path
 
-from rewind.config import Config
+from rewind.config import Config, config_hash
 from rewind.fallback import fallback_result
 from rewind.output import dumps, to_document
 from rewind.schema import validate
@@ -25,9 +25,21 @@ Analyze = Callable[[Path, ProbeInfo, str, Config], VideoResult]
 log = get_logger("rewind.pipeline")
 
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
+_models: dict[str, object] = {}  # config hash -> analyze.Models, loaded once per process
+
+
 def default_analyze(video: Path, probe: ProbeInfo, video_id: str, cfg: Config) -> VideoResult:
-    """P1: no models yet, so the result is the fallback."""
-    return _fallback(video_id, probe.duration_sec, cfg)
+    """Features → route → actions, highlights, label (``rewind.analyze``).
+
+    Models load lazily (torch only when the weights exist) and once per process.
+    """
+    from rewind.analyze import analyze_video, load_models
+
+    key = config_hash(cfg)
+    if key not in _models:
+        _models[key] = load_models(cfg, REPO_ROOT)
+    return analyze_video(video, probe, video_id, cfg, _models[key])  # type: ignore[arg-type]
 
 
 def run_video(

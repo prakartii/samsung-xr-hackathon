@@ -19,10 +19,9 @@ Who is A and who is B: **A = prakartii**, **B = Daksh Arora (DA)**.
 | P2 | Evaluation harness | B | Nov 11–12 | done | Leaderboard has uniform + oracle rows on `tune` and `report` |
 | P3 | Video I/O, signals, feature cache | A | Nov 10–12 | in progress | Flow, hands and CLIP cached for all 187 + `tune` videos |
 | P4 | Action detection → `actions[]` | A | Nov 11–13 | in progress | mAP measured on `tune` and `report`; beats the zero-shot fallback |
-| P4 | Action detection → `actions[]` | A | Nov 11–13 | not started | mAP measured on `tune` and `report`; beats the zero-shot fallback |
 | P5 | Clustering + EPIC coverage selector | B | Nov 12–14 | in progress | EPIC coverage > uniform; % of oracle reported; ablation done |
 | P6 | FPVSum route: importance, segments, label | A | Nov 13–15 | in progress | F1 > uniform on FPVSum CV; label accuracy reported |
-| P7 | Integration, tuning, ablations | A + B | Nov 15–16 | not started | All 187 outputs from raw MP4 pass validation; tuned config committed; floors set |
+| P7 | Integration, tuning, ablations | A + B | Nov 15–16 | in progress | All 187 outputs from raw MP4 pass validation; tuned config committed; floors set |
 | P8 | Packaging, demo, deck | B (pkg) + A (demo) | Nov 16–17 | not started | Fresh clone + Docker reproduces one video; demo video + deck done |
 | P9 | Submission | A + B | Nov 18 | not started | Submitted via Google Form before 11:59 PM IST |
 
@@ -302,8 +301,10 @@ edge fix. Hedges improved from 0.422 to 0.447 but still trail h = 0.)
 ---
 
 ### P7 — Integration, tuning, ablations
-**Owner:** A + B · **Planned:** Nov 15–16 · **Status:** not started · **Depends on:** P4, P5, P6
+**Owner:** A + B · **Planned:** Nov 15–16 · **Status:** in progress (started 2026-11-12 by B) · **Depends on:** P4, P5, P6
 
+- [x] Wire every stage into `run.sh`: `rewind/analyze.py` (route → actions → label → highlights) and `features/extract.py` (signals from the cache or one decoding pass); fake-model tests end to end
+- [ ] SlowFast extraction from the MP4 (P4 open item): until then an EPIC video without cached features gets zero-shot actions, also under `run.sh` on a clean machine
 - [ ] Clean-run all 187 videos from raw MP4 with an empty cache (time it)
 - [ ] Final tuning on `tune` only; commit the tuned `configs/default.yaml`
 - [ ] Score on `report`; full ablation table (`tools/ablate.py`)
@@ -420,6 +421,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-12 · DA · P7 · Pipeline wired end to end: `run.sh` now routes from CLIP P(cooking), emits actions on the EPIC and uncertain routes (ActionFormer when SlowFast features are cached, else zero-shot), labels, and selects highlights (expected coverage for `cooking`, importance proxy otherwise). Signals come from the cache or one decoding pass (`features/extract.py`, shared with `tools/cache_features.py`). New `detect:` config section (ActionFormer files, VN prior). Missing CLIP/hand weights still mean the fallback. Removed a stale duplicate P4 row from the phase table · —
 - 2026-11-12 · DA · P3 · Review fixes (B took over on request): end-to-end test that a real file with one undecodable frame (zeroed MJPEG packet, same `InvalidDataError`) decodes with only that sample repeated, so `iter_frames` is covered and not just the helper; `--only-ids` rejects ids not in the kit manifest instead of silently retrying nothing; `iter_frames` docstring states the skip and the 0.25 s end slack; P3 log lines cite #20 · #20
 - 2026-11-12 · PK · P3 · Kaggle retry launched for the 9 failed EPIC videos with both decode fixes (`--only-ids`); first attempt failed at startup because the code dataset lacked `requirements.txt` (now packed) · #20
 - 2026-11-12 · PK · P3 · Kaggle EPIC cache: **129/138 videos done**; 9 failed: 7 on the end-slack bug (fixed below), 2 (P29_05, P30_08; MD5-verified files) on a packet FFmpeg rejects (`Invalid data found when processing input`). `iter_frames` now decodes packet by packet and skips up to 60 rejected packets (~1 s at 60 fps) before raising `DecodeError`; regression tests with fake packets. The 9 are re-run on Kaggle · #20

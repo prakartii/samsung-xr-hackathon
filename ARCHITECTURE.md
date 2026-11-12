@@ -136,6 +136,7 @@ to keys once, in `rewind/vocab.py`.
 | `features/clip.py` | CLIP image embeddings @ 1 fps; text embeddings for prompts | no |
 | `features/slowfast.py` | ActionFormer input features (§10.1): read from the cache (where `tools/import_released_features.py` puts ActionFormer's released EPIC-100 features); otherwise extract with the matching SlowFast extractor | no |
 | `features/cache.py` | Versioned on-disk cache (§8) | no |
+| `features/extract.py` | `load_signals`: flow, hands and CLIP for one video from the cache, else one decoding pass for the missing ones, stored back (§4 step 3); `tools/cache_features.py` batches it | no |
 | `detect/actionformer.py` | Run vendored ActionFormer → raw verb/noun proposals | no |
 | `detect/pairing.py` | Raw proposals → `Proposal` with paired, scored (verb, noun) (§5.1) | yes |
 | `detect/fallback_zeroshot.py` | Sliding-window CLIP zero-shot detector (kill-rule fallback) | no |
@@ -150,7 +151,8 @@ to keys once, in `rewind/vocab.py`.
 | `schema.py` | `validate(doc, vocab, *, filename_stem, expected_duration, strict) -> (errors, warnings)` per §7; `run.sh` passes `strict=True` and no expected duration, the eval CLI passes the manifest duration | yes |
 | `output.py` | `VideoResult` → JSON dict in the kit schema (rounded to 2 decimals, sorted) | yes |
 | `fallback.py` | Safe output: uniform windows, empty actions, default label | yes |
-| `pipeline.py` | `run_video(video, out, cfg, *, team_id, analyze)`: probe → `analyze` (the model stages; P1: the fallback) → `to_document` → strict validation → atomic write; any exception or validation error → validated fallback | no |
+| `analyze.py` | §4 step 4. `summarize` (pure): route (§6.1) → actions (ActionFormer detections if given, else zero-shot; skipped on the FPVSum route) → label (§6.3) → highlights (EPIC selector when the label is `cooking`, else the importance proxy) → postprocess. `load_models` / `analyze_video`: the edge (weights from `cfg.detect` and `cfg.features`, feature cache, SlowFast cache lookup) | `summarize` yes |
+| `pipeline.py` | `run_video(video, out, cfg, *, team_id, analyze)`: probe → `analyze` (default `rewind.analyze`, models loaded once per process) → `to_document` → strict validation → atomic write; any exception or validation error → validated fallback | no |
 | `cli.py` | `python -m rewind.cli <video> <out> [--config]`; called by `run.sh`. Exit 0 = valid JSON written (maybe the fallback); exit 2 = no readable duration, nothing written | no |
 | `utils.py` | `seed_all`, logging, timing | — |
 
@@ -201,6 +203,9 @@ and crossfades for the demo only), `timeline_html.py` (stretch).
    detector), pick the label by CLIP P(cooking) ≥ threshold, and select highlights
    with the route that label implies. A misrouted EPIC video must never lose its
    actions.
+   ActionFormer runs only when the video's SlowFast features are in the cache. Until
+   the MP4 SlowFast extractor exists (§10.1 item 2, a P4 open item), an EPIC video
+   without cached features gets its actions from the zero-shot detector too.
 5. `output.py` builds the dict (action times clamped into `[0, T]`, non-finite actions
    dropped) → strict `schema.validate`. On errors, **salvage**: drop actions with
    out-of-vocabulary names, replace an unknown label with the fallback label, replace
