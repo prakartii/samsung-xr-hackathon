@@ -192,3 +192,25 @@ def test_compute_scores_capture_rules_differ_on_a_grazing_highlight():
 
     assert s["coverage_any"] == pytest.approx(1.0, abs=1e-12)
     assert s["coverage_frac"] == pytest.approx(0.5, abs=1e-12)
+
+
+def test_compute_scores_leaves_mistimed_fpvsum_gt_out_of_f1_only():
+    # FPVSum GT whose implied fps fits no standard rate covers a different cut than our
+    # video (P6 check: 3/49), so its frame times are wrong. It must not count in F1,
+    # but its label still does (the label doesn't depend on timing).
+    data = make_data()
+    good = data.fpv_gt["F"]
+    data.fpv_gt["G"] = FpvGT(
+        times=good.times, score=good.score, highlight=good.highlight, label="surfing",
+        timing_ok=False,
+    )  # fmt: skip
+    data.fpv_dur["G"] = 20.0
+    preds = {
+        "F": Prediction([(10.0, 14.05)], [], "ski"),  # F1 0.75 (as above)
+        "G": Prediction([(0.0, 4.05)], [], "surfing"),  # F1 0 if it counted
+    }
+
+    s = compute_scores(data, preds, budget_frac=0.145, lam=1.0, theta=0.5, oracle_cov={"E": 1.0})
+
+    assert s["f1"] == pytest.approx(0.75, abs=1e-12)  # mean over F only, not (0.75 + 0) / 2
+    assert s["label_acc"] == pytest.approx(1.0, abs=1e-12)  # F and G both right
