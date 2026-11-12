@@ -7,6 +7,7 @@ Every test checks the JSON written, not internals.
 import json
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import sysconfig
@@ -37,6 +38,12 @@ def make_video(path: Path, seconds: int) -> Path:
         check=True,
     )  # fmt: skip
     return path
+
+
+@pytest.fixture(autouse=True)
+def _no_models(no_model_config, monkeypatch):
+    # run.sh and the CLI read REWIND_CONFIG: every test here takes the fallback path.
+    monkeypatch.setenv("REWIND_CONFIG", str(no_model_config))
 
 
 @pytest.fixture(scope="session")
@@ -201,6 +208,31 @@ def test_run_sh_writes_fallback_when_opencv_cannot_load(videos, tmp_path):
     assert strict_errors(out) == []
 
 
+def test_pipeline_hard_kill_during_analysis_leaves_valid_fallback(videos, tmp_path):
+    # Regression: MediaPipe is SIGKILLed while loading on some machines (seen on an
+    # Intel Core Ultra laptop, kernel 7.2). No except clause runs on SIGKILL, so the
+    # fallback must already be on disk before analysis starts.
+    out = tmp_path / "v.json"
+    script = (
+        "import os, signal, sys\n"
+        "from pathlib import Path\n"
+        "from rewind.config import load_config\n"
+        "from rewind.pipeline import run_video\n"
+        "def killed(*_):\n"
+        "    os.kill(os.getpid(), signal.SIGKILL)\n"
+        f"run_video(Path(sys.argv[1]), Path(sys.argv[2]), load_config({str(DEFAULT_CONFIG)!r}),"
+        " team_id='T07', analyze=killed)\n"
+    )
+    env = {**os.environ, "PYTHONPATH": str(REPO_ROOT / "code")}
+
+    proc = subprocess.run(
+        [sys.executable, "-c", script, str(videos[30]), str(out)], env=env, capture_output=True
+    )
+
+    assert proc.returncode == -signal.SIGKILL
+    assert strict_errors(out) == []
+
+
 def test_pipeline_stage_exception_writes_valid_fallback(videos, tmp_path, caplog):
     def broken(*_):
         raise RuntimeError("detector exploded")
@@ -256,10 +288,10 @@ def test_run_sh_output_file_is_world_readable(videos, tmp_path):
     assert out.stat().st_mode & 0o777 == 0o644
 
 
-def test_pipeline_team_id_override_is_written(videos, tmp_path):
+def test_pipeline_team_id_override_is_written(videos, tmp_path, no_model_config):
     out = tmp_path / "v.json"
 
-    run_video(videos[30], out, load_config(DEFAULT_CONFIG), team_id="T42")
+    run_video(videos[30], out, load_config(no_model_config), team_id="T42")
 
     assert json.loads(out.read_text(encoding="utf-8"))["team_id"] == "T42"
 

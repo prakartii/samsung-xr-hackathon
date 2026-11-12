@@ -21,7 +21,8 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="REWIND: summarize one video into JSON.")
     parser.add_argument("video", type=Path)
     parser.add_argument("out", type=Path)
-    parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
+    default = Path(os.environ.get("REWIND_CONFIG") or DEFAULT_CONFIG)
+    parser.add_argument("--config", type=Path, default=default)
     args = parser.parse_args(argv)
 
     cfg = load_config(args.config)
