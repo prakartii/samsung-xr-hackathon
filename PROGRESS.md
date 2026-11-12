@@ -290,7 +290,7 @@ edge fix. Hedges improved from 0.422 to 0.447 but still trail h = 0.)
 - [x] `select/importance.py` (proxy, shots, windows of 4.05–10 s); unit + Hypothesis property tests (`tests/property/`)
 - [x] `label/` (EPIC → cooking; FPVSum CLIP zero-shot with a prompt ensemble); uncertain route per ARCHITECTURE.md §4
 - [ ] Wire the FPVSum route into `pipeline.py`
-- [ ] Tune importance weights on FPVSum CV folds (never on all 49 at once)
+- [x] Tune importance weights on FPVSum CV folds (never on all 49 at once) — done, **no gain: kept the current weights**. `tools/tune_fpvsum.py --what importance` (243 configs: each weight in {0, 0.5, 1}, σ in {1, 2, 4} s): held-out CV F1 0.199 for the search vs 0.221 for the current config; the all-folds best (σ = 1 s) is 0.232 in-sample only. Label phrases likewise (`--what label`, 49 phrase sets for the 5 confused classes): held-out accuracy 0.775 vs 0.835 current; kept
 - [ ] Check signal-router agreement with the manifest (target ≥ 95%); tune `routing.min_conf` — **agreement 99.5% (186/187), 0 misrouted** (2026-11-12, `tools/eval_router.py`, 8 keyframes): EPIC P(cooking) 0.569–1.000 (median 0.980), FPVSum 0.000–0.020; 1 uncertain (EPIC P03_22, 0.569, still gets actions on the uncertain route). `min_conf` not tuned (measured on `report` only)
 - [ ] Check FPVSum GT timing: GT frame count vs ffprobe frame count per downloaded video. `Horse_2otBDeLWCow` (21.3 fps implied), `Plane_QsL_gCDHWHA` (39.6) and `Surfing_G7lPf1gF-W4` (21.0) look like a different cut than the annotated one; exclude or re-align mismatches (`rewind_eval/gt_fpvsum.py` stretches frames linearly over T)
 - [ ] Uncertain route always emits actions (EPIC detector or zero-shot fallback)
@@ -414,6 +414,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 | Date | Decision | Why | By |
 |---|---|---|---|
+| 2026-11-12 | Keep the current FPVSum importance weights and label phrases (no CV tuning adopted) | 5-fold CV on the 49 videos: grid-tuned settings score lower on held-out folds (F1 0.199 vs 0.221; label 0.775 vs 0.835) than the current ones; with 49 videos the grids overfit | PK |
 | 2026-11-12 | **Proposed (needs B):** keep `actions.max_per_video` = 2000 and `actions.min_score` = 0.0 untuned | No clean set to tune them on: `tune` = EPIC train = ActionFormer's training data (mAP 0.527 vs 0.117 on `report`); `report` is off-limits (CLAUDE.md §6.2); all 138 EPIC val videos are in the manifest. Note: more detections can lower mAP (global ranking across videos), so this is a choice, not an optimum | PK |
 | 2026-11-11 | `SHORT_VIDEO_T` = `MIN_SEG_EMIT / SCORING_BUDGET` = 27.0 s (was 4.0 / 0.15 = 26.67 s) | We emit 4.05 s windows; between 26.67 and 27.0 s one window is over 15% but wasn't treated as short, so strict validation would fail. No manifest video is in that range | DA (bug fix, no design change) |
 | 2026-11-12 | D1 approved: frames decoded with PyAV (`av==18.0.0`), metadata for `run.sh` stays on ffprobe; `signals.dense_fps` 3.0 → 4.0 | OpenCV silently truncated EPIC GoPro files after < 1 s; PyAV decodes them fully and faster. 4 fps gives finer motion/hand peaks and the P3 caches already use it | DA (B), on A's proposal |
@@ -441,6 +442,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-12 · PK · P6 · CV tuning (`tools/tune_fpvsum.py`, tests first): importance weights and label phrases both score lower held-out than the current config, so nothing adopted (Decisions) · —
 - 2026-11-12 · PK · P4 · Pairing memory fix (open item from #21): `match_lists` gives each detection its tIoU neighbours from overlapping segments only, identical to the dense matrix (Hypothesis-checked); 6000 + 6000 zero-shot detections over 2000 s now 1.3 s and 3.3 MiB peak (was ~8 s, ~1 GB). Regression test caps pairing at 100 MB · —
 - 2026-11-12 · PK · P6 · FPVSum route measured (default cfg): F1 0.222 vs uniform 0.163 on `report`, above uniform on all 5 CV folds; label accuracy 0.837; `tools/predict_fpvsum.py` · —
 - 2026-11-12 · PK · P6 · Router agreement with the manifest: 99.5% (186/187), 0 misrouted, 1 uncertain (P03_22); `tools/eval_router.py` · —
