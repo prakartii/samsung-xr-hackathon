@@ -29,7 +29,11 @@ class ProbeInfo:
 
 
 def ffprobe_meta(path: str | Path) -> ProbeInfo:
-    """Read duration, fps and size with ffprobe. Raises VideoError on failure."""
+    """Read duration, fps and size with ffprobe. Raises VideoError on failure.
+
+    No ffprobe binary on PATH → `probe_video` (PyAV, same duration rules), so a
+    machine without the ffmpeg CLI still gets real output instead of none.
+    """
     cmd = [
         "ffprobe",
         "-v",
@@ -45,6 +49,8 @@ def ffprobe_meta(path: str | Path) -> ProbeInfo:
     try:
         out = subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=60)
         info = json.loads(out.stdout)
+    except FileNotFoundError:
+        return probe_video(path)
     except (OSError, subprocess.SubprocessError, json.JSONDecodeError) as exc:
         raise VideoError(f"ffprobe failed on {path}: {exc}") from exc
     return parse_probe(info, str(path))
