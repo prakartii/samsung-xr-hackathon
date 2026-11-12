@@ -75,3 +75,22 @@ with zipfile.ZipFile(sys.argv[1]) as z, z.open(sys.argv[2]) as src, open(sys.arg
   mv "$target.tmp" "$target"
   echo "ok       $name"
 done
+
+# Optional (RELEASED_FEATURES=1): ActionFormer's released EPIC SlowFast features as a
+# read-only cache in weights/released_features (detect.released_features), ~0.8 GB for
+# the 138 manifest videos. run.sh finds them by the MP4's content fingerprint, so a
+# clean machine gets ActionFormer actions instead of the zero-shot fallback
+# (ARCHITECTURE.md §10.1). Downloads the 6.5 GB archive once (Box mirror, MD5-checked);
+# fingerprints come from tools/data/epic_fingerprints.jsonl.
+if [[ "${RELEASED_FEATURES:-0}" == "1" ]]; then
+  ARCHIVE_DIR="${ARCHIVE_DIR:-data/actionformer}"
+  mkdir -p "$ARCHIVE_DIR"
+  "$PYTHON" tools/fetch_released_features.py --out "$ARCHIVE_DIR/epic_kitchens.tar.gz"
+  if [[ ! -d "$ARCHIVE_DIR/epic_kitchens/features" ]]; then
+    tar -xzf "$ARCHIVE_DIR/epic_kitchens.tar.gz" -C "$ARCHIVE_DIR"
+  fi
+  "$PYTHON" tools/import_released_features.py \
+    --features-dir "$ARCHIVE_DIR/epic_kitchens/features" \
+    --cache weights/released_features \
+    --fingerprint-logs tools/data/epic_fingerprints.jsonl
+fi
