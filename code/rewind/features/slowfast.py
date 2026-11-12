@@ -37,3 +37,19 @@ def slowfast_entry(feats: np.ndarray) -> dict[str, np.ndarray]:
 
 def slowfast_cache(root) -> FeatureCache:
     return FeatureCache(root, CACHE_NAME, CACHE_VERSION)
+
+
+def find_slowfast(fingerprint: str, roots) -> dict[str, np.ndarray] | None:
+    """The first cached entry for `fingerprint` among `roots` (None roots skipped).
+
+    Order: the local feature cache, then the released features shipped read-only
+    under weights/ (`detect.released_features`), so `run.sh` on a clean machine
+    finds the same ActionFormer inputs our submitted outputs used.
+    """
+    for root in roots:
+        if root is None:
+            continue
+        entry = slowfast_cache(root).get(fingerprint)
+        if entry is not None:
+            return entry
+    return None
