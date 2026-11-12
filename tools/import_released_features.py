@@ -15,6 +15,9 @@ Also reports (PROGRESS.md P4):
 - alignment: feature count vs video duration. One feature per 16/30 s, so
   K ≈ (T * 30 - 32) / 16 + 1; a gap over `--max-gap` seconds is reported as suspect.
 
+Videos outside the manifest with a fingerprint in `--fingerprint-logs` (the `tune`
+split's EPIC train videos) are imported too.
+
 Re-running is safe: entries already in the cache are skipped.
 """
 
@@ -70,6 +73,12 @@ def load_fingerprint_logs(paths: list[Path]) -> dict[str, tuple[str, float]]:
     return out
 
 
+def ids_to_import(manifest_ids: list[str], logged: dict[str, tuple[str, float]]) -> list[str]:
+    """Manifest EPIC ids, then any other id with a logged fingerprint (e.g. the `tune`
+    split's EPIC train videos processed on Kaggle), sorted, without duplicates."""
+    return list(manifest_ids) + sorted(set(logged) - set(manifest_ids))
+
+
 def video_duration(path: Path) -> float:
     cap = cv2.VideoCapture(str(path))
     try:
@@ -106,7 +115,7 @@ def main() -> None:
     logged = load_fingerprint_logs(args.fingerprint_logs)
     cache = slowfast_cache(args.cache)
     imported = skipped = not_downloaded = suspect = 0
-    for vid in epic_ids:
+    for vid in ids_to_import(epic_ids, logged):
         if vid not in released:
             continue
         mp4 = args.videos / f"{vid}.mp4"

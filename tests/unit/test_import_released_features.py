@@ -64,3 +64,15 @@ def test_fingerprint_logs_same_id_two_fingerprints_is_an_error(tmp_path):
     )
     with pytest.raises(ValueError):
         tool.load_fingerprint_logs([log])
+
+
+def test_ids_to_import_adds_logged_non_manifest_videos():
+    # Manifest P01_11, P02_01; logs P02_01 (also in manifest) and tune P12_05, P09_104.
+    # -> manifest order first, then the extra logged ids sorted, no duplicates.
+    logged = {"P02_01": ("fa", 1.0), "P12_05": ("fb", 2.0), "P09_104": ("fc", 3.0)}
+    assert tool.ids_to_import(["P01_11", "P02_01"], logged) == [
+        "P01_11",
+        "P02_01",
+        "P09_104",
+        "P12_05",
+    ]

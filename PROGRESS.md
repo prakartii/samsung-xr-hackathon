@@ -140,7 +140,7 @@ are blank.)
 > scaffolding; P1 has since merged and this branch was reconciled with `main` (P1 owns
 > probing via `ffprobe_meta`; P3 adds PyAV decoding).
 
-- [ ] Download the 187 videos into `data/videos/` + the `tune` videos — **features for all 187 done (2026-11-12)**: FPVSum 49 downloaded locally; EPIC 138 downloaded and processed on Kaggle (videos deleted there, features kept). `tune` videos not yet
+- [x] Download the 187 videos into `data/videos/` + the `tune` videos — **features for all 187 + 20 `tune` done**: FPVSum 49 downloaded locally; EPIC 138 downloaded and processed on Kaggle (videos deleted there, features kept). `tune` (2026-11-13): 20/20 EPIC train videos (111 min) processed on Kaggle (`--split tune`, 0 errors; flow, hands, CLIP collected) and their released SlowFast features imported by logged fingerprint (20/20, 0 alignment warnings)
 - [x] `video_io.py`: decoding at a target fps, frame ↔ seconds (also ffprobe parsing, so P1's `ffprobe_meta` item is covered)
 - [x] `features/flow.py` (residual + global motion)
 - [x] `features/hands.py` (MediaPipe Hand Landmarker), `features/clip.py` (open_clip ViT-B/16, prompt ensemble, zero-shot); weights via `tools/fetch_weights.sh` (SHA-256 pinned)
@@ -444,6 +444,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-13 · PK · P3/P4 · `tune` split fully cached: Kaggle job 20/20 EPIC train videos (flow, hands, CLIP; 0 errors); `import_released_features.py` now also imports logged non-manifest ids (tests first) → 20/20 SlowFast features, 0 alignment warnings. The pipeline can now run on `tune` with ActionFormer (caveat: these are ActionFormer training videos, so its detections here are optimistic: unusable for P4 tuning (Decisions), and selector tuning on them should be checked against `report`-free CV where possible) · —
 - 2026-11-12 · PK · P7 · `tools/latency.py` (cold cache, full CLI per video, tests first): 39.4 s per minute of video on a laptop CPU (EPIC 47.3, FPVSum 26.3; 2+2 videos) · —
 - 2026-11-12 · PK · P3/P7 · CLI runs without the ffmpeg CLI and on Windows: `ffprobe_meta` falls back to PyAV when the binary is missing; `_write_atomic` uses `os.chmod` by path (POSIX-only `os.fchmod` crashed and wrote no JSON). Tests first; the `run.sh` contract tests skip without ffmpeg, which hid this. Determinism check passed on 2 videos · —
 - 2026-11-12 · PK · P4/P6 · Ticked route wiring (EPIC, FPVSum) and uncertain-route actions: done in `analyze.py` with tests in #27 · —
