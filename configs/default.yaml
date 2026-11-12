@@ -35,6 +35,9 @@ features:
     weights: weights/clip_vit_b16_openai.safetensors  # fetched by tools/fetch_weights.sh
     width: 448             # frame width in px before CLIP preprocessing
     batch_size: 32         # images per forward pass (speed only, not in the cache version)
+  audio:                   # loudness + spectral flux (features/audio.py), FPVSum route only
+    sample_rate: 8000      # mono resample rate in Hz
+    window: 0.5            # s of audio summarised around each dense timestep
 
 actions:
   max_per_video: 2000      # cap on actions[] per video (kit max 2000); initial, tuned in P4
@@ -101,6 +104,8 @@ importance:
   max_window: 10.0         # longest FPVSum window in s
   len_step: 1.0            # window-length grid step in s between min_window and max_window; P6
   stride: 0.5              # window start grid step in s; P6
+  w_audio_rms: 1.0         # importance weight: z(log loudness); P6 ablation on FPVSum CV (0 = off)
+  w_audio_flux: 0.25       # importance weight: z(spectral flux); P6 ablation on FPVSum CV
 
 label:
   prompts:                 # CLIP prompt templates; {} is the category name

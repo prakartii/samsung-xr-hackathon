@@ -198,3 +198,43 @@ def test_summarize_mismatched_dense_grids_raise():
     sig["hands"] = {"t": sig["hands"]["t"][:-1], "hands": sig["hands"]["hands"][:-1]}
     with pytest.raises(ValueError, match="grid"):
         summarize("v", T, sig, TEXT, PRIOR, CFG)
+
+
+def loud_between(lo: float, hi: float):
+    """audio(t): quiet (rms 0.01) except loud (rms 0.5) on [lo, hi); flux 0."""
+
+    def audio(t):
+        t = np.asarray(t)
+        return {"rms": np.where((t >= lo) & (t < hi), 0.5, 0.01), "flux": np.zeros(len(t))}
+
+    return audio
+
+
+def test_summarize_fpvsum_highlight_follows_loud_audio():
+    # All visual signals are flat, so importance = w_audio_rms * z(log rms) only: high
+    # on [40, 50), low elsewhere. Without audio the flat importance ties everywhere and
+    # the first window wins ([0, ...]). With audio the one highlight (budget 0.145 * 60
+    # = 8.7 s) must sit on the loud stretch: its centre inside [40, 50]. (Smoothing,
+    # sigma 2 s, blurs the stretch's edges, so the window may start a little before 40.)
+    r = summarize("v", T, signals(BIKE), TEXT, PRIOR, CFG, audio=loud_between(40.0, 50.0))
+
+    assert len(r.highlights) == 1
+    s, e_ = r.highlights[0]
+    assert 40.0 <= (s + e_) / 2 <= 50.0
+
+
+def test_summarize_epic_route_never_loads_audio():
+    def audio(t):
+        raise AssertionError("audio must not be decoded on the EPIC route")
+
+    r = summarize("v", T, signals(COOKING_TAKE_KNIFE), TEXT, PRIOR, CFG, audio=audio)
+    assert r.label[0] == "cooking"
+
+
+def test_summarize_audio_failure_keeps_fpvsum_highlights():
+    def audio(t):
+        raise RuntimeError("no audio stream")
+
+    r = summarize("v", T, signals(BIKE), TEXT, PRIOR, CFG, audio=audio)
+    assert len(r.highlights) >= 1
+    assert strict_errors(r) == []

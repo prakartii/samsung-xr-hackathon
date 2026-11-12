@@ -4,10 +4,13 @@ Per dense timestep:
 
     imp(t) = w_flow * z(flow) + w_hands * hands + w_global_motion * z(global_motion)
              + w_scene_change * z(scene_change)
+             + w_audio_rms * z(log(rms + RMS_FLOOR)) + w_audio_flux * z(flux)
 
 then Gaussian smoothing with sigma seconds. Scene change = 1 - cosine similarity of
 consecutive 1 fps CLIP embeddings, interpolated to the dense grid. (`flow` and
-`global_motion` arrive z-scored from features/flow.py.)
+`global_motion` arrive z-scored from features/flow.py.) The audio terms (loudness and
+spectral flux on the dense grid, features/audio.py) apply only when the video has audio;
+the P6 ablation adopted them on FPVSum CV (PROGRESS Decisions 2026-11-13).
 
 Segments: shots start where scene change exceeds `shot_thr`. Inside each shot,
 windows of `min_window`..`max_window` s (lengths every `len_step`, plus `max_window`;
@@ -27,6 +30,7 @@ from itertools import pairwise
 import numpy as np
 
 from rewind.constants import MIN_SEG_EMIT
+from rewind.features.audio import RMS_FLOOR
 from rewind.features.clip import l2_normalize
 from rewind.features.flow import zscore
 from rewind.types import Segment
@@ -46,6 +50,8 @@ class ImportanceParams:
     max_window: float
     len_step: float
     stride: float
+    w_audio_rms: float = 0.0
+    w_audio_flux: float = 0.0
 
     def __post_init__(self) -> None:
         if self.min_window < MIN_SEG_EMIT:
@@ -83,8 +89,10 @@ def importance_signal(
     t_clip: np.ndarray,
     clip_emb: np.ndarray,
     p: ImportanceParams,
+    audio: dict[str, np.ndarray] | None = None,
 ) -> np.ndarray:
-    """(N,) smoothed importance on the dense grid."""
+    """(N,) smoothed importance on the dense grid. ``audio``: {"rms", "flux"} on the
+    dense grid, or None (no audio stream) to leave the audio terms out."""
     scene = np.interp(t_dense, t_clip, clip_change(clip_emb))
     raw = (
         p.w_flow * np.asarray(flow)
@@ -92,6 +100,9 @@ def importance_signal(
         + p.w_global_motion * np.asarray(global_motion)
         + p.w_scene_change * zscore(scene)
     )
+    if audio is not None:
+        raw = raw + p.w_audio_rms * zscore(np.log(np.asarray(audio["rms"]) + RMS_FLOOR))
+        raw = raw + p.w_audio_flux * zscore(np.asarray(audio["flux"]))
     rate = 1.0 / np.median(np.diff(t_dense)) if len(t_dense) > 1 else 1.0
     return gaussian_smooth(raw, p.sigma * rate)
 
