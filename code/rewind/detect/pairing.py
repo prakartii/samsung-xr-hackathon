@@ -91,6 +91,34 @@ def tiou_matrix(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     return np.divide(inter, union, out=np.zeros_like(inter), where=union > 0)
 
 
+def match_lists(a: np.ndarray, b: np.ndarray, thr: float) -> list[np.ndarray]:
+    """For each row of a (A, 2): sorted indices j of b (B, 2) with tIoU(a_i, b_j) >= thr.
+
+    Same result as `tiou_matrix(a, b) >= thr` row by row, without the dense (A, B)
+    matrix: for thr > 0 a match needs a real overlap, so only segments of b that start
+    before a_i ends and end after it starts are scored. (thr <= 0 matches every pair,
+    as the dense form does.) Zero-shot detections on a 2000 s video are ~6000 per
+    side, where the dense matrices took ~1 GB.
+    """
+    a = np.asarray(a, dtype=np.float64).reshape(-1, 2)
+    b = np.asarray(b, dtype=np.float64).reshape(-1, 2)
+    if len(b) == 0:
+        return [np.array([], dtype=np.intp) for _ in range(len(a))]
+    if thr <= 0:
+        return [np.arange(len(b), dtype=np.intp) for _ in range(len(a))]
+    order = np.argsort(b[:, 0], kind="stable")
+    bs = b[order]
+    out = []
+    for s, e in a:
+        k = np.searchsorted(bs[:, 0], e, side="left")  # b starts strictly before a ends
+        cand = order[:k][bs[:k, 1] > s]  # ...and ends strictly after a starts
+        if cand.size:
+            sub = tiou_matrix(np.array([[s, e]]), b[cand])[0]
+            cand = np.sort(cand[sub >= thr])
+        out.append(cand.astype(np.intp))
+    return out
+
+
 def _top_k(dets: Sequence[Detection], idx: np.ndarray, k: int) -> tuple[tuple[str, float], ...]:
     """Max probability per key among dets[idx], top k by (prob desc, key asc)."""
     best: dict[str, float] = {}
@@ -113,22 +141,22 @@ def pair_proposals(
         return []
     vsegs = np.array([d[0] for d in verb_dets], dtype=np.float64)
     nsegs = np.array([d[0] for d in noun_dets], dtype=np.float64)
-    vv = tiou_matrix(vsegs, vsegs) >= params.match_tiou
-    vn = tiou_matrix(vsegs, nsegs) >= params.match_tiou
+    vv = match_lists(vsegs, vsegs, params.match_tiou)  # neighbours, not dense rows
+    vn = match_lists(vsegs, nsegs, params.match_tiou)
 
     proposals = []
-    anchors: list[int] = []
+    anchor_set: set[int] = set()
     order = sorted(
         range(len(verb_dets)), key=lambda i: (-verb_dets[i][2], verb_dets[i][0], verb_dets[i][1])
     )
     for i in order:
         seg = verb_dets[i][0]
-        noun_idx = np.flatnonzero(vn[i])
+        noun_idx = vn[i]
         if noun_idx.size == 0:
             continue  # no noun: can't form an action, and doesn't block its neighbours
-        if any(vv[i, a] for a in anchors):
+        if anchor_set.intersection(vv[i].tolist()):
             continue  # an overlapping, more confident verb already anchors this span
-        group = np.flatnonzero(vv[i])
+        group = vv[i]
         verbs = _top_k(verb_dets, group, params.top_k)
         nouns = _top_k(noun_dets, noun_idx, params.top_k)
         pairs = [
@@ -140,7 +168,7 @@ def pair_proposals(
         ]
         if not pairs:
             continue  # nothing in the kit vocabulary: not an anchor either
-        anchors.append(i)
+        anchor_set.add(i)
         pairs.sort(key=lambda x: (-x[2], x[0], x[1]))
         proposals.append(Proposal(seg, verbs, nouns, tuple(pairs[: params.top_k])))
     proposals.sort(key=lambda pr: (pr.segment[0], pr.segment[1]))

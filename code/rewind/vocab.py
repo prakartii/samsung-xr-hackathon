@@ -17,6 +17,9 @@ class Vocab:
     labels: frozenset[str]
     verbs: frozenset[str]
     nouns: frozenset[str]
+    # Kit order: key i is EPIC class id i (`other` last), i.e. a detector's class index.
+    verb_keys: tuple[str, ...]
+    noun_keys: tuple[str, ...]
 
 
 def vocab_from_dict(data: dict) -> Vocab:
@@ -26,6 +29,8 @@ def vocab_from_dict(data: dict) -> Vocab:
         labels=frozenset(data["labels"]),
         verbs=frozenset(data["verbs"]),
         nouns=frozenset(data["nouns"]),
+        verb_keys=tuple(data["verbs"]),
+        noun_keys=tuple(data["nouns"]),
     )
 
 
