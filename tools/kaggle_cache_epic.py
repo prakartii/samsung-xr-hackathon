@@ -33,6 +33,8 @@ from pathlib import Path
 
 SHARD = globals().get("SHARD", 0)
 N_SHARDS = globals().get("N_SHARDS", 1)
+# Retry pass: only these EPIC ids (set by kaggle_launch.py --only-ids), else the manifest.
+ONLY_IDS = globals().get("ONLY_IDS")
 DOWNLOAD_THREADS = 12
 BACKLOG = 4
 WORK = Path("/kaggle/working")
@@ -152,7 +154,8 @@ def main() -> None:
     cfg_bits = (dense, clip_fps, flow_p, hand_p, clip_p)
 
     manifest = dv.read_manifest(repo / "kit" / "manifest.csv")["epic_kitchens_100"]
-    ids = sorted(manifest, key=lambda v: -manifest[v])[SHARD::N_SHARDS]
+    pool = [v for v in manifest if v in set(ONLY_IDS)] if ONLY_IDS else list(manifest)
+    ids = sorted(pool, key=lambda v: -manifest[v])[SHARD::N_SHARDS]
     data = repo / "epic_download_data"
     splits = {r["video_id"]: r["split"] for r in dv._read_csv(data / "epic_55_splits.csv")}
     md5_rows = dv._read_csv(data / "md5.csv")
@@ -176,7 +179,8 @@ def main() -> None:
 
     libs = library_versions()
     print("libraries:", libs, flush=True)
-    log = (WORK / f"shard_{SHARD}.jsonl").open("a", encoding="utf-8")
+    tag = "_retry" if ONLY_IDS else ""  # keeps the first pass's log when collected
+    log = (WORK / f"shard_{SHARD}{tag}.jsonl").open("a", encoding="utf-8")
     with ThreadPoolExecutor(DOWNLOAD_THREADS) as pool:
         for vid in ids:
             pool.submit(fetch, vid)

@@ -82,6 +82,12 @@ def parse_probe(info: dict, where: str = "<probe>") -> ProbeInfo:
 # at any real frame rate (1/240 s), so it never moves a timestamp to the next frame.
 _FRAME_EPS = 1e-6
 
+# How far past the last video frame a requested sample may fall and still get that
+# frame. Container durations (which include audio) can run a few hundredths of a
+# second past the video stream (EPIC P08_09: 0.03 s). Real truncation is seconds to
+# minutes short (OpenCV stopped after 0.7 s of 174 s), so 0.25 s still catches it.
+_END_SLACK_SEC = 0.25
+
 
 def parse_rate(rate: str) -> float:
     """Parse a rate string ("30000/1001", "25/1", "25") into frames per second."""
@@ -169,6 +175,32 @@ def probe_video(path: str | Path) -> ProbeInfo:
         return ProbeInfo(duration, fps, stream.codec_context.width, stream.codec_context.height)
 
 
+# Undecodable packets tolerated per video before giving up: about 1 s at 60 fps. EPIC
+# P29_05 and P30_08 (MD5-verified, so genuine recordings) each contain a packet that
+# FFmpeg rejects ("Invalid data found when processing input"); one bad chunk must not
+# cost the whole video, but a badly damaged file should still fail loudly.
+_MAX_BAD_PACKETS = 60
+
+
+def frames_skipping_bad_packets(packets, max_bad: int = _MAX_BAD_PACKETS):
+    """Decoded frames from demuxed packets, skipping packets the decoder rejects.
+
+    Raises DecodeError after more than `max_bad` rejected packets.
+    """
+    import av
+
+    bad = 0
+    for packet in packets:
+        try:
+            frames = packet.decode()
+        except av.error.InvalidDataError as exc:
+            bad += 1
+            if bad > max_bad:
+                raise DecodeError(f"more than {max_bad} undecodable packets ({exc})") from exc
+            continue
+        yield from frames
+
+
 def iter_frames(
     path: Path,
     duration_sec: float,
@@ -186,8 +218,12 @@ def iter_frames(
     streams (audio, GoPro metadata) are ignored. OpenCV's backend stopped silently
     after < 1 s on EPIC GoPro files, which is why this module doesn't use it.
 
-    Raises DecodeError if the stream ends more than one frame before the last
-    requested t, so a truncated decode can never be mistaken for a short video.
+    Packets the decoder rejects are skipped (up to `_MAX_BAD_PACKETS`); samples in
+    the gap get the last frame decoded before it.
+
+    Raises DecodeError if the stream ends more than one frame plus `_END_SLACK_SEC`
+    before the last requested t, so a truncated decode can never be mistaken for a
+    short video.
     """
     import av
 
@@ -217,7 +253,7 @@ def iter_frames(
             cached = (frame, img)
             return img
 
-        for frame in container.decode(stream):
+        for frame in frames_skipping_bad_packets(container.demux(stream)):
             ft = (
                 frame.time - t0
                 if frame.time is not None
@@ -232,7 +268,7 @@ def iter_frames(
         if prev is None:
             raise DecodeError(f"no video frames decoded from {path}")
         # remaining targets inside the last frame's display interval get the last frame
-        while idx < n and times[idx] <= prev[0] + frame_dur + _FRAME_EPS:
+        while idx < n and times[idx] <= prev[0] + frame_dur + _END_SLACK_SEC:
             yield float(times[idx]), image(prev[1])
             idx += 1
         if idx < n:
