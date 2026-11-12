@@ -45,3 +45,9 @@ date,git_sha,tag,config_hash,split,n_epic,n_fpvsum,coverage_any,coverage_frac,pc
 2026-11-13,05027bd,"P7 tuned: select.stride 1.0, fold 2",5df9225f6a,tune,20,10,0.4883,0.2883,0.6760,0.5266,0.2704,0.8000,0.4746
 2026-11-13,05027bd,"P7 tuned: select.stride 1.0, fold 3",5df9225f6a,tune,20,9,0.4883,0.2883,0.6760,0.5266,0.1723,1.0000,0.4700
 2026-11-13,05027bd,"P7 tuned: select.stride 1.0, fold 4",5df9225f6a,tune,20,9,0.4883,0.2883,0.6760,0.5266,0.1792,0.6667,0.4384
+2026-11-13,ed201fa,"P6 audio terms (w_audio_rms 1.0, w_audio_flux 0.25)",57ea026dcb,tune,20,0,0.4883,0.2883,0.6760,0.5266,,,
+2026-11-13,ed201fa,"P6 audio terms, fold 0",57ea026dcb,tune,20,11,0.4883,0.2883,0.6760,0.5266,0.2697,0.9091,0.4853
+2026-11-13,ed201fa,"P6 audio terms, fold 1",57ea026dcb,tune,20,10,0.4883,0.2883,0.6760,0.5266,0.2738,0.8000,0.4754
+2026-11-13,ed201fa,"P6 audio terms, fold 2",57ea026dcb,tune,20,10,0.4883,0.2883,0.6760,0.5266,0.2509,0.8000,0.4697
+2026-11-13,ed201fa,"P6 audio terms, fold 3",57ea026dcb,tune,20,9,0.4883,0.2883,0.6760,0.5266,0.1998,1.0000,0.4769
+2026-11-13,ed201fa,"P6 audio terms, fold 4",57ea026dcb,tune,20,9,0.4883,0.2883,0.6760,0.5266,0.3237,0.6667,0.4745
