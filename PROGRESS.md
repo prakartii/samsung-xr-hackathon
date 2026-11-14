@@ -17,10 +17,10 @@ Who is A and who is B: **A = prakartii**, **B = Daksh Arora (DA)**.
 | P0 | Kit & rules | B | Nov 10 | in progress | Kit committed in `kit/`; kit rules in `ARCHITECTURE.md` §7 confirmed or corrected; questions emailed |
 | P1 | Skeleton & submission contract | B | Nov 10–11 | in progress | `run.sh` writes valid fallback JSON for all 187 videos; CI green |
 | P2 | Evaluation harness | B | Nov 11–12 | done | Leaderboard has uniform + oracle rows on `tune` and `report` |
-| P3 | Video I/O, signals, feature cache | A | Nov 10–12 | in progress | Flow, hands and CLIP cached for all 187 + `tune` videos |
-| P4 | Action detection → `actions[]` | A | Nov 11–13 | in progress | mAP measured on `tune` and `report`; beats the zero-shot fallback |
+| P3 | Video I/O, signals, feature cache | A | Nov 10–12 | done | Flow, hands and CLIP cached for all 187 + `tune` videos |
+| P4 | Action detection → `actions[]` | A | Nov 11–13 | done | mAP measured on `tune` and `report`; beats the zero-shot fallback |
 | P5 | Clustering + EPIC coverage selector | B | Nov 12–14 | in progress | EPIC coverage > uniform; % of oracle reported; ablation done |
-| P6 | FPVSum route: importance, segments, label | A | Nov 13–15 | in progress | F1 > uniform on FPVSum CV; label accuracy reported |
+| P6 | FPVSum route: importance, segments, label | A | Nov 13–15 | done | F1 > uniform on FPVSum CV; label accuracy reported |
 | P7 | Integration, tuning, ablations | A + B | Nov 15–16 | in progress | All 187 outputs from raw MP4 pass validation; tuned config committed; floors set |
 | P8 | Packaging, demo, deck | B (pkg) + A (demo) | Nov 16–17 | not started | Fresh clone + Docker reproduces one video; demo video + deck done |
 | P9 | Submission | A + B | Nov 18 | not started | Submitted via Google Form before 11:59 PM IST |
@@ -134,7 +134,7 @@ are blank.)
 ---
 
 ### P3 — Video I/O, signals, feature cache
-**Owner:** A (prakartii) · **Planned:** Nov 10–12 · **Status:** in progress (started 2026-11-11, branch `p3/video-io-signals`) · **Depends on:** — (P1 types; coordinate with B)
+**Owner:** A (prakartii) · **Planned:** Nov 10–12 · **Status:** done (started 2026-11-11, finished 2026-11-14) · **Depends on:** — (P1 types; coordinate with B)
 
 > **Coordination note (resolved 2026-11-12):** P3 started before P1 and carried minimal
 > scaffolding; P1 has since merged and this branch was reconciled with `main` (P1 owns
@@ -190,12 +190,16 @@ are blank.)
 - Local dev here runs Python 3.12 (CLAUDE.md says 3.11); `pyproject` targets ≥ 3.11 and
   ruff checks against 3.11 syntax.
 
-**Result:** _fill in: throughput, total cache size, any videos that failed to decode._
+**Result (2026-11-14):** exit check met: flow, hands and CLIP cached for all 187 manifest videos + the 20 `tune` videos; SlowFast (released) for all 158 EPIC; audio for the 49 FPVSum.
+- Throughput: Kaggle free CPU, one decode pass for all three features, ~60 s per video-minute (158 EPIC videos timed); laptop full pipeline 39.4 s per video-minute (`results/latency.csv`).
+- Cache size: flow 6.5 MB, hands 4.5 MB, CLIP 124 MB, SlowFast 894 MB (+ 785 MB shipped in `weights/released_features`), audio 0.7 MB.
+- Decode failures: 9 EPIC videos failed the first pass (P04_28, P08_09, P13_03, P18_05, P18_08, P22_02, P26_41, P29_05, P30_08): streams ending up to 0.25 s early (`_END_SLACK_SEC`) and genuine bad packets (≤ 60 skipped, `frames_skipping_bad_packets`); all succeeded on retry. OpenCV truncated GoPro files, so decoding moved to PyAV (cache v2).
+- Deviations from ARCHITECTURE.md: none outstanding (PyAV decoding in §3, the fingerprint cache in §8).
 
 ---
 
 ### P4 — Action detection → `actions[]`
-**Owner:** A (prakartii) · **Planned:** Nov 11–13 · **Status:** in progress (started 2026-11-11, branch `p4/actionformer`, stacked on `p3/video-io-signals`) · **Depends on:** P3 (frames), P2 (mAP scorer)
+**Owner:** A (prakartii) · **Planned:** Nov 11–13 · **Status:** done (started 2026-11-11, finished 2026-11-14) · **Depends on:** P3 (frames), P2 (mAP scorer)
 
 > **Coordination (A → B):** pairing needed `rewind/types.py` and `rewind/constants.py`
 > (P1 items). Both are transcribed verbatim from ARCHITECTURE.md §2 / §3.1 on this branch;
@@ -211,11 +215,11 @@ are blank.)
 - [x] **Coverage check:** every EPIC `video_id` in `kit/manifest.csv` and every `tune` video has released features; list any gaps here — **138/138 manifest EPIC videos covered, no gaps** (2026-11-11); `tune` ids pending B's `configs/splits.yaml` (the archive has 700 videos, train included)
 - [x] **Leakage check:** confirm from configs/logs that the checkpoints were trained on EPIC train only; record the evidence in §4 Decisions (passed, see Decisions 2026-11-11)
 - [x] Run ActionFormer inference on CPU; record seconds per video — **all 158 split videos: 1.32 s per video minute** (verb + noun + pairing, laptop CPU, `tools/predict_epic_actions.py`); `detect/actionformer.py` loads the EMA checkpoint on CPU (strict) and is deterministic; smoke run on random features: 13.6 s for a 267 s video (≈ 3 s per video minute, incl. soft-NMS). Real features (P01_12, 174 s): verb + noun models 4.1 s total (≈ 1.4 s per video minute), 2000 + 2000 detections → 788 paired actions; top: close/open cupboard, open fridge, open drawer. `tests/integration/test_epic_actions.py` passes
-- [ ] `tools/import_released_features.py` (released features → cache by content fingerprint); `features/slowfast.py` reads the cache, else extracts from the MP4 — importer done: 138/138 imported (fingerprints from Kaggle logs, 0 alignment warnings); extraction from MP4 not yet written
-- [ ] Extraction check on 1–2 videos (Kaggle/Colab if needed): our features match the released ones (cosine ≥ 0.95)
-- [ ] Extract any gap videos on Kaggle/Colab, one at a time
+- [x] `tools/import_released_features.py` (released features → cache by content fingerprint); `features/slowfast.py` reads the cache, else extracts from the MP4 — importer done: 138/138 imported (fingerprints from Kaggle logs, 0 alignment warnings); extraction from MP4 not yet written; extraction from the MP4 **cut** 2026-11-14 (Decisions): released features ship in `weights/released_features`
+- [x] Extraction check on 1–2 videos (Kaggle/Colab if needed): our features match the released ones (cosine ≥ 0.95) — **cut** 2026-11-14 with SlowFast-from-MP4 (Decisions)
+- [x] Extract any gap videos on Kaggle/Colab, one at a time — not needed: released features cover 138/138 manifest + 20/20 `tune` videos, 0 alignment warnings
 - [x] `tools/build_vn_prior.py` → `weights/vn_prior.npy` (train split only): 67,217 train segments, 3,568 distinct pairs; refuses CSVs containing manifest videos. Source: `epic-kitchens-100-annotations` @ `ea8b404`
-- [ ] `detect/actionformer.py`, `detect/pairing.py`; cache proposals — `pairing.py` done (§5.1; proposals anchored on the group's top verb, scores `(p_v·p_n·prior^α)^power`)
+- [x] `detect/actionformer.py`, `detect/pairing.py`; cache proposals — `pairing.py` done (§5.1; proposals anchored on the group's top verb, scores `(p_v·p_n·prior^α)^power`); `actionformer.py` wired in #27; detections memoized per video in `tools/predict_cached.Predictor` for tuning/ablation (inference runs once per video, nothing to cache)
 - [x] Wire into `pipeline.py` (EPIC route → `actions[]`) — `analyze.summarize`: ActionFormer when SlowFast features are found, else zero-shot (#27)
 - [ ] Tune `max_per_video` and the minimum score on `tune` — **blocked: `tune` is contaminated for the detector** (EPIC train videos = ActionFormer's training set; mAP 0.527 there vs 0.117 on `report`). Defaults (2000, 0.0) kept untuned; see Decisions 2026-11-12
 - [x] **Kill rule (end of Nov 13):** not triggered — ActionFormer mAP 0.117 vs zero-shot 0.0013 on `report`. Fallback kept for the uncertain route. Was: if no working mAP, switch to `detect/fallback_zeroshot.py` — fallback implemented (2 s windows / 1 s stride over 1 fps CLIP, top-k verbs and nouns per window, paired by `pairing.py`); also serves the uncertain route (ARCHITECTURE.md §4)
@@ -235,7 +239,7 @@ are blank.)
 | 2026-11-12 | tune (20 EPIC train) | ActionFormer + pairing, default cfg | 0.5266 (inflated: AF trained on these videos) |
 
 Checkpoint: released `epic_slowfast_{verb,noun}_reproduce/epoch_020` (leakage evidence in Decisions 2026-11-11).
-Not done yet: wiring into `pipeline.py`; SlowFast extraction from the raw MP4 (clean-machine path) and its check against the released features.
+**Final (2026-11-14):** wired into the pipeline (#27); output actions scored without the verb-noun prior (Decisions 2026-11-13). Full pipeline on `report`: **mAP 0.1493** (was 0.1169), zero-shot 0.0015; `tune` 0.6532 (inflated). SlowFast extraction from the MP4 cut (Decisions 2026-11-14); `max_per_video` / `min_score` stay untuned (no clean split).
 
 ---
 
@@ -285,17 +289,17 @@ edge fix. Hedges improved from 0.422 to 0.447 but still trail h = 0.)
 ---
 
 ### P6 — FPVSum route: importance, segments, label
-**Owner:** A (prakartii) · **Planned:** Nov 13–15 · **Status:** in progress (started 2026-11-11 while P4 waits on data; branch `p6/fpvsum-importance`, stacked on `p4/actionformer`) · **Depends on:** P3, P2 (F1 scorer)
+**Owner:** A (prakartii) · **Planned:** Nov 13–15 · **Status:** done (started 2026-11-11, finished 2026-11-14) · **Depends on:** P3, P2 (F1 scorer)
 
 - [x] `select/importance.py` (proxy, shots, windows of 4.05–10 s); unit + Hypothesis property tests (`tests/property/`)
 - [x] `label/` (EPIC → cooking; FPVSum CLIP zero-shot with a prompt ensemble); uncertain route per ARCHITECTURE.md §4
 - [x] Wire the FPVSum route into `pipeline.py` — importance proxy highlights, zero-shot label, no actions (#27)
 - [x] Tune importance weights on FPVSum CV folds (never on all 49 at once) — done, **no gain: kept the current weights**. `tools/tune_fpvsum.py --what importance` (243 configs: each weight in {0, 0.5, 1}, σ in {1, 2, 4} s): held-out CV F1 0.199 for the search vs 0.221 for the current config; the all-folds best (σ = 1 s) is 0.232 in-sample only. Label phrases likewise (`--what label`, 49 phrase sets for the 5 confused classes): held-out accuracy 0.775 vs 0.835 current; kept
-- [ ] Check signal-router agreement with the manifest (target ≥ 95%); tune `routing.min_conf` — **agreement 99.5% (186/187), 0 misrouted** (2026-11-12, `tools/eval_router.py`, 8 keyframes): EPIC P(cooking) 0.569–1.000 (median 0.980), FPVSum 0.000–0.020; 1 uncertain (EPIC P03_22, 0.569, still gets actions on the uncertain route). `min_conf` not tuned (measured on `report` only)
+- [x] Check signal-router agreement with the manifest (target ≥ 95%); tune `routing.min_conf` — **agreement 99.5% (186/187), 0 misrouted** (2026-11-12, `tools/eval_router.py`, 8 keyframes): EPIC P(cooking) 0.569–1.000 (median 0.980), FPVSum 0.000–0.020; 1 uncertain (EPIC P03_22, 0.569, still gets actions on the uncertain route). `min_conf` not tuned (measured on `report` only)
 - [x] Check FPVSum GT timing — `tools/check_fpvsum_gt.py`: **3/49 mistimed** (implied GT fps fits no standard rate: `Horse_2otBDeLWCow` 21.3, `Plane_QsL_gCDHWHA` 39.6, `Surfing_G7lPf1gF-W4` 21.0; the other 46 are 24–30 fps). The scorer now detects this itself (`gt_fpvsum.gt_rate_suspect`, `FpvGT.timing_ok`) and leaves those videos out of F1 only; label accuracy still counts them. No video ids hard-coded
 - [x] Uncertain route always emits actions (EPIC detector or zero-shot fallback) — `test_summarize_uncertain_route_always_emits_actions` (#27)
 - [x] Ablation: audio terms (RMS, spectral flux) in the importance proxy; keep only if CV improves — **kept** 2026-11-13 (`tools/ablate_audio.py`, 46 timing-ok videos): CV F1 0.2236 → 0.2477 (weights 0–1 grid) / 0.2405 (0–4 grid); chosen w_audio_rms 1.0, w_audio_flux 0.25, better on 27 videos, worse on 17. In the pipeline: fold-mean F1 0.2636 (in-sample), weighted 0.476
-- [ ] Optional: ridge on CLIP if it beats the proxy on CV
+- [x] Optional: ridge on CLIP if it beats the proxy on CV — **cut** 2026-11-14 (Decisions: would train on the scored videos' GT)
 
 **Exit check:** F1 > uniform on FPVSum (CV); label accuracy reported; router agreement recorded.
 **Tests required:**
@@ -313,6 +317,8 @@ edge fix. Hedges improved from 0.422 to 0.447 but still trail h = 0.)
 | fold 2 (10) | 0.2513 | 0.1730 | 0.800 |
 | fold 3 (9) | 0.1737 | 0.1436 | 1.000 |
 | fold 4 (9) | 0.1864 | 0.1454 | 0.667 |
+
+**Final (2026-11-14):** audio terms added (Decisions 2026-11-13). Full pipeline on `report` (49 FPVSum, 46 with usable GT timing): **F1 0.2626** vs uniform 0.1645, label **0.8367**; held-out CV F1 0.24–0.25 vs 0.1636. Router 99.5% agreement. CLIP ridge cut (Decisions 2026-11-14).
 
 **Corrected (2026-11-12, mistimed GT left out of F1, 46 videos):** report F1 **0.2255** vs uniform 0.1645; CV folds 0–4: 0.2076 / 0.2847 / 0.2727 / 0.1737 / 0.1792 vs uniform 0.2184 / 0.1406 / 0.1629 / 0.1436 / 0.1523 → **CV mean 0.2236 vs 0.1636; above uniform on 4 of 5 folds** (fold 0 slightly below). The table above used the uncorrected GT.
 
@@ -416,6 +422,8 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 | Date | Decision | Why | By |
 |---|---|---|---|
+| 2026-11-14 | Cut SlowFast extraction from the MP4 (P4) | Its only use is a clean machine whose EPIC files differ from ours. The organizers re-run on the official EPIC-KITCHENS files; ours are those files (MD5-checked against the official md5.csv), so content fingerprints match and the shipped released features are found. Cost: ~10–15 min CPU per video plus a cosine check. Residual risk: a re-encoded copy falls back to zero-shot actions (report mAP 0.0015 vs 0.1493) | PK |
+| 2026-11-14 | Cut the CLIP ridge for FPVSum importance (P6 optional) | FPVSum has no videos outside the scored 49; a 512-d regressor fit on their frame GT trains on the evaluation set, and the CV gain would not carry to the organizers' score honestly. The 6-weight proxy (CV-tuned) stays | PK |
 | 2026-11-13 | Output actions scored without the verb-noun prior (`actions.prior_alpha` 0); selector proposals keep it (`pairing.alpha` 1) | Ablation on `tune`: without the prior mAP 0.5266 → 0.6532 but coverage 0.4883 → 0.4691; splitting keeps both (weighted 0.4764 → 0.5080). The prior comes from train counts, so it should help most on these train videos, yet it lowers mAP. Chosen by PK before any report run. Report afterwards (measurement only): mAP 0.1493 (was 0.117 with the prior). Observed, not acted on: on report the selector does slightly better without the prior too (coverage 0.4464 vs 0.4368), the opposite of tune | PK |
 | 2026-11-13 | P5 kill rule: keep the expected-coverage selector | Real proposals on `tune`: coverage 0.4883 vs label dedup 0.4299 (rule set in advance; `select.mode` switch added for it) | PK |
 | 2026-11-13 | FPVSum importance gets audio terms: `w_audio_rms` 1.0 (z of log loudness), `w_audio_flux` 0.25 (z of spectral flux) | P6 ablation on FPVSum CV (46 videos with usable GT timing, pick on 4 folds, score the 5th): F1 0.2236 → 0.2477 (0.2405 with a wider weight grid); better on 27 videos, worse on 17; folds 0, 3, 4 up, 1, 2 down. Decoded only on the FPVSum route; no audio stream → terms left out. ARCHITECTURE §6.2 updated | PK |
@@ -448,6 +456,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-14 · PK · P3/P4/P6 · Phases closed: status done, Result blocks (throughput, cache sizes, decode failures; final report mAP 0.1493, F1 0.2626, label 0.8367). Cut SlowFast-from-MP4 and the CLIP ridge (Decisions). Floors test re-run after the mAP raise: passes · —
 - 2026-11-13 · PK · P7/P8 · Output actions without the verb-noun prior (`actions.prior_alpha`, tests first; Decisions): tune weighted 0.5080. First full-pipeline **report** score: weighted 0.3614 vs uniform 0.1763 (leaderboard). Ablation tables for tune and report. `tools/deck_numbers.py`: 59.8% of oracle, 85.8% tokens pruned, 39.4 s/min. mAP floor raised · —
 - 2026-11-13 · PK · P7 · `tools/ablate.py` (variants through `predict_cached.Predictor`, AF detections memoized; `select.mode` switch; tests first). `tune` table in `results/ablation_tune.md`: full 0.4764; without ActionFormer 0.3057, label dedup 0.4530, no audio 0.4662, no flow 0.4734, no hands 0.4746, no scene change 0.4760; without the verb-noun prior 0.5004 (mAP 0.6532 vs 0.5266, coverage 0.4691 vs 0.4883): open question. P5 kill rule: keep expected coverage · —
 - 2026-11-13 · PK · P6 · Audio terms in the FPVSum importance proxy (`features/audio.py`, `tools/ablate_audio.py`, tests first): CV F1 0.2236 → 0.24–0.25, kept (Decisions). `summarize` takes an `audio` loader (FPVSum route only, cached, failure-safe). Tune fold-mean F1 0.2636, weighted 0.476 (was 0.466); EPIC unchanged. Floors raised · —
