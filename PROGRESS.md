@@ -351,7 +351,7 @@ Label errors (8): jumping -> plane (3), bikepolo -> bike (2), bike -> motor, lon
 
 - [x] `Dockerfile` (CPU; the pipeline needs no GPU); `tools/fetch_weights.sh` works on a clean machine — Dockerfile **done 2026-11-15** (#41), built and smoke-tested on every relevant PR by `.github/workflows/docker.yml` (deps import, hands run, run.sh fallback writes valid JSON with no large weights). Not built locally: this network's TLS interception (weak-signature CA) breaks pip's download.pytorch.org. `fetch_weights.sh` on a clean machine still to check end to end
 - [x] Submission `README.md`: setup, data used, how to reproduce, the tuning-split statement, licenses — **done 2026-11-15**: README rewritten for the organizers (results, how it works, setup incl. Docker, data used incl. the released-features statement, tuning-split statement, reproduce, licenses); `tools/run_all.py` added (was referenced in CLAUDE.md but missing)
-- [ ] Fresh clone → Docker build → `run.sh` on one video → identical JSON to ours
+- [ ] Fresh clone → Docker build → `run.sh` on one video → identical JSON to ours — **without Docker, done 2026-11-15**: fresh `git clone` + copied weights + empty cache, `run.sh` on EPIC P03_26 (80 s; 85 ActionFormer actions, so the shipped released features were found by fingerprint) and FPVSum Bike_lhTFVa0h9Rk (254 s, audio computed fresh): both JSONs **byte-identical** to the cached runs. Docker leg: image smoke-tested in CI only (local build blocked by this network's TLS interception)
 - [ ] `tools/make_reel.py`: demo reel with padding/crossfades (demo only, not outputs)
 - [ ] Demo video (length per Q7; default ≤ 3 min) uploaded; link recorded here
 - [ ] Deck `CollegeName_TeamName`: problem, architecture diagram, tech stack, innovation, results, limitations; the three numbers (% of oracle, tokens pruned, latency) — numbers ready (`tools/deck_numbers.py`, report): **59.8% of oracle coverage, 85.8% of visual tokens pruned, 39.4 s CPU per video minute**
@@ -456,6 +456,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-15 · PK · P8 · Fresh-clone check: empty cache, run.sh on 1 EPIC + 1 FPVSum video → JSON byte-identical to the cached runs (features recomputed from the MP4 match the cache; released SlowFast features found by fingerprint) · —
 - 2026-11-15 · PK · P8 · Submission README; `tools/run_all.py` (batch `run_video`, models loaded once, `--skip-existing`; tests first; 2-video run validates); ARCHITECTURE §10/§10.1 updated for the cut MP4 extraction · —
 - 2026-11-15 · PK · P8/P7/P1 · Submission `Dockerfile` (python:3.11-slim, CPU) + CI job building and smoke-testing it; CI caught MediaPipe needing libEGL in the image (fixed). All 187 full-pipeline outputs pass strict validation (0 errors) · #41
 - 2026-11-14 · PK · P3/P4/P6 · Phases closed: status done, Result blocks (throughput, cache sizes, decode failures; final report mAP 0.1493, F1 0.2626, label 0.8367). Cut SlowFast-from-MP4 and the CLIP ridge (Decisions). Floors test re-run after the mAP raise: passes · —
