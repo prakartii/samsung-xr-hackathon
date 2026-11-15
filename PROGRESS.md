@@ -350,7 +350,7 @@ Label errors (8): jumping -> plane (3), bikepolo -> bike (2), bike -> motor, lon
 **Owner:** B (packaging) + A (demo, numbers) · **Planned:** Nov 16–17 · **Status:** not started · **Depends on:** P7
 
 - [x] `Dockerfile` (CPU; the pipeline needs no GPU); `tools/fetch_weights.sh` works on a clean machine — Dockerfile **done 2026-11-15** (#41), built and smoke-tested on every relevant PR by `.github/workflows/docker.yml` (deps import, hands run, run.sh fallback writes valid JSON with no large weights). Not built locally: this network's TLS interception (weak-signature CA) breaks pip's download.pytorch.org. `fetch_weights.sh` on a clean machine still to check end to end
-- [ ] Submission `README.md`: setup, data used, how to reproduce, the tuning-split statement, licenses
+- [x] Submission `README.md`: setup, data used, how to reproduce, the tuning-split statement, licenses — **done 2026-11-15**: README rewritten for the organizers (results, how it works, setup incl. Docker, data used incl. the released-features statement, tuning-split statement, reproduce, licenses); `tools/run_all.py` added (was referenced in CLAUDE.md but missing)
 - [ ] Fresh clone → Docker build → `run.sh` on one video → identical JSON to ours
 - [ ] `tools/make_reel.py`: demo reel with padding/crossfades (demo only, not outputs)
 - [ ] Demo video (length per Q7; default ≤ 3 min) uploaded; link recorded here
@@ -456,6 +456,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-15 · PK · P8 · Submission README; `tools/run_all.py` (batch `run_video`, models loaded once, `--skip-existing`; tests first; 2-video run validates); ARCHITECTURE §10/§10.1 updated for the cut MP4 extraction · —
 - 2026-11-15 · PK · P8/P7/P1 · Submission `Dockerfile` (python:3.11-slim, CPU) + CI job building and smoke-testing it; CI caught MediaPipe needing libEGL in the image (fixed). All 187 full-pipeline outputs pass strict validation (0 errors) · #41
 - 2026-11-14 · PK · P3/P4/P6 · Phases closed: status done, Result blocks (throughput, cache sizes, decode failures; final report mAP 0.1493, F1 0.2626, label 0.8367). Cut SlowFast-from-MP4 and the CLIP ridge (Decisions). Floors test re-run after the mAP raise: passes · —
 - 2026-11-13 · PK · P7/P8 · Output actions without the verb-noun prior (`actions.prior_alpha`, tests first; Decisions): tune weighted 0.5080. First full-pipeline **report** score: weighted 0.3614 vs uniform 0.1763 (leaderboard). Ablation tables for tune and report. `tools/deck_numbers.py`: 59.8% of oracle, 85.8% tokens pruned, 39.4 s/min. mAP floor raised · —
