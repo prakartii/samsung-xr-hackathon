@@ -1,0 +1,69 @@
+name: Docker
+
+# Builds the submission image on a clean Linux runner (P8) and checks, inside it:
+# every runtime dependency imports, MediaPipe hands runs (P7), and run.sh on a
+# synthetic video exits 0 with valid JSON even without the large weights (fallback,
+# CLAUDE.md §6.7). Only the 7.5 MB hand model is fetched; the rest of weights/ is
+# left empty, as on a machine where tools/fetch_weights.sh was never run.
+
+on:
+  pull_request:
+    paths:
+      - Dockerfile
+      - .dockerignore
+      - requirements.txt
+      - run.sh
+      - .github/workflows/docker.yml
+  workflow_dispatch:
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch the hand model only (same URL and SHA-256 as tools/fetch_weights.sh)
+        run: |
+          mkdir -p weights
+          curl -fsSL -o weights/hand_landmarker.task \
+            https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task
+          echo "fbc2a30080c3c557093b5ddfc334698132eb341044ccee322ccf8bcf3607cde1  weights/hand_landmarker.task" | sha256sum -c -
+
+      - name: Build
+        run: docker build -t rewind .
+
+      - name: Runtime dependencies import
+        run: |
+          docker run --rm --entrypoint python3 rewind -c \
+            "import torch, torchvision, cv2, mediapipe, av, open_clip, yaml, numpy; print('imports ok, torch', torch.__version__, 'cuda', torch.cuda.is_available())"
+
+      - name: MediaPipe hands runs inside the image
+        run: |
+          docker run --rm --entrypoint python3 -e PYTHONPATH=/app/code rewind -c "
+          from dataclasses import asdict
+          from pathlib import Path
+          import numpy as np
+          from rewind.config import load_config
+          from rewind.features.hands import HandParams, MediaPipeHands
+          cfg = load_config('configs/default.yaml')
+          h = MediaPipeHands(HandParams(**asdict(cfg.features.hands)), Path('/app'))
+          print('hands on a black frame:', h(np.zeros((240, 320, 3), np.uint8), 0.0))
+          h.close()
+          "
+
+      - name: run.sh without the large weights still writes valid JSON
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+          mkdir -p /tmp/in /tmp/out && chmod 777 /tmp/out
+          ffmpeg -hide_banner -loglevel error -f lavfi -i testsrc=duration=30:size=160x120:rate=10 \
+            -pix_fmt yuv420p /tmp/in/clip30.mp4
+          docker run --rm -v /tmp/in:/in:ro -v /tmp/out:/out rewind /in/clip30.mp4 /out/clip30.json
+          docker run --rm --entrypoint python3 -e PYTHONPATH=/app/code -v /tmp/out:/out rewind -c "
+          import json
+          from rewind.schema import validate
+          from rewind.vocab import load_vocab
+          doc = json.load(open('/out/clip30.json'))
+          errors, _ = validate(doc, load_vocab(), filename_stem='clip30', strict=True)
+          print('duration', doc['duration_sec'], 'highlights', doc['highlights'], 'errors', errors)
+          assert errors == [], errors
+          "
