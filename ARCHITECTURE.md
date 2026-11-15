@@ -585,7 +585,7 @@ Fill each row in before the model is used **[verify all]**.
 |---|---|---|---|---|
 | Action detection | ActionFormer (`happyharrycn/actionformer_release`, vendored in `code/third_party/actionformer`) | Released EPIC-100 verb and noun checkpoints (Google Drive links in its README) | MIT (code, vendored at `61ea7eb`; see `code/third_party/actionformer/VENDORED.md`) | Checkpoints `epoch_020.pth.tar` (verb 97 classes, noun 300; kit adds `other` → 98 / 301), SHA-256 pinned in `tools/fetch_weights.sh`. **Leakage check passed (2026-11-11):** both released configs have `train_split: ['training']`, `val_split: ['validation']`; their logs evaluate on 138 videos (= our EPIC val set) with avg mAP verb 23.51, noun 21.88 |
 | ActionFormer input | ActionFormer's released `epic_kitchens.tar.gz` (Box / Google Drive / BaiduYun; md5 `add9803756afd9a023bc9a9c547e0229`) | — | EPIC-KITCHENS license | SlowFast pretrained on EPIC-100 train; 32-frame clips at 30 fps, stride 16 → one feature per 16/30 ≈ 0.533 s |
-| Raw-MP4 feature extraction | The SlowFast extractor matching the above (EPIC-KITCHENS action recognition code) | | | Only needed for videos missing from the release and for `run.sh` on a clean machine |
+| Raw-MP4 feature extraction | — (**cut** 2026-11-14, PROGRESS Decisions) | | | The release covers all 158 EPIC videos we use; features ship in `weights/released_features`. A video without them gets zero-shot actions |
 | CLIP | open_clip ViT-B/16 (OpenAI weights; `open_clip_torch==4.2.2`, CPU torch) | HF `timm/vit_base_patch16_clip_224.openai` `open_clip_model.safetensors` at revision `977e3dd`, SHA-256 pinned in `tools/fetch_weights.sh` | MIT (OpenAI CLIP weights; the HF repo is tagged Apache-2.0); open_clip MIT | Label, scene change, routing, clustering similarity. Loaded from the local file, no network at inference |
 | Hands | MediaPipe Hand Landmarker (`mediapipe==1.2.2`, Tasks API, VIDEO mode) | `hand_landmarker.task` float16 v1 from storage.googleapis.com/mediapipe-models, SHA-256 pinned in `tools/fetch_weights.sh` | Apache-2.0 (library and model) | CPU. Presence = max handedness score of detected hands, 0 if none |
 | Optical flow | OpenCV Farneback | — | Apache-2.0 (OpenCV) | Low resolution (160 px) |
@@ -605,12 +605,11 @@ Fill each row in before the model is used **[verify all]**.
    local cache, then there, always by the MP4's content fingerprint, so `run.sh` on the
    organizers' clean machine reproduces our ActionFormer actions instead of falling
    back to zero-shot. Rebuilt by `RELEASED_FEATURES=1 tools/fetch_weights.sh`.
-2. **`run.sh` on a clean machine:** extracts features from the MP4 with the matching
-   extractor. This is slow on CPU but must work. A test on 1–2 videos checks that our
-   extraction matches the released features (cosine similarity ≥ 0.95 per timestep,
-   aligned to the same timestamps).
-3. **Gaps:** extract any missing videos on a free Kaggle/Colab GPU, one video at a
-   time (download, extract, delete), and save only the features.
+2. **`run.sh` on a clean machine:** finds the shipped released features by the MP4's
+   content fingerprint (the official EPIC files; ours are MD5-checked against
+   `md5.csv`). Extraction from the MP4 was **cut** (PROGRESS Decisions 2026-11-14): an
+   EPIC video whose features are not found gets the zero-shot detector instead.
+3. **Gaps:** none (158/158 EPIC videos, 0 alignment warnings).
 4. **README transparency:** state that submitted EPIC outputs used the published
    features from the same extractor, and how to regenerate them from raw MP4.
 5. Everything else (decode, flow, hands, CLIP, ActionFormer inference, selection)
