@@ -74,7 +74,7 @@ package: `validate.py`. Remaining: send the email, set the team ID.
 - [x] `post.short_video_mode` flag (`min_seg` / `within_budget`) in postprocess
 - [x] `video_io.ffprobe_meta` (minimal; A extends it in P3)
 - [x] GitHub Actions: ruff + `pytest` on every PR
-- [ ] Run on all 187 videos → `python -m rewind_eval.validate --dir outputs/` passes (blocked on A's downloads; stand-in test: the fallback at all 187 manifest durations passes strict directory validation)
+- [x] Run on all 187 videos → `python -m rewind_eval.validate --dir outputs/` passes (blocked on A's downloads; stand-in test: the fallback at all 187 manifest durations passes strict directory validation) — **done 2026-11-15**: the full pipeline's 187 report outputs (`tools/predict_cached.py`, same `summarize` as run.sh) pass strict validation, ours and kit-only severities: 0 errors, 3 warnings (P03_26, P26_30, P28_23 are < 27 s, so the one 4.05 s `min_seg` window exceeds 15% by design, §5.6)
 
 **Exit check:** all 187 dummy outputs pass our validator (and the official one if available); CI green on `main`.
 **Tests required:**
@@ -330,7 +330,7 @@ Label errors (8): jumping -> plane (3), bikepolo -> bike (2), bike -> motor, lon
 **Owner:** A + B · **Planned:** Nov 15–16 · **Status:** in progress (started 2026-11-12 by B) · **Depends on:** P4, P5, P6
 
 - [x] Wire every stage into `run.sh`: `rewind/analyze.py` (route → actions → label → highlights) and `features/extract.py` (signals from the cache or one decoding pass); fake-model tests end to end
-- [ ] Confirm MediaPipe hands run inside the P8 Docker image (killed at creation on DA's laptop; fine on Kaggle). If it fails there, decide: drop hands (weights 0) or pin another mediapipe
+- [x] Confirm MediaPipe hands run inside the P8 Docker image (killed at creation on DA's laptop; fine on Kaggle). If it fails there, decide: drop hands (weights 0) or pin another mediapipe — **done 2026-11-15** (`.github/workflows/docker.yml`): first CI run failed `libEGL.so.1: cannot open shared object file`; the image now installs libegl1 + libgles2 and hands run
 - [ ] SlowFast extraction from the MP4 (P4 open item): until then an EPIC video without cached features gets zero-shot actions, also under `run.sh` on a clean machine
 - [ ] Clean-run all 187 videos from raw MP4 with an empty cache (time it)
 - [ ] Final tuning on `tune` only; commit the tuned `configs/default.yaml` — EPIC selector done 2026-11-13 (`tools/tune_epic_selector.py`, real ActionFormer proposals, coordinate search over cluster/select/hedge/pairing/post, adopt rule: mean gain ≥ 0.005 and more wins than losses): only `select.stride` 0.5 → 1.0 adopted (coverage 0.4687 → 0.4883). FPVSum importance CV-tuned (weights unchanged; audio terms added, see P6)
@@ -349,7 +349,7 @@ Label errors (8): jumping -> plane (3), bikepolo -> bike (2), bike -> motor, lon
 ### P8 — Packaging, demo, deck
 **Owner:** B (packaging) + A (demo, numbers) · **Planned:** Nov 16–17 · **Status:** not started · **Depends on:** P7
 
-- [ ] `Dockerfile` (CPU; the pipeline needs no GPU); `tools/fetch_weights.sh` works on a clean machine
+- [x] `Dockerfile` (CPU; the pipeline needs no GPU); `tools/fetch_weights.sh` works on a clean machine — Dockerfile **done 2026-11-15** (#41), built and smoke-tested on every relevant PR by `.github/workflows/docker.yml` (deps import, hands run, run.sh fallback writes valid JSON with no large weights). Not built locally: this network's TLS interception (weak-signature CA) breaks pip's download.pytorch.org. `fetch_weights.sh` on a clean machine still to check end to end
 - [ ] Submission `README.md`: setup, data used, how to reproduce, the tuning-split statement, licenses
 - [ ] Fresh clone → Docker build → `run.sh` on one video → identical JSON to ours
 - [ ] `tools/make_reel.py`: demo reel with padding/crossfades (demo only, not outputs)
@@ -456,6 +456,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-15 · PK · P8/P7/P1 · Submission `Dockerfile` (python:3.11-slim, CPU) + CI job building and smoke-testing it; CI caught MediaPipe needing libEGL in the image (fixed). All 187 full-pipeline outputs pass strict validation (0 errors) · #41
 - 2026-11-14 · PK · P3/P4/P6 · Phases closed: status done, Result blocks (throughput, cache sizes, decode failures; final report mAP 0.1493, F1 0.2626, label 0.8367). Cut SlowFast-from-MP4 and the CLIP ridge (Decisions). Floors test re-run after the mAP raise: passes · —
 - 2026-11-13 · PK · P7/P8 · Output actions without the verb-noun prior (`actions.prior_alpha`, tests first; Decisions): tune weighted 0.5080. First full-pipeline **report** score: weighted 0.3614 vs uniform 0.1763 (leaderboard). Ablation tables for tune and report. `tools/deck_numbers.py`: 59.8% of oracle, 85.8% tokens pruned, 39.4 s/min. mAP floor raised · —
 - 2026-11-13 · PK · P7 · `tools/ablate.py` (variants through `predict_cached.Predictor`, AF detections memoized; `select.mode` switch; tests first). `tune` table in `results/ablation_tune.md`: full 0.4764; without ActionFormer 0.3057, label dedup 0.4530, no audio 0.4662, no flow 0.4734, no hands 0.4746, no scene change 0.4760; without the verb-noun prior 0.5004 (mAP 0.6532 vs 0.5266, coverage 0.4691 vs 0.4883): open question. P5 kill rule: keep expected coverage · —

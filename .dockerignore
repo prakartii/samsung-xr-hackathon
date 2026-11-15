@@ -1,0 +1,12 @@
+# Only run.sh, requirements.txt, code/, configs/ and weights/ go into the image.
+.git
+.venv
+data
+cache
+results
+outputs
+tests
+kit
+tools
+**/__pycache__
+**/*.pyc
