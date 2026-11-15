@@ -8,9 +8,10 @@
 FROM python:3.11-slim
 
 # ffmpeg: ffprobe for run.sh's probe (PyAV is the fallback); libgl1 + libglib2.0-0:
-# OpenCV and MediaPipe on a bare Debian image.
+# OpenCV on a bare Debian image; libegl1 + libgles2: MediaPipe's Tasks library loads
+# libEGL.so.1 at start even on CPU (CI caught its absence: hands failed to load).
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ffmpeg libgl1 libglib2.0-0 \
+    && apt-get install -y --no-install-recommends ffmpeg libgl1 libglib2.0-0 libegl1 libgles2 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
