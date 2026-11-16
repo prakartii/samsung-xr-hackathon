@@ -39,3 +39,25 @@ def test_adopt_needs_mean_gain_and_a_majority_of_videos():
 def test_adopt_ignores_videos_without_a_score():
     # c has no GT actions (None) -> judged on a, b only: +0.1 each -> adopt.
     assert tool.adopt({"a": 0.6, "b": 0.6, "c": None}, {"a": 0.5, "b": 0.5, "c": None}, 0.005)
+
+
+def test_search_keys_all_by_default_and_only_restricts_in_grid_order():
+    assert tool.search_keys(None) == list(tool.GRID)
+    assert tool.search_keys(["calibration.temperature", "cluster.k"]) == [
+        "cluster.k",
+        "calibration.temperature",
+    ]
+    with pytest.raises(SystemExit):
+        tool.search_keys(["calibration.temp"])
+
+
+def test_grid_temperature_values_are_valid_configs():
+    import yaml
+
+    from rewind.config import config_from_dict
+
+    root = Path(__file__).resolve().parents[2]
+    base = yaml.safe_load((root / "configs" / "default.yaml").read_text(encoding="utf-8"))
+    for value in tool.GRID["calibration.temperature"]:
+        cfg = config_from_dict(tool.with_overrides(base, {"calibration.temperature": value}))
+        assert cfg.calibration.temperature == value
