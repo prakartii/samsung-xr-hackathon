@@ -120,6 +120,18 @@ pytest                                           # fast suite (< 60 s)
 feature cache in minutes; `tools/ablate.py` and `tools/deck_numbers.py` rebuild the
 tables and numbers above.
 
+## Demo tools
+
+Not part of the submission path; both read our output JSON and the original MP4.
+
+```bash
+python tools/timeline_html.py --json outputs/P01_11.json outputs/Bike_lhTFVa0h9Rk.json     --videos data/videos --out demo/timeline.html   # open in a browser
+python tools/make_reel.py --video data/videos/P01_11.mp4 --json outputs/P01_11.json     --out demo/P01_11_reel.mp4                      # captioned highlight reel
+```
+
+The timeline page plays the video with our highlights and detected actions under it:
+click to seek, jump between highlights, or play the highlights only.
+
 ## Models and licenses
 
 | Component | Source | License |
