@@ -2,7 +2,7 @@
 #
 #   tools/fetch_weights.sh                 # fills weights/ first (incl. released_features)
 #   docker build -t rewind .
-#   docker run --rm -v <videos>:/in:ro -v <out>:/out rewind /in/P01_11.mp4 /out/P01_11.json
+#   docker run --rm -v <videos>:/in:ro -v <out>:/out rewind /in/<video_id>.mp4 /out/<video_id>.json
 #
 # The image holds code, config and weights only: no data, cache or annotations.
 FROM python:3.11-slim
