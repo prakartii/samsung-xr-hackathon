@@ -410,7 +410,7 @@ Label errors (8): jumping -> plane (3), bikepolo -> bike (2), bike -> motor, lon
 - [x] S1 Temperature calibration of cluster distributions (fit on `tune`) — 2026-11-16, `tools/tune_epic_selector.py --only calibration.temperature`: no value clears the adopt rule, T stays 1.0 (Decisions)
 - [ ] S2 Learned FPVSum importance (ridge on CLIP)
 - [ ] S3 ONNX export + CPU latency benchmark
-- [ ] S4 HTML timeline viewer for the demo
+- [x] S4 HTML timeline viewer for the demo — 2026-11-17, `tools/timeline_html.py` (+ `timeline_template.html`): one static page over output JSONs, plays the MP4 with highlights and action lanes, click to seek, "Highlights only" playback; no libraries or network
 - [ ] S5 Downstream QA demo (local VLM: full video vs highlights)
 
 ---
@@ -488,6 +488,7 @@ Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 - 2026-11-16 · DA · P9 · Self-review fixes to `make_submission.py`: `--check-video` ran the repo's code when started from `code/` (cwd on sys.path; now a scratch cwd, regression test first); fallback outputs (label `other`) and fallback re-runs are refused; uncommitted shipped paths refused and the commit SHA printed; ID scan is case-insensitive substring and also covers weight text files; weights copied, not hard-linked; timeouts and missing JSON reported; a package failing the re-run is removed; `/dist/` gitignored · #44
 - 2026-11-16 · DA · P9/P1/P5 · `tools/make_submission.py` assembles `TEAM_ID/` (§13 + `configs/default.yaml`) and refuses on a placeholder team ID, an output whose `team_id` differs from the config, a missing or invalid output, a missing configured weight, or a manifest video ID in any shipped text file; `--check-video` re-runs the packaged run.sh from an empty cache and requires byte-identical JSON. Tests first (9 deliberate breakages caught). The new ID scan found 10 mentions (README, Dockerfile, comments in `video_io.py` and `gt_fpvsum.py`), all reworded. README setup now builds `weights/vn_prior.npy` (a fresh clone silently used a uniform prior). P1 and P5 closed with Result blocks · —
 - 2026-11-16 · DA · process · Review-agent loop removed (supersedes the #7 entry): each person reviews and merges their own PRs and never merges the other's; `tools/pr_watch.py` and its tests deleted; CLAUDE.md §4–§5 updated · #45
+- 2026-11-17 · PK · S4/P8 · `tools/timeline_html.py` demo viewer (static HTML: video + highlight/action timeline, highlights-only playback; videos on another drive linked by file URI); `make_reel.py` merged · #46, this PR
 - 2026-11-16 · PK · S1 · Temperature added to the selector tuner's grid (`--only` to sweep one key); swept on tune, no change (T = 1.0) · —
 - 2026-11-15 · PK · P8 · Fresh-clone check: empty cache, run.sh on 1 EPIC + 1 FPVSum video → JSON byte-identical to the cached runs (features recomputed from the MP4 match the cache; released SlowFast features found by fingerprint) · —
 - 2026-11-15 · PK · P8 · Submission README; `tools/run_all.py` (batch `run_video`, models loaded once, `--skip-existing`; tests first; 2-video run validates); ARCHITECTURE §10/§10.1 updated for the cut MP4 extraction · —
