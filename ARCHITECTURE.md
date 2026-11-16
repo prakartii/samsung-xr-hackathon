@@ -178,7 +178,8 @@ to keys once, in `rewind/vocab.py`.
 videos first, resumable), `run_all.py`, `tune.py` (grid/random search on `tune` only),
 `ablate.py`, `latency.py`, `make_reel.py` (ffmpeg reel from a JSON, optional padding
 and crossfades for the demo only), `timeline_html.py` (demo viewer: one static
-HTML page over output JSONs, template in `timeline_template.html`; demo only).
+HTML page over output JSONs, template in `timeline_template.html`; demo only), `make_demo.py`
+(the demo video, rendered from output JSONs, results files and the MP4s).
 
 ---
 
