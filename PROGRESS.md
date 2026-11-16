@@ -15,15 +15,15 @@ Who is A and who is B: **A = prakartii**, **B = Daksh Arora (DA)**.
 | Phase | Name | Owner | Planned | Status | Exit check |
 |---|---|---|---|---|---|
 | P0 | Kit & rules | B | Nov 10 | in progress | Kit committed in `kit/`; kit rules in `ARCHITECTURE.md` §7 confirmed or corrected; questions emailed |
-| P1 | Skeleton & submission contract | B | Nov 10–11 | in progress | `run.sh` writes valid fallback JSON for all 187 videos; CI green |
+| P1 | Skeleton & submission contract | B | Nov 10–11 | done | `run.sh` writes valid fallback JSON for all 187 videos; CI green |
 | P2 | Evaluation harness | B | Nov 11–12 | done | Leaderboard has uniform + oracle rows on `tune` and `report` |
 | P3 | Video I/O, signals, feature cache | A | Nov 10–12 | done | Flow, hands and CLIP cached for all 187 + `tune` videos |
 | P4 | Action detection → `actions[]` | A | Nov 11–13 | done | mAP measured on `tune` and `report`; beats the zero-shot fallback |
-| P5 | Clustering + EPIC coverage selector | B | Nov 12–14 | in progress | EPIC coverage > uniform; % of oracle reported; ablation done |
+| P5 | Clustering + EPIC coverage selector | B | Nov 12–14 | done | EPIC coverage > uniform; % of oracle reported; ablation done |
 | P6 | FPVSum route: importance, segments, label | A | Nov 13–15 | done | F1 > uniform on FPVSum CV; label accuracy reported |
 | P7 | Integration, tuning, ablations | A + B | Nov 15–16 | in progress | All 187 outputs from raw MP4 pass validation; tuned config committed; floors set |
-| P8 | Packaging, demo, deck | B (pkg) + A (demo) | Nov 16–17 | not started | Fresh clone + Docker reproduces one video; demo video + deck done |
-| P9 | Submission | A + B | Nov 18 | not started | Submitted via Google Form before 11:59 PM IST |
+| P8 | Packaging, demo, deck | B (pkg) + A (demo) | Nov 16–17 | in progress | Fresh clone + Docker reproduces one video; demo video + deck done |
+| P9 | Submission | A + B | Nov 18 | in progress | Submitted via Google Form before 11:59 PM IST |
 
 Critical path: P0 → P1 → P2 (scorer) and P3 → P4 (detector) run in parallel; P5
 starts on GT-derived proposals before P4 lands, so neither person waits.
@@ -60,7 +60,7 @@ package: `validate.py`. Remaining: send the email, set the team ID.
 ---
 
 ### P1 — Skeleton & submission contract
-**Owner:** B · **Planned:** Nov 10–11 · **Status:** in progress (started 2026-11-11) · **Depends on:** P0 (schema confirmed)
+**Owner:** B · **Planned:** Nov 10–11 · **Status:** done (started 2026-11-11, finished 2026-11-15) · **Depends on:** P0 (schema confirmed)
 
 - [x] `pyproject.toml` (ruff, pytest with `pythonpath = ["code"]`, markers `slow`, `data`, `gpu`), `requirements*.txt`, `.gitignore`
 - [x] `configs/default.yaml` + `rewind/config.py` with `config_hash()` (strict loader)
@@ -85,7 +85,13 @@ package: `validate.py`. Remaining: send the email, set the team ID.
 - contract: a `sys.addaudithook` during the `run.sh` test fails on any open of a manifest, annotation or `data/` GT path (covers `third_party/` and config-driven paths)
 - import boundary test (`rewind` never imports `rewind_eval`, never opens `manifest.csv` or annotation paths)
 
-**Result:** _fill in when done._
+**Result (2026-11-16, DA):** exit check met. All 187 full-pipeline outputs pass strict
+validation, ours and kit-only severities: 0 errors, 3 budget warnings on the < 27 s
+videos, by design (§5.6). CI (ruff + `pytest`) green on `main`, and the Docker job
+builds the image and smoke-tests `run.sh` in it (#41). Still open, tracked elsewhere:
+the official `validate.py` (Q8) and the team ID (Q11, P0).
+Deviations from ARCHITECTURE.md: none outstanding (salvage before fallback, §4 step 5;
+fallback written before analysis, §4).
 
 ---
 
@@ -244,7 +250,7 @@ Checkpoint: released `epic_slowfast_{verb,noun}_reproduce/epoch_020` (leakage ev
 ---
 
 ### P5 — Clustering + EPIC coverage selector
-**Owner:** B · **Planned:** Nov 12–14 · **Status:** in progress (started 2026-11-11) · **Depends on:** P2; starts on GT-derived proposals, switches to P4's proposals when they land
+**Owner:** B · **Planned:** Nov 12–14 · **Status:** done (started 2026-11-11, finished 2026-11-13) · **Depends on:** P2; starts on GT-derived proposals, switches to P4's proposals when they land
 
 - [x] `cluster.py`
 - [x] `select/candidates.py` (both capture rules)
@@ -263,6 +269,27 @@ Checkpoint: released `epic_slowfast_{verb,noun}_reproduce/epoch_020` (leakage ev
 - property: on GT-derived clusters, oracle coverage ≥ selector coverage ≥ uniform coverage (allow a small tolerance on the second inequality and log failures)
 - unit: hedge windows never overlap selected windows and respect spacing
 - performance: selector on a synthetic 2000 s video with 300 clusters < 2 s
+
+**Result (final, 2026-11-16, DA; real ActionFormer proposals):** exit check met.
+
+| Split | Selector | Coverage (any) | % of oracle |
+|---|---|---|---|
+| tune | expected coverage | 0.4883 | 67.6% |
+| tune | label dedup | 0.4299 | 59.5% |
+| report | expected coverage (full pipeline) | 0.4368 | 59.8% |
+| report | label dedup | 0.4079 | 55.8% |
+| report | uniform | 0.3380 | 46.3% |
+
+- Kill rule (decided on `tune` on 2026-11-13, rule set in advance): keep expected
+  coverage. `report` agrees (+0.029 coverage, +0.012 weighted).
+- Tuned on `tune` only: `select.stride` 0.5 → 1.0; temperature (S1) stays 1.0;
+  `hedge.share` 0 (Decisions).
+- On `report` the run without the verb-noun prior in the selector scores higher
+  (coverage 0.4464 vs 0.4368, `results/ablation_report.md`), while on `tune` the
+  prior helps (0.4883 vs 0.4691). Not changed: `report` is not used for choices
+  (CLAUDE.md §6.2).
+- Deviations from ARCHITECTURE.md: none outstanding (the §5.4 formula fix is in
+  Decisions, 2026-11-11).
 
 **Result (partial, 2026-11-11, simulated proposals on `tune`):** `tools/eval_selector.py`;
 clean = GT, noisy = 30% missed, ±1 s jitter, top-1 40% / top-5, 1 false positive per
@@ -347,7 +374,7 @@ Label errors (8): jumping -> plane (3), bikepolo -> bike (2), bike -> motor, lon
 ---
 
 ### P8 — Packaging, demo, deck
-**Owner:** B (packaging) + A (demo, numbers) · **Planned:** Nov 16–17 · **Status:** not started · **Depends on:** P7
+**Owner:** B (packaging) + A (demo, numbers) · **Planned:** Nov 16–17 · **Status:** in progress (Dockerfile and README done 2026-11-15) · **Depends on:** P7
 
 - [x] `Dockerfile` (CPU; the pipeline needs no GPU); `tools/fetch_weights.sh` works on a clean machine — Dockerfile **done 2026-11-15** (#41), built and smoke-tested on every relevant PR by `.github/workflows/docker.yml` (deps import, hands run, run.sh fallback writes valid JSON with no large weights). Not built locally: this network's TLS interception (weak-signature CA) breaks pip's download.pytorch.org. `fetch_weights.sh` on a clean machine still to check end to end
 - [x] Submission `README.md`: setup, data used, how to reproduce, the tuning-split statement, licenses — **done 2026-11-15**: README rewritten for the organizers (results, how it works, setup incl. Docker, data used incl. the released-features statement, tuning-split statement, reproduce, licenses); `tools/run_all.py` added (was referenced in CLAUDE.md but missing)
@@ -365,11 +392,11 @@ Label errors (8): jumping -> plane (3), bikepolo -> bike (2), bike -> motor, lon
 ---
 
 ### P9 — Submission
-**Owner:** A + B · **Planned:** Nov 18 · **Status:** not started · **Depends on:** P8
+**Owner:** A + B · **Planned:** Nov 18 · **Status:** in progress (packaging tool started 2026-11-16 by B) · **Depends on:** P8
 
 - [ ] Freeze `main`; tag `submission-v1`
 - [ ] Regenerate `outputs/` from the tagged commit; validate (ours + official); commit `outputs/`
-- [ ] Assemble `TEAM_ID/` exactly as `ARCHITECTURE.md` §13
+- [ ] Assemble `TEAM_ID/` exactly as `ARCHITECTURE.md` §13 — tool ready 2026-11-16: `python tools/make_submission.py --outputs outputs/ --dest dist/ --check-video <one EPIC mp4> --check-video <one FPVSum mp4> --zip`. It refuses while `team.team_id` is `TBD_Q11` (Q11), so it runs once the ID is set and `outputs/` is regenerated with it
 - [ ] Submit the Google Form (repo link, demo video, deck); screenshot the confirmation
 - [ ] No new features today. Fixes only, and only for validation failures
 
@@ -458,6 +485,8 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-16 · DA · P9 · Self-review fixes to `make_submission.py`: `--check-video` ran the repo's code when started from `code/` (cwd on sys.path; now a scratch cwd, regression test first); fallback outputs (label `other`) and fallback re-runs are refused; uncommitted shipped paths refused and the commit SHA printed; ID scan is case-insensitive substring and also covers weight text files; weights copied, not hard-linked; timeouts and missing JSON reported; a package failing the re-run is removed; `/dist/` gitignored · #44
+- 2026-11-16 · DA · P9/P1/P5 · `tools/make_submission.py` assembles `TEAM_ID/` (§13 + `configs/default.yaml`) and refuses on a placeholder team ID, an output whose `team_id` differs from the config, a missing or invalid output, a missing configured weight, or a manifest video ID in any shipped text file; `--check-video` re-runs the packaged run.sh from an empty cache and requires byte-identical JSON. Tests first (9 deliberate breakages caught). The new ID scan found 10 mentions (README, Dockerfile, comments in `video_io.py` and `gt_fpvsum.py`), all reworded. README setup now builds `weights/vn_prior.npy` (a fresh clone silently used a uniform prior). P1 and P5 closed with Result blocks · —
 - 2026-11-16 · DA · process · Review-agent loop removed (supersedes the #7 entry): each person reviews and merges their own PRs and never merges the other's; `tools/pr_watch.py` and its tests deleted; CLAUDE.md §4–§5 updated · #45
 - 2026-11-16 · PK · S1 · Temperature added to the selector tuner's grid (`--only` to sweep one key); swept on tune, no change (T = 1.0) · —
 - 2026-11-15 · PK · P8 · Fresh-clone check: empty cache, run.sh on 1 EPIC + 1 FPVSum video → JSON byte-identical to the cached runs (features recomputed from the MP4 match the cache; released SlowFast features found by fingerprint) · —

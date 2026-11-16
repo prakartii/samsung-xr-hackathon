@@ -654,11 +654,24 @@ Report measured latency per minute of video in the deck (`tools/latency.py`).
 TEAM_ID/
 ├── run.sh
 ├── code/            # rewind/, rewind_eval/, third_party/
-├── weights/         # all weights needed to run offline
+├── configs/         # default.yaml only (run.sh reads it; splits.yaml stays in the repo)
+├── weights/         # exactly the paths configs/default.yaml names under weights/
 ├── requirements.txt
 ├── outputs/         # one <video_id>.json per manifest video
-└── README.md        # setup, data used, how to reproduce, tuning split statement
+├── README.md        # setup, data used, how to reproduce, tuning split statement
+└── Dockerfile       # + .dockerignore
 ```
 
-Plus a Dockerfile in the repo, the demo video link and the deck
-(`CollegeName_TeamName`).
+Additions to the kit's list: `configs/` (run.sh needs the tuned config) and the
+Dockerfile.
+`tools/make_submission.py` builds the folder from committed code and refuses to while
+any of these holds: `team.team_id` is a placeholder or differs from an output's; an
+output is missing, fails strict validation or is the fallback (label `other`); a
+configured weight is missing; a shipped path has uncommitted changes; or a shipped
+file names a manifest video ID (case-insensitive substring; kit §6 scans for hardcoded
+IDs; a test keeps the repo clean). `--check-video` re-runs the packaged run.sh from an
+empty cache in a scratch directory and requires a byte-identical JSON with no stage
+falling back; a package that fails it is removed. Weights are copied, not linked. No
+tests, tools, kit, data or cache are shipped.
+
+Plus the demo video link and the deck (`CollegeName_TeamName`).

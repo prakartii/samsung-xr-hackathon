@@ -56,14 +56,19 @@ Full specification: `ARCHITECTURE.md`. Design rationale: `REWIND_v2.3_plan.md`.
 
 ## Setup
 
-Python 3.11, CPU only.
+Python 3.11, CPU only. In the submitted `TEAM_ID/` package `weights/` is already
+filled (`tools/make_submission.py`), so only the `pip install` and `run.sh` lines apply.
+The tools, results, tests and docs this README mentions are in the repository, not in
+the package.
 
 ```bash
 python3.11 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt            # pinned; CPU PyTorch wheels
-tools/fetch_weights.sh                     # all model weights, SHA-256 checked
+tools/fetch_weights.sh                     # downloaded model weights, SHA-256 checked
 RELEASED_FEATURES=1 tools/fetch_weights.sh # + ActionFormer's released EPIC features
-./run.sh data/videos/P01_11.mp4 outputs/P01_11.json
+tools/fetch_annotations.sh                 # EPIC train CSV for the verb-noun prior below
+python tools/build_vn_prior.py --train-csv data/annotations/epic/EPIC_100_train.csv
+./run.sh data/videos/<video_id>.mp4 outputs/<video_id>.json
 ```
 
 Or with Docker (CPU; fill `weights/` first as above):
@@ -71,7 +76,7 @@ Or with Docker (CPU; fill `weights/` first as above):
 ```bash
 docker build -t rewind .
 docker run --rm -v "$PWD/data/videos:/in:ro" -v "$PWD/outputs:/out" rewind \
-    /in/P01_11.mp4 /out/P01_11.json
+    /in/<video_id>.mp4 /out/<video_id>.json
 ```
 
 The image is built and smoke-tested in CI (`.github/workflows/docker.yml`).

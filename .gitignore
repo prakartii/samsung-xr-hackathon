@@ -15,6 +15,9 @@ __pycache__/
 # Outputs are committed only at P9 (remove this line then)
 /outputs/
 
+# Submission packages (tools/make_submission.py): ~1.5 GB with weights
+/dist/
+
 # Editors / OS
 .idea/
 .vscode/

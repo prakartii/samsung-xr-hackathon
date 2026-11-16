@@ -5,7 +5,7 @@ native frame, 0–1) and ``Binary_score`` (the dataset's own top-15% highlight f
 Frame i is placed at ``i · T / N`` seconds, with T the manifest duration.
 
 Names: the manifest uses ``<Category>_<YouTubeID>``; gt_data strips leading
-underscores from the ID (``Jumping__mU-p2wuk90`` → ``Jumping_mU-p2wuk90``), so names
+underscores from the ID (``Jumping__abc`` → ``Jumping_abc``), so names
 are matched on (category, ID without leading underscores).
 """
 

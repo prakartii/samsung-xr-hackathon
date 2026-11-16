@@ -90,7 +90,7 @@ _FRAME_EPS = 1e-6
 
 # How far past the last video frame a requested sample may fall and still get that
 # frame. Container durations (which include audio) can run a few hundredths of a
-# second past the video stream (EPIC P08_09: 0.03 s). Real truncation is seconds to
+# second past the video stream (0.03 s on one EPIC video). Real truncation is seconds to
 # minutes short (OpenCV stopped after 0.7 s of 174 s), so 0.25 s still catches it.
 _END_SLACK_SEC = 0.25
 
@@ -181,8 +181,8 @@ def probe_video(path: str | Path) -> ProbeInfo:
         return ProbeInfo(duration, fps, stream.codec_context.width, stream.codec_context.height)
 
 
-# Undecodable packets tolerated per video before giving up: about 1 s at 60 fps. EPIC
-# P29_05 and P30_08 (MD5-verified, so genuine recordings) each contain a packet that
+# Undecodable packets tolerated per video before giving up: about 1 s at 60 fps. Two
+# EPIC videos (MD5-verified, so genuine recordings) each contain a packet that
 # FFmpeg rejects ("Invalid data found when processing input"); one bad chunk must not
 # cost the whole video, but a badly damaged file should still fail loudly.
 _MAX_BAD_PACKETS = 60
