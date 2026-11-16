@@ -39,7 +39,18 @@ GRID: dict[str, list[Any]] = {
     "pairing.score_power": [0.25, 0.5, 1.0],
     "pairing.alpha": [0.0, 0.5, 1.0, 2.0],
     "post.merge_gap": [0.0, 0.5, 2.0],
+    "calibration.temperature": [0.5, 0.75, 1.5, 2.0, 3.0],  # S1; > 1 flattens
 }
+
+
+def search_keys(only: list[str] | None) -> list[str]:
+    """GRID keys to search, in GRID order; --only restricts them (unknown key: error)."""
+    if not only:
+        return list(GRID)
+    unknown = [k for k in only if k not in GRID]
+    if unknown:
+        raise SystemExit(f"not in GRID: {unknown}")
+    return [k for k in GRID if k in only]
 
 
 def with_overrides(base: dict, overrides: dict[str, Any]) -> dict:
@@ -89,7 +100,9 @@ def main() -> None:
     ap.add_argument("--min-gain", type=float, default=0.005)
     ap.add_argument("--passes", type=int, default=2)
     ap.add_argument("--write", action="store_true")
+    ap.add_argument("--only", nargs="+", help="search only these GRID keys")
     args = ap.parse_args()
+    keys = search_keys(args.only)
 
     base_dict = yaml.safe_load(args.config.read_text(encoding="utf-8"))
     cfg0 = load_config(args.config)
@@ -128,7 +141,8 @@ def main() -> None:
     changed: dict[str, Any] = {}
     for p in range(args.passes):
         moved = False
-        for key, values in GRID.items():
+        for key in keys:
+            values = GRID[key]
             current = with_overrides(best_dict, {})
             node = current
             for part in key.split("."):

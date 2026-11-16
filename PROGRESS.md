@@ -380,7 +380,7 @@ Label errors (8): jumping -> plane (3), bikepolo -> bike (2), bike -> motor, lon
 ---
 
 ### Stretch (only after P7 is done)
-- [ ] S1 Temperature calibration of cluster distributions (fit on `tune`)
+- [x] S1 Temperature calibration of cluster distributions (fit on `tune`) — 2026-11-16, `tools/tune_epic_selector.py --only calibration.temperature`: no value clears the adopt rule, T stays 1.0 (Decisions)
 - [ ] S2 Learned FPVSum importance (ridge on CLIP)
 - [ ] S3 ONNX export + CPU latency benchmark
 - [ ] S4 HTML timeline viewer for the demo
@@ -422,6 +422,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 | Date | Decision | Why | By |
 |---|---|---|---|
+| 2026-11-16 | S1: cluster-distribution temperature stays 1.0 | Swept on `tune` with real ActionFormer proposals (adopt rule: mean gain ≥ 0.005 and more wins than losses): T 0.5 → 0.4706, 0.75 → 0.4893, 1.0 → 0.4883, 1.5 → 0.4804, 2.0 → 0.4894, 3.0 → 0.4829. Flat within noise; no value adopted. Caveat: tune detections are over-confident (ActionFormer's training videos), the case where a temperature would matter most, so report-side calibration remains unmeasured by design | PK |
 | 2026-11-14 | Cut SlowFast extraction from the MP4 (P4) | Its only use is a clean machine whose EPIC files differ from ours. The organizers re-run on the official EPIC-KITCHENS files; ours are those files (MD5-checked against the official md5.csv), so content fingerprints match and the shipped released features are found. Cost: ~10–15 min CPU per video plus a cosine check. Residual risk: a re-encoded copy falls back to zero-shot actions (report mAP 0.0015 vs 0.1493) | PK |
 | 2026-11-14 | Cut the CLIP ridge for FPVSum importance (P6 optional) | FPVSum has no videos outside the scored 49; a 512-d regressor fit on their frame GT trains on the evaluation set, and the CV gain would not carry to the organizers' score honestly. The 6-weight proxy (CV-tuned) stays | PK |
 | 2026-11-13 | Output actions scored without the verb-noun prior (`actions.prior_alpha` 0); selector proposals keep it (`pairing.alpha` 1) | Ablation on `tune`: without the prior mAP 0.5266 → 0.6532 but coverage 0.4883 → 0.4691; splitting keeps both (weighted 0.4764 → 0.5080). The prior comes from train counts, so it should help most on these train videos, yet it lowers mAP. Chosen by PK before any report run. Report afterwards (measurement only): mAP 0.1493 (was 0.117 with the prior). Observed, not acted on: on report the selector does slightly better without the prior too (coverage 0.4464 vs 0.4368), the opposite of tune | PK |
@@ -456,6 +457,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-16 · PK · S1 · Temperature added to the selector tuner's grid (`--only` to sweep one key); swept on tune, no change (T = 1.0) · —
 - 2026-11-15 · PK · P8 · Fresh-clone check: empty cache, run.sh on 1 EPIC + 1 FPVSum video → JSON byte-identical to the cached runs (features recomputed from the MP4 match the cache; released SlowFast features found by fingerprint) · —
 - 2026-11-15 · PK · P8 · Submission README; `tools/run_all.py` (batch `run_video`, models loaded once, `--skip-existing`; tests first; 2-video run validates); ARCHITECTURE §10/§10.1 updated for the cut MP4 extraction · —
 - 2026-11-15 · PK · P8/P7/P1 · Submission `Dockerfile` (python:3.11-slim, CPU) + CI job building and smoke-testing it; CI caught MediaPipe needing libEGL in the image (fixed). All 187 full-pipeline outputs pass strict validation (0 errors) · #41
