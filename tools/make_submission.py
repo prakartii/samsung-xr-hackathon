@@ -7,17 +7,21 @@
 Refuses to write anything if the package would not be submittable:
   - `team.team_id` in configs/default.yaml is still a placeholder (`TBD…`), or an
     output's `team_id` differs from it (re-running run.sh would then not reproduce it);
-  - outputs/ is missing a manifest video, or any output fails strict validation;
+  - outputs/ is missing a manifest video, any JSON in it fails strict validation, or
+    an output is the safe fallback (label `other`: the models did not run);
   - a weight file named in the config is missing (run.sh would silently fall back);
-  - a shipped text file mentions a manifest video ID (kit §6: automated scans for
-    hardcoded IDs disqualify).
+  - a shipped text file mentions a manifest video ID, matched as a case-insensitive
+    substring (kit §6: automated scans for hardcoded IDs disqualify);
+  - a shipped path has uncommitted changes (the package must match the tagged repo).
 
 The package holds run.sh, code/ (rewind, rewind_eval, third_party), configs/default.yaml,
 weights/ (only the files the config names), requirements.txt, README.md, the Dockerfile
 and outputs/ (one JSON per manifest video). No tests, tools, kit, data or cache.
 
---check-video runs the *packaged* run.sh on a video, as the organizers will, and
-fails unless the JSON is byte-identical to the packaged output for that video.
+--check-video runs the *packaged* run.sh on a video, as the organizers will (empty
+cache, a scratch working directory, no PYTHONPATH), and fails unless the JSON is
+byte-identical to the packaged output and no stage fell back. On failure the
+half-checked package is removed so it cannot be uploaded by mistake.
 """
 
 from __future__ import annotations
@@ -38,6 +42,7 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "code"))
 
 from rewind.config import Config, load_config  # noqa: E402
+from rewind.fallback import FALLBACK_LABEL  # noqa: E402
 from rewind_eval.validate import read_manifest, validate_dir  # noqa: E402
 
 # Repo paths copied as they are (directories recursively, minus bytecode).
@@ -93,19 +98,20 @@ def missing_weights(root: Path, paths: Iterable[str]) -> list[str]:
 
 
 def output_problems(outputs: Path, manifest: dict[str, float], team_id: str) -> list[str]:
-    """Strict validation of the whole directory, plus team_id == the config's."""
+    """Strict validation of the whole directory; team_id == the config's; no fallback."""
     errors, _ = validate_dir(outputs, manifest, strict=True)
     problems = [f"{name}: {e}" for name in sorted(errors) for e in errors[name]]
     for vid in sorted(manifest):
         path = outputs / f"{vid}.json"
-        if not path.exists():
-            continue  # already reported by validate_dir
         try:
-            got = json.loads(path.read_text(encoding="utf-8")).get("team_id")
+            doc = json.loads(path.read_text(encoding="utf-8"))
+            got, label = doc.get("team_id"), (doc.get("label") or {}).get("name")
         except (OSError, ValueError, AttributeError):
-            continue  # already reported by validate_dir
+            continue  # missing or malformed: already reported by validate_dir
         if got != team_id:
             problems.append(f"{path.name}: team_id {got!r} != config team.team_id {team_id!r}")
+        if label == FALLBACK_LABEL[0]:
+            problems.append(f"{path.name}: label {label!r} is the fallback; models did not run")
     return problems
 
 
@@ -128,12 +134,13 @@ def shipped_files(repo: Path) -> list[Path]:
 def id_mentions(root: Path, files: Iterable[Path], ids: Iterable[str]) -> list[str]:
     """`file:line: id` for every manifest video ID in a shipped text file.
 
-    An ID only counts as a whole token: `P01_11` does not match inside `P01_110`.
+    Case-insensitive substring match, as conservative as a scanner could be:
+    `P01_11` also counts inside `p01_110` or `cache_P01_11`.
     """
     alternatives = "|".join(re.escape(i) for i in sorted(ids, key=len, reverse=True))
     if not alternatives:
         return []
-    pattern = re.compile(rf"(?<![\w-])(?:{alternatives})(?![\w-])")
+    pattern = re.compile(alternatives, re.IGNORECASE)
     hits = []
     for rel in files:
         path = root / rel
@@ -149,6 +156,27 @@ def id_mentions(root: Path, files: Iterable[Path], ids: Iterable[str]) -> list[s
     return hits
 
 
+def dirty_paths(repo: Path) -> list[str]:
+    """Shipped paths with uncommitted changes or untracked files (`git status`)."""
+    proc = subprocess.run(
+        ["git", "-C", str(repo), "status", "--porcelain", "--untracked-files=all", "--", *SHIPPED],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return [f"uncommitted change: {ln[3:]}" for ln in proc.stdout.splitlines() if ln.strip()]
+
+
+def head_sha(repo: Path) -> str:
+    out = subprocess.run(
+        ["git", "-C", str(repo), "rev-parse", "--short", "HEAD"],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return out.stdout.strip()
+
+
 def weight_files(repo: Path, paths: Iterable[str]) -> list[Path]:
     out = []
     for p in paths:
@@ -160,14 +188,10 @@ def weight_files(repo: Path, paths: Iterable[str]) -> list[Path]:
     return out
 
 
-def _place(src: Path, dst: Path, link: bool) -> None:
+def _place(src: Path, dst: Path) -> None:
+    # A copy, not a hard link: rebuilding a weight in the repo later (np.save truncates
+    # in place) must not change the package.
     dst.parent.mkdir(parents=True, exist_ok=True)
-    if link:
-        try:
-            os.link(src, dst)  # weights are large and read-only: no second copy
-            return
-        except OSError:
-            pass  # other filesystem
     shutil.copy2(src, dst)
 
 
@@ -177,15 +201,17 @@ def assemble(
     """Write the package to pkg (must not exist)."""
     pkg.mkdir(parents=True)
     for rel in shipped_files(repo):
-        _place(repo / rel, pkg / rel, link=False)
+        _place(repo / rel, pkg / rel)
     for rel in weights:
-        _place(repo / rel, pkg / rel, link=True)
+        _place(repo / rel, pkg / rel)
     for vid in sorted(ids):
-        _place(outputs / f"{vid}.json", pkg / "outputs" / f"{vid}.json", link=False)
+        _place(outputs / f"{vid}.json", pkg / "outputs" / f"{vid}.json")
     (pkg / "run.sh").chmod(0o755)
 
 
-def rerun_problems(pkg: Path, video: Path, python: str, timeout: float) -> list[str]:
+def rerun_problems(
+    pkg: Path, video: Path, python: str, timeout: float, cache_dir: str = "cache"
+) -> list[str]:
     """Run pkg/run.sh on video; problems unless its JSON equals pkg/outputs/<stem>.json.
 
     Runs from an empty feature cache, as on the organizers' machine, and removes the
@@ -194,7 +220,7 @@ def rerun_problems(pkg: Path, video: Path, python: str, timeout: float) -> list[
     expected = pkg / "outputs" / f"{video.stem}.json"
     if not expected.exists():
         return [f"--check-video {video.name}: no packaged output {expected.name}"]
-    cache = pkg / "cache"
+    cache = pkg / cache_dir
     if cache.exists():
         return [f"--check-video: {cache} exists; the re-run must start from an empty cache"]
     with tempfile.TemporaryDirectory() as tmp:
@@ -202,19 +228,28 @@ def rerun_problems(pkg: Path, video: Path, python: str, timeout: float) -> list[
         env = {k: v for k, v in os.environ.items() if not k.startswith("REWIND_")}
         env.update(PYTHON=python, PYTHONPATH="", PYTHONDONTWRITEBYTECODE="1")
         try:
+            # cwd=tmp: `python -m` puts the working directory first on sys.path, so a
+            # run from the repo's code/ would import the repo's rewind, not the package's.
             proc = subprocess.run(
-                [str(pkg / "run.sh"), str(video), str(out)],
+                [str(pkg / "run.sh"), str(video.resolve()), str(out)],
                 capture_output=True,
                 text=True,
                 env=env,
+                cwd=tmp,
                 timeout=timeout,
                 check=False,
             )
+        except subprocess.TimeoutExpired:
+            return [f"--check-video {video.name}: no result after {timeout:.0f} s"]
         finally:
             shutil.rmtree(cache, ignore_errors=True)
         if proc.returncode != 0:
             tail = proc.stderr[-500:]
             return [f"--check-video: packaged run.sh exited {proc.returncode}: {tail}"]
+        if "keeping the fallback" in proc.stderr:
+            return [f"--check-video {video.name}: the packaged run fell back: {proc.stderr[-500:]}"]
+        if not out.exists():
+            return [f"--check-video {video.name}: run.sh exited 0 but wrote no JSON"]
         if out.read_bytes() != expected.read_bytes():
             return [f"--check-video: packaged run.sh output differs from outputs/{expected.name}"]
     return []
@@ -242,10 +277,16 @@ def main(argv: list[str] | None = None) -> int:
     manifest = read_manifest(args.manifest)
     weights = weight_paths(cfg)
 
+    files = weight_files(REPO, weights)
     problems = team_id_problems(team_id)
     problems += missing_weights(REPO, weights)
     problems += output_problems(args.outputs, manifest, team_id)
-    problems += id_mentions(REPO, shipped_files(REPO), manifest)
+    problems += id_mentions(REPO, shipped_files(REPO) + files, manifest)
+    problems += dirty_paths(REPO)
+    _, warnings = validate_dir(args.outputs, manifest, strict=True)
+    for name in sorted(warnings):
+        for w in warnings[name]:
+            print(f"warning {name}: {w}", file=sys.stderr)
     pkg = args.dest / team_id
     if pkg.exists():
         problems.append(f"{pkg} already exists: remove it first")
@@ -255,14 +296,17 @@ def main(argv: list[str] | None = None) -> int:
         print(f"not assembled: {len(problems)} problem(s)", file=sys.stderr)
         return 1
 
-    assemble(REPO, pkg, args.outputs, manifest, weight_files(REPO, weights))
-    print(f"assembled {pkg} ({len(manifest)} outputs, {len(weights)} weight paths)")
+    assemble(REPO, pkg, args.outputs, manifest, files)
+    sha = head_sha(REPO)
+    print(f"assembled {pkg} from {sha} ({len(manifest)} outputs, {len(files)} weight files)")
 
     for video in args.check_video:
-        errs = rerun_problems(pkg, video, args.python, args.timeout)
+        errs = rerun_problems(pkg, video, args.python, args.timeout, cfg.features.cache_dir)
         for e in errs:
             print(f"ERROR {e}", file=sys.stderr)
         if errs:
+            shutil.rmtree(pkg)
+            print(f"removed {pkg}: it failed the re-run check", file=sys.stderr)
             return 1
         print(f"re-run ok: {video.name} byte-identical to the packaged output")
 

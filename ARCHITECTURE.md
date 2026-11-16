@@ -662,12 +662,16 @@ TEAM_ID/
 └── Dockerfile       # + .dockerignore
 ```
 
-`configs/` is the one addition to the kit's list: run.sh needs the tuned config.
-`tools/make_submission.py` builds the folder and refuses to while any of these holds:
-`team.team_id` is a placeholder or differs from an output's; an output is missing or
-fails strict validation; a configured weight is missing; or a shipped text file names
-a manifest video ID (kit §6 scans for hardcoded IDs; a test keeps the repo clean).
-`--check-video` re-runs the packaged run.sh from an empty cache and requires a
-byte-identical JSON. No tests, tools, kit, data or cache are shipped.
+Additions to the kit's list: `configs/` (run.sh needs the tuned config) and the
+Dockerfile.
+`tools/make_submission.py` builds the folder from committed code and refuses to while
+any of these holds: `team.team_id` is a placeholder or differs from an output's; an
+output is missing, fails strict validation or is the fallback (label `other`); a
+configured weight is missing; a shipped path has uncommitted changes; or a shipped
+file names a manifest video ID (case-insensitive substring; kit §6 scans for hardcoded
+IDs; a test keeps the repo clean). `--check-video` re-runs the packaged run.sh from an
+empty cache in a scratch directory and requires a byte-identical JSON with no stage
+falling back; a package that fails it is removed. Weights are copied, not linked. No
+tests, tools, kit, data or cache are shipped.
 
 Plus the demo video link and the deck (`CollegeName_TeamName`).

@@ -58,6 +58,8 @@ Full specification: `ARCHITECTURE.md`. Design rationale: `REWIND_v2.3_plan.md`.
 
 Python 3.11, CPU only. In the submitted `TEAM_ID/` package `weights/` is already
 filled (`tools/make_submission.py`), so only the `pip install` and `run.sh` lines apply.
+The tools, results, tests and docs this README mentions are in the repository, not in
+the package.
 
 ```bash
 python3.11 -m venv .venv && source .venv/bin/activate
