@@ -83,9 +83,6 @@ python -m rewind_eval.validate --dir outputs/          # our validator (all kit 
 python kit/validate.py --dir outputs/                  # official one, once the organizers send it (missing from our kit)
 python -m rewind_eval.score --pred outputs/ --split report --tag "<short description>"
 
-# review agent (§5): PRs needing attention; mark one handled
-python tools/pr_watch.py
-python tools/pr_watch.py --done <key>
 ```
 
 `rewind_eval.score` appends a row to `results/leaderboard.csv` (git SHA, tag,
@@ -95,90 +92,22 @@ config hash, every metric). Paste the row into `PROGRESS.md` when a phase finish
 
 ### Ownership
 `PROGRESS.md` assigns every phase an owner: **A (ML & perception)** or
-**B (algorithms & infra)**. The owner drives it; the other person reviews its PRs.
+**B (algorithms & infra)**. The owner drives it and reviews and merges its PRs.
 Ask before working inside the other person's in-progress phase.
 
 ### Branches and PRs
 - Branch from `main` as `p<phase>/<short-name>`, e.g. `p5/expected-coverage`.
 - Small PRs (a few hundred lines at most), merged the same day when possible.
-- The other person reviews, through their review agent (below). Merge only when CI checks
-  (ruff + `pytest`) pass.
+- **Each person reviews and merges their own PRs.** Review your own diff before merging
+  (a coding agent may run a review sub-agent on it). Merge only when CI checks
+  (ruff + `pytest`) pass on the head commit and `PROGRESS.md` is updated; squash-merge
+  and delete the branch. Never merge, push to or rewrite the other person's PR or branch.
 - Never push directly to `main`, except a `PROGRESS.md`-only log line.
 - Commit messages: imperative and specific ("Add 4 s minimum to postprocess").
   **No AI co-author trailers or "generated with" lines anywhere** (commits, PRs,
   code comments, docs).
-
-### Review agents (always on, both sides)
-
-Every coding-agent session on this repo, A's or B's, runs a **review sub-agent** in the
-background for the whole session. It writes no production code. It watches PRs,
-reviews the other person's PRs, and reports to the **main agent**, which decides what
-happens. So when A opens a PR, B's review agent reviews it and B's main agent acts on
-the review, and vice versa.
-
-**Start it first**, before any other work. Brief it with this section, your GitHub
-login (A = `prakartii`, B = `dakshcodez`) and the path to the venv. If it stops,
-restart it.
-
-**Its loop**
-1. About every 10 minutes (never a tight loop), run `python tools/pr_watch.py`. Each
-   output line is one item:
-   - `review:<n>:<sha>`: a new PR, or new commits, from the other person → review it.
-   - `own:<n>:…`: one of our PRs got a review, a comment or failing CI → summarize it
-     for the main agent.
-2. After reporting an item, run `python tools/pr_watch.py --done <key>`. Each head
-   commit is reviewed once; new commits produce a new key and a new review.
-3. Nothing new → wait and poll again, until the session ends.
-
-**How it reviews** (one PR at a time)
-- Check the PR out in its own worktree outside the repo
-  (`git worktree add ../rewind-review-<n> <sha>`); never touch the main agent's working
-  tree. Remove the worktree when done.
-- Review the code itself, not the PR description's claims: read the diff and the code
-  around it, and check it against `ARCHITECTURE.md` (interfaces, algorithms), §6 (rules)
-  and §7 (tests).
-- Run `ruff check`, `ruff format --check` and `pytest` in the worktree.
-- Spot-check the new tests: break 2–3 lines of the new code and confirm a test fails
-  (§7.3 rule 4).
-- Always check: anything that could produce invalid output (R1–R13); any use of ground
-  truth, the manifest or the filename at inference; tuning on `report`; a score change
-  without a leaderboard row; `PROGRESS.md` not updated; AI attribution; PR size.
-
-**Its report to the main agent**
-- A verdict: approve, approve with nits, or request changes.
-- Findings, most severe first: severity (blocker / should-fix / nit), `file:line`,
-  what's wrong, a concrete input that fails, and a suggested fix (a unified diff when
-  small).
-- What it ran, and the results.
-
-The review agent never posts to GitHub, pushes, merges or edits a branch itself.
-
-**The main agent decides**, then tells its person what it did:
-- **Every review is posted on the PR, from its person's GitHub account** (`gh` is logged
-  in as that person: A's agent posts as `prakartii`, B's as `dakshcodez`). Nothing found
-  stays private between the agents.
-  - Findings or fixes → `gh pr review <n> --request-changes` (any blocker or
-    should-fix) or `--comment` (nits only), with `--body-file <file>`. The body lists
-    every finding with severity, `file:line`, the failing input and the suggested fix as
-    a ```` ```diff ```` block. Findings the main agent disagrees with stay in the
-    comment, marked "not requiring a change" with the reason.
-  - No findings → `gh pr review <n> --approve` with a one-line summary of what was
-    checked (commands run, deliberate breakages caught).
-  - Start the body with `Review by <A|B>'s review agent at <short sha>` so the author
-    knows which commit was reviewed.
-  - GitHub doesn't allow approving or requesting changes on your own PR. When the
-    reviewing account also authored the PR (e.g. a self-review its person asked for),
-    post the same body with `gh pr comment` instead.
-- Don't push to the other person's branch unless they ask. Suggested fixes go in the
-  review; the author's agent applies them.
-- Merge only when the PR is approved, CI is green on the head commit, there are no open
-  blockers and `PROGRESS.md` is updated. Squash-merge and delete the branch.
-- For `own:` items: fix and push, then **reply on the PR from its person's account**
-  (`gh pr comment <n> --body-file <file>`) listing each finding and what was done: fixed
-  in `<sha>`, or not changed and why. That reply plus the new commits triggers a fresh
-  review. Tell its person when CI fails.
-- Anything that changes the design or a recorded decision goes to its person first
-  (`ARCHITECTURE.md` change control).
+- Anything that changes the design or a recorded decision is agreed with the other
+  person first (`ARCHITECTURE.md` change control).
 
 ### PROGRESS.md is updated in every PR — this is mandatory
 A PR that changes code or design **must** also update `PROGRESS.md`:
@@ -194,7 +123,7 @@ A PR that changes code or design **must** also update `PROGRESS.md`:
 5. **Organizer answers:** record them under Open questions with the date and source,
    then update `ARCHITECTURE.md` and the code to match.
 
-Reviewers: reject a PR that skips this. Never delete log entries; correct them with
+A PR that skips this is not done. Never delete log entries; correct them with
 a new entry.
 
 ### Definition of done (any PR)

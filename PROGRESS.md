@@ -422,6 +422,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 | Date | Decision | Why | By |
 |---|---|---|---|
+| 2026-11-16 | Each person reviews and merges their own PRs; the cross-review agent loop (`tools/pr_watch.py`) is removed. Never merge or push to the other person's PR | Requested by B; in practice A already self-merged #24–#43 | DA (B) |
 | 2026-11-16 | S1: cluster-distribution temperature stays 1.0 | Swept on `tune` with real ActionFormer proposals (adopt rule: mean gain ≥ 0.005 and more wins than losses): T 0.5 → 0.4706, 0.75 → 0.4893, 1.0 → 0.4883, 1.5 → 0.4804, 2.0 → 0.4894, 3.0 → 0.4829. Flat within noise; no value adopted. Caveat: tune detections are over-confident (ActionFormer's training videos), the case where a temperature would matter most, so report-side calibration remains unmeasured by design | PK |
 | 2026-11-14 | Cut SlowFast extraction from the MP4 (P4) | Its only use is a clean machine whose EPIC files differ from ours. The organizers re-run on the official EPIC-KITCHENS files; ours are those files (MD5-checked against the official md5.csv), so content fingerprints match and the shipped released features are found. Cost: ~10–15 min CPU per video plus a cosine check. Residual risk: a re-encoded copy falls back to zero-shot actions (report mAP 0.0015 vs 0.1493) | PK |
 | 2026-11-14 | Cut the CLIP ridge for FPVSum importance (P6 optional) | FPVSum has no videos outside the scored 49; a 512-d regressor fit on their frame GT trains on the evaluation set, and the CV gain would not carry to the organizers' score honestly. The 6-weight proxy (CV-tuned) stays | PK |
@@ -457,6 +458,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-16 · DA · process · Review-agent loop removed (supersedes the #7 entry): each person reviews and merges their own PRs and never merges the other's; `tools/pr_watch.py` and its tests deleted; CLAUDE.md §4–§5 updated · #45
 - 2026-11-16 · PK · S1 · Temperature added to the selector tuner's grid (`--only` to sweep one key); swept on tune, no change (T = 1.0) · —
 - 2026-11-15 · PK · P8 · Fresh-clone check: empty cache, run.sh on 1 EPIC + 1 FPVSum video → JSON byte-identical to the cached runs (features recomputed from the MP4 match the cache; released SlowFast features found by fingerprint) · —
 - 2026-11-15 · PK · P8 · Submission README; `tools/run_all.py` (batch `run_video`, models loaded once, `--skip-existing`; tests first; 2-video run validates); ARCHITECTURE §10/§10.1 updated for the cut MP4 extraction · —
