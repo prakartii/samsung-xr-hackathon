@@ -125,8 +125,11 @@ tables and numbers above.
 Not part of the submission path; both read our output JSON and the original MP4.
 
 ```bash
-python tools/timeline_html.py --json outputs/P01_11.json outputs/Bike_lhTFVa0h9Rk.json     --videos data/videos --out demo/timeline.html   # open in a browser
-python tools/make_reel.py --video data/videos/P01_11.mp4 --json outputs/P01_11.json     --out demo/P01_11_reel.mp4                      # captioned highlight reel
+# one page over any number of outputs; open it in a browser
+python tools/timeline_html.py --json outputs/*.json --videos data/videos --out demo/timeline.html
+# captioned highlight reel of one video
+python tools/make_reel.py --video data/videos/<video_id>.mp4 \
+    --json outputs/<video_id>.json --out demo/reel.mp4
 ```
 
 The timeline page plays the video with our highlights and detected actions under it:
