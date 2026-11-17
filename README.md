@@ -92,6 +92,11 @@ The image is built and smoke-tested in CI (`.github/workflows/docker.yml`).
   `weights/released_features`, keyed by each MP4's content fingerprint, so `run.sh`
   on the official EPIC files finds them; an EPIC video without them falls back to
   zero-shot actions. Rebuild with `RELEASED_FEATURES=1 tools/fetch_weights.sh`.
+  The rebuild reads `tools/data/epic_fingerprints.jsonl`, which pairs each EPIC
+  video's ID with the content fingerprint of its MP4. It is an offline import aid,
+  used only to file the released features under fingerprints. It is not in the
+  submission package, and inference never reads it: `run.sh` computes the MP4's
+  fingerprint and looks that up, so it never uses a filename or video ID.
 - The verb-noun co-occurrence prior is counted from `EPIC_100_train.csv` only.
 
 ## Tuning-split statement
