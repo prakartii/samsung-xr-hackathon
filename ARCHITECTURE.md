@@ -585,14 +585,20 @@ Fill each row in before the model is used **[verify all]**.
 
 | Use | Model / repo | Weights source | License | Notes |
 |---|---|---|---|---|
-| Action detection | ActionFormer (`happyharrycn/actionformer_release`, vendored in `code/third_party/actionformer`) | Released EPIC-100 verb and noun checkpoints (Google Drive links in its README) | MIT (code, vendored at `61ea7eb`; see `code/third_party/actionformer/VENDORED.md`) | Checkpoints `epoch_020.pth.tar` (verb 97 classes, noun 300; kit adds `other` → 98 / 301), SHA-256 pinned in `tools/fetch_weights.sh`. **Leakage check passed (2026-11-11):** both released configs have `train_split: ['training']`, `val_split: ['validation']`; their logs evaluate on 138 videos (= our EPIC val set) with avg mAP verb 23.51, noun 21.88 |
+| Action detection | ActionFormer (`happyharrycn/actionformer_release`, vendored in `code/third_party/actionformer`) | Released EPIC-100 verb and noun checkpoints (Google Drive links in its README) | MIT (code, vendored at `61ea7eb`; see `code/third_party/actionformer/VENDORED.md`) | Checkpoints `epoch_020.pth.tar` (verb 97 classes, noun 300; kit adds `other` → 98 / 301), SHA-256 pinned in `tools/weights.sha256`. **Leakage check passed (2026-11-11):** both released configs have `train_split: ['training']`, `val_split: ['validation']`; their logs evaluate on 138 videos (= our EPIC val set) with avg mAP verb 23.51, noun 21.88 |
 | ActionFormer input | ActionFormer's released `epic_kitchens.tar.gz` (Box / Google Drive / BaiduYun; md5 `add9803756afd9a023bc9a9c547e0229`) | — | EPIC-KITCHENS license | SlowFast pretrained on EPIC-100 train; 32-frame clips at 30 fps, stride 16 → one feature per 16/30 ≈ 0.533 s |
 | Raw-MP4 feature extraction | — (**cut** 2026-11-14, PROGRESS Decisions) | | | The release covers all 158 EPIC videos we use; features ship in `weights/released_features`. A video without them gets zero-shot actions |
-| CLIP | open_clip ViT-B/16 (OpenAI weights; `open_clip_torch==4.2.2`, CPU torch) | HF `timm/vit_base_patch16_clip_224.openai` `open_clip_model.safetensors` at revision `977e3dd`, SHA-256 pinned in `tools/fetch_weights.sh` | MIT (OpenAI CLIP weights; the HF repo is tagged Apache-2.0); open_clip MIT | Label, scene change, routing, clustering similarity. Loaded from the local file, no network at inference |
-| Hands | MediaPipe Hand Landmarker (`mediapipe==1.2.2`, Tasks API, VIDEO mode) | `hand_landmarker.task` float16 v1 from storage.googleapis.com/mediapipe-models, SHA-256 pinned in `tools/fetch_weights.sh` | Apache-2.0 (library and model) | CPU. Presence = max handedness score of detected hands, 0 if none |
+| CLIP | open_clip ViT-B/16 (OpenAI weights; `open_clip_torch==4.2.2`, CPU torch) | HF `timm/vit_base_patch16_clip_224.openai` `open_clip_model.safetensors` at revision `977e3dd`, SHA-256 pinned in `tools/weights.sha256` | MIT (OpenAI CLIP weights; the HF repo is tagged Apache-2.0); open_clip MIT | Label, scene change, routing, clustering similarity. Loaded from the local file, no network at inference |
+| Hands | MediaPipe Hand Landmarker (`mediapipe==1.2.2`, Tasks API, VIDEO mode) | `hand_landmarker.task` float16 v1 from storage.googleapis.com/mediapipe-models, SHA-256 pinned in `tools/weights.sha256` | Apache-2.0 (library and model) | CPU. Presence = max handedness score of detected hands, 0 if none |
 | Optical flow | OpenCV Farneback | — | Apache-2.0 (OpenCV) | Low resolution (160 px) |
 | Verb–noun prior | Counts from `EPIC_100_train.csv` | Built by tool | EPIC-KITCHENS license | Train split only |
 | GT annotations (eval only) | `epic-kitchens-100-annotations` @ `ea8b404`, `azuxmioy/fpvsum` @ `9af31f9` | `tools/fetch_annotations.sh` (sha256-checked) | EPIC: CC BY-NC 4.0; FPVSum: research use (no license file) | Never read by `rewind/` |
+
+**Hosting** (2026-11-17, PROGRESS Decisions, Q12): the public repo can't hold files over
+100 MB, so every file under `weights/` (the four model files above, `vn_prior.npy` and
+`released_features.tar`) is an asset of our GitHub release `weights-v1`.
+`tools/fetch_weights.sh` tries the release first, then each file's original source, and
+accepts a file only if its SHA-256 matches `tools/weights.sha256`.
 
 ### 10.1 Feature strategy (CPU-first; neither team member has a GPU)
 
@@ -606,7 +612,8 @@ Fill each row in before the model is used **[verify all]**.
    (`detect.released_features`). `analyze_video` looks for SlowFast features in the
    local cache, then there, always by the MP4's content fingerprint, so `run.sh` on the
    organizers' clean machine reproduces our ActionFormer actions instead of falling
-   back to zero-shot. Rebuilt by `RELEASED_FEATURES=1 tools/fetch_weights.sh`.
+   back to zero-shot. Fetched from our release by `tools/fetch_weights.sh`; rebuilt
+   from ActionFormer's archive by `RELEASED_FEATURES=1 tools/fetch_weights.sh`.
 2. **`run.sh` on a clean machine:** finds the shipped released features by the MP4's
    content fingerprint (the official EPIC files; ours are MD5-checked against
    `md5.csv`). Extraction from the MP4 was **cut** (PROGRESS Decisions 2026-11-14): an

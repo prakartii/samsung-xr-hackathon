@@ -64,12 +64,17 @@ the package.
 ```bash
 python3.11 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt            # pinned; CPU PyTorch wheels
-tools/fetch_weights.sh                     # downloaded model weights, SHA-256 checked
-RELEASED_FEATURES=1 tools/fetch_weights.sh # + ActionFormer's released EPIC features
-tools/fetch_annotations.sh                 # EPIC train CSV for the verb-noun prior below
-python tools/build_vn_prior.py --train-csv data/annotations/epic/EPIC_100_train.csv
+tools/fetch_weights.sh                     # every weight into weights/, SHA-256 checked
 ./run.sh data/videos/<video_id>.mp4 outputs/<video_id>.json
 ```
+
+`fetch_weights.sh` downloads from this repository's GitHub release `weights-v1`
+(the files exceed GitHub's 100 MB limit for the repository itself) and falls back to
+each file's original source; either way the hash must match `tools/weights.sha256`.
+The two files with no public upstream can also be rebuilt from scratch:
+`tools/fetch_annotations.sh && python tools/build_vn_prior.py --train-csv
+data/annotations/epic/EPIC_100_train.csv` (verb-noun prior) and
+`RELEASED_FEATURES=1 tools/fetch_weights.sh` (released features, a 6.5 GB download).
 
 Or with Docker (CPU; fill `weights/` first as above):
 
@@ -91,7 +96,8 @@ The image is built and smoke-tested in CI (`.github/workflows/docker.yml`).
   the EPIC videos (we have no GPU to re-extract them). They ship in
   `weights/released_features`, keyed by each MP4's content fingerprint, so `run.sh`
   on the official EPIC files finds them; an EPIC video without them falls back to
-  zero-shot actions. Rebuild with `RELEASED_FEATURES=1 tools/fetch_weights.sh`.
+  zero-shot actions. `tools/fetch_weights.sh` fetches them from our release; rebuild
+  from ActionFormer's archive with `RELEASED_FEATURES=1 tools/fetch_weights.sh`.
   The rebuild reads `tools/data/epic_fingerprints.jsonl`, which pairs each EPIC
   video's ID with the content fingerprint of its MP4. It is an offline import aid,
   used only to file the released features under fingerprints. It is not in the
@@ -155,7 +161,8 @@ click to seek, jump between highlights, or play the highlights only.
 | EPIC-KITCHENS-100 annotations (eval only) | `epic-kitchens-100-annotations` @ `ea8b404` | CC BY-NC 4.0 |
 | FPVSum ground truth (eval only) | `azuxmioy/fpvsum` @ `9af31f9` | research use |
 
-Exact versions, hashes and sources: `ARCHITECTURE.md` §10, `tools/fetch_weights.sh`.
+Exact versions, hashes and sources: `ARCHITECTURE.md` §10, `tools/fetch_weights.sh`,
+`tools/weights.sha256`.
 
 ## For the team
 
