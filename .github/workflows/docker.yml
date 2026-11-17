@@ -22,7 +22,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fetch the hand model only (same URL and SHA-256 as tools/fetch_weights.sh)
+      - name: Fetch the hand model only (its upstream URL in tools/fetch_weights.sh; SHA-256 as in tools/weights.sha256)
         run: |
           mkdir -p weights
           curl -fsSL -o weights/hand_landmarker.task \
