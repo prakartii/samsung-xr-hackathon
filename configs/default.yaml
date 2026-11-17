@@ -7,7 +7,7 @@ run:
   seed: 0                  # seeds Python, numpy and torch for byte-identical output
 
 team:
-  team_id: TBD_Q11         # our assigned team ID (PROGRESS.md Q11); same in every file
+  team_id: VITVellore_Nexus  # registered team name, used as the team ID (PROGRESS.md Q11); same in every file
 
 signals:
   dense_fps: 4.0           # rate for flow and hand signals (2–4 fps); P3 chose 4 (finer hedge peaks), caches use it

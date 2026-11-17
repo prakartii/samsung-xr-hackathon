@@ -328,10 +328,19 @@ def test_rerun_problems_package_without_weights_is_caught_as_fallback(repo, tmp_
     assert len(got) == 1 and "fell back" in got[0]
 
 
-def test_main_with_placeholder_team_id_writes_nothing(tmp_path, capsys):
-    # configs/default.yaml still has TBD_Q11 (Q11 unanswered): no package at all.
+def test_shipped_config_team_id_is_our_registered_team_name():
+    # Q11, team decision 2026-11-17: the ID is the registered CollegeName_TeamName.
+    team_id = load_config(DEFAULT_CONFIG).team.team_id
+    assert ms.team_id_problems(team_id) == []
+    assert team_id == "VITVellore_Nexus"
+
+
+def test_main_with_placeholder_team_id_writes_nothing(tmp_path, capsys, monkeypatch):
+    # A config still holding the placeholder (as before Q11 was settled): no package.
+    placeholder = replace(CFG, team=replace(CFG.team, team_id="TBD_Q11"))
+    monkeypatch.setattr(ms, "load_config", lambda path: placeholder)
     ids = read_manifest(REPO_ROOT / "kit" / "manifest.csv")
-    out = write_outputs(tmp_path / "out", ids, CFG.team.team_id)
+    out = write_outputs(tmp_path / "out", ids, "TBD_Q11")
     rc = ms.main(["--outputs", str(out), "--dest", str(tmp_path / "dist")])
 
     assert rc == 1
