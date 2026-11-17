@@ -22,8 +22,8 @@ Who is A and who is B: **A = prakartii**, **B = Daksh Arora (DA)**.
 | P5 | Clustering + EPIC coverage selector | B | Nov 12–14 | done | EPIC coverage > uniform; % of oracle reported; ablation done |
 | P6 | FPVSum route: importance, segments, label | A | Nov 13–15 | done | F1 > uniform on FPVSum CV; label accuracy reported |
 | P7 | Integration, tuning, ablations | A + B | Nov 15–16 | in progress | All 187 outputs from raw MP4 pass validation; tuned config committed; floors set |
-| P8 | Packaging, demo, deck | B (pkg) + A (demo) | Nov 16–17 | in progress | Fresh clone + Docker reproduces one video; demo video + deck done |
-| P9 | Submission | A + B | Nov 18 | in progress | Submitted via Google Form before 11:59 PM IST |
+| P8 | Packaging, demo, deck | B (pkg) + A (demo) | Nov 16–21 | in progress | Fresh clone + Docker reproduces one video; demo video + deck done |
+| P9 | Submission | A + B | Nov 22 | in progress | Public GitHub repo with everything, submitted via the Google Form before 22 Nov 11:59 PM IST |
 
 Critical path: P0 → P1 → P2 (scorer) and P3 → P4 (detector) run in parallel; P5
 starts on GT-derived proposals before P4 lands, so neither person waits.
@@ -40,7 +40,8 @@ starts on GT-derived proposals before P4 lands, so neither person waits.
       `supported_classes.json`, `P02_109.json`, `skiing_03.json`; files are flat, not in `examples/`)
 - [x] Diff the kit against `ARCHITECTURE.md` §7 (schema, R1–R13): all rules match; `ARCHITECTURE.md` updated to v1.1
 - [x] Check whether the official `validate.py` is in our kit: **no**, although `TEAM_README.md` lists it (asked in Q8)
-- [ ] Email prism@samsung.com with Q4, Q7, Q8, Q10, Q11 (draft in §3); record the date sent
+- [ ] Email the organizers with Q4, Q8, Q10, Q11, Q12 (draft in §3); record the date sent. Since the 2026-11-17 mail, queries go to m.shankar@samsung.com and prakhar.c@samsung.com (not prism@)
+- [x] Organizer mail of 2026-11-17 (deadline extension + final instructions) checked: the re-sent `Student package_track04.zip` is byte-identical to `kit/` (still no `validate.py`); the submission deck template is in `docs/organizers/`; consequences recorded in P8, P9, Open questions (Q7, Q12) and Decisions
 - [ ] Confirm our assigned team ID and set `team.team_id` in config (Q11)
 - [x] Output schema: the kit's nested six-key schema; the flat brochure variant is dropped
 - [x] Kit constants confirmed: 4.0 s minimum, 15% budget (warning), ±0.5 s duration, 0–2000 actions, `end ≤ duration + 0.5`, 2 decimals, 16/98/301 classes, 187 videos (138 EPIC + 49 FPVSum)
@@ -374,15 +375,15 @@ Label errors (8): jumping -> plane (3), bikepolo -> bike (2), bike -> motor, lon
 ---
 
 ### P8 — Packaging, demo, deck
-**Owner:** B (packaging) + A (demo, numbers) · **Planned:** Nov 16–17 · **Status:** in progress (Dockerfile and README done 2026-11-15) · **Depends on:** P7
+**Owner:** B (packaging) + A (demo, numbers) · **Planned:** Nov 16–21 · **Status:** in progress (Dockerfile and README done 2026-11-15) · **Depends on:** P7
 
 - [x] `Dockerfile` (CPU; the pipeline needs no GPU); `tools/fetch_weights.sh` works on a clean machine — Dockerfile **done 2026-11-15** (#41), built and smoke-tested on every relevant PR by `.github/workflows/docker.yml` (deps import, hands run, run.sh fallback writes valid JSON with no large weights). Not built locally: this network's TLS interception (weak-signature CA) breaks pip's download.pytorch.org. `fetch_weights.sh` on a clean machine still to check end to end
 - [x] Submission `README.md`: setup, data used, how to reproduce, the tuning-split statement, licenses — **done 2026-11-15**: README rewritten for the organizers (results, how it works, setup incl. Docker, data used incl. the released-features statement, tuning-split statement, reproduce, licenses); `tools/run_all.py` added (was referenced in CLAUDE.md but missing)
 - [ ] Fresh clone → Docker build → `run.sh` on one video → identical JSON to ours — **without Docker, done 2026-11-15**: fresh `git clone` + copied weights + empty cache, `run.sh` on EPIC P03_26 (80 s; 85 ActionFormer actions, so the shipped released features were found by fingerprint) and FPVSum Bike_lhTFVa0h9Rk (254 s, audio computed fresh): both JSONs **byte-identical** to the cached runs. Docker leg: image smoke-tested in CI only (local build blocked by this network's TLS interception)
 - [x] `tools/make_reel.py`: demo reel with padding/crossfades (demo only, not outputs) — 2026-11-17, PyAV (no ffmpeg CLI), captions: label, source clock, top actions; P03_26 smoke run OK; writes to `demo/` (ignored)
-- [ ] Demo video (length per Q7; default ≤ 3 min) uploaded; link recorded here — **rendered 2026-11-17** by `tools/make_demo.py` (2:27, 1280×720, no audio): title → problem → `run.sh` in/out → kitchen example (input fast-forwarded with highlights on the timeline, 8 highlights with live action captions, the real JSON) → boxing + rock climbing (predicted category) → pipeline → results vs uniform/oracle + the three numbers. Every number read from our outputs/results files. Still to do: upload and record the link
-- [ ] Deck `CollegeName_TeamName`: problem, architecture diagram, tech stack, innovation, results, limitations; the three numbers (% of oracle, tokens pruned, latency) — numbers ready (`tools/deck_numbers.py`, report): **59.8% of oracle coverage, 85.8% of visual tokens pruned, 39.4 s CPU per video minute**
-- [ ] Repo shared with the organizers (public, or invite as required)
+- [ ] Demo video (**max 3 min**, YouTube or Drive link; Q7) uploaded; link recorded here — **rendered 2026-11-17** by `tools/make_demo.py` (2:27, 1280×720, no audio): title → problem → `run.sh` in/out → kitchen example (input fast-forwarded with highlights on the timeline, 8 highlights with live action captions, the real JSON) → boxing + rock climbing (predicted category) → pipeline → results vs uniform/oracle + the three numbers. Every number read from our outputs/results files. Still to do: upload and record the link
+- [ ] Deck `CollegeName_TeamName` (PPT or PDF) on the organizers' template `docs/organizers/Submission_Final_forGithub.pptx`, 9 slides: title (track no., team name, college, members) · the problem · solution · architecture · track final output (refer to the track slides) · differentiation · demo & local setup · brownie slides (extras: S4 viewer, reel) · thank you. Content: problem, architecture diagram, tech stack, innovation, results, limitations; the three numbers (% of oracle, tokens pruned, latency) — numbers ready (`tools/deck_numbers.py`, report): **59.8% of oracle coverage, 85.8% of visual tokens pruned, 39.4 s CPU per video minute**
+- [ ] Repo **public** on GitHub (required by the 2026-11-17 mail: code, resources, document, demo, ppt, package and README all in the public repo). It is owned by prakartii, so she switches visibility. Weights and released features don't fit in git (files > 100 MB): see Q12
 
 **Exit check:** reproduction from a fresh clone works; demo video and deck links recorded.
 **Tests required:** contract test runs inside the Docker image in CI (or documented manual run).
@@ -392,15 +393,16 @@ Label errors (8): jumping -> plane (3), bikepolo -> bike (2), bike -> motor, lon
 ---
 
 ### P9 — Submission
-**Owner:** A + B · **Planned:** Nov 18 · **Status:** in progress (packaging tool started 2026-11-16 by B) · **Depends on:** P8
+**Owner:** A + B · **Planned:** Nov 22 · **Status:** in progress (packaging tool started 2026-11-16 by B) · **Depends on:** P8
 
 - [ ] Freeze `main`; tag `submission-v1`
 - [ ] Regenerate `outputs/` from the tagged commit; validate (ours + official); commit `outputs/`
 - [ ] Assemble `TEAM_ID/` exactly as `ARCHITECTURE.md` §13 — tool ready 2026-11-16: `python tools/make_submission.py --outputs outputs/ --dest dist/ --check-video <one EPIC mp4> --check-video <one FPVSum mp4> --zip`. It refuses while `team.team_id` is `TBD_Q11` (Q11), so it runs once the ID is set and `outputs/` is regenerated with it
-- [ ] Submit the Google Form (repo link, demo video, deck); screenshot the confirmation
+- [ ] Put the deck, the demo link and the `TEAM_ID/` package (or its download link, Q12) in the public repo
+- [ ] Submit the Google Form https://forms.gle/86xENrtqhx988hBt8 (public repo link); screenshot the confirmation
 - [ ] No new features today. Fixes only, and only for validation failures
 
-**Exit check:** confirmation received before 11:59 PM IST, Nov 18.
+**Exit check:** confirmation received before 11:59 PM IST, Nov 22 (extended from Nov 18 by the organizers' mail of 2026-11-17).
 
 **Result:** _fill in: submission time, tag, confirmation._
 
@@ -421,15 +423,17 @@ Label errors (8): jumping -> plane (3), bikepolo -> bike (2), bike -> motor, lon
 |---|---|---|---|---|
 | Q4 | How is a GT action "captured" by a highlight (any overlap, tIoU, fraction)? | | Kit §5 says only "distinct GT action pairs captured within the selected highlights" | Still open; select with any-overlap, report both |
 | Q6 | Is highlight F1 scored on EPIC? Is mAP scored on FPVSum? | — | 2026-11-11, `kit/TEAM_README.md` §5: mAP + coverage on EPIC only; F1 + label on FPVSum only; FPVSum `actions` may be `[]` | `ARCHITECTURE.md` §4, §7 |
-| Q7 | Demo video max 3 or 5 min? | | | |
+| Q7 | Demo video max 3 or 5 min? | | 2026-11-17, organizers' mail (consolidated slides V3, slide 24 "Registrations & Submissions"): **max 3 minutes**, YouTube or Drive link (slides 23 and 26 still say 5 min; we stay under 3, which satisfies both) | P8 demo item; our cut is 2:27 |
 | Q8 | `validate.py` is listed in `TEAM_README.md` but missing from our package: please send it. What is the over-budget penalty curve? | | Partly, kit §4–§5: < 4 s segments are ignored in scoring; ≥ 4 s is pass/fail; the 15% budget is a warning with a soft coverage penalty (so short videos keep one 4 s window) | `ARCHITECTURE.md` §5.6, §7 |
 | Q9 | May `run.sh` read `manifest.csv`? Scoring only on the 187 videos? | — | 2026-11-11, kit §6: a hidden subset of the 187 is scored; re-runs happen in an isolated environment | Closed by decision: inference doesn't read the manifest |
 | Q10 | The example `skiing_03.json` uses label `skiing`, but `supported_classes.json` has `ski`. Which is correct? | | | We use `ski` (the vocabulary file) |
-| Q11 | What is our team ID? The kit examples use `T07`. | | | |
+| Q11 | What is our team ID? The kit examples use `T07`. | | Still open after the 2026-11-17 mail. The slides name teams `CollegeName_TeamName` (registration) but give no ID | — |
+| Q12 | The 2026-11-17 mail wants the package in the public GitHub repo, but `weights/` (CLIP 571 MB, ActionFormer 2 × ~460 MB, released features) can't be committed (GitHub's 100 MB file limit). Are GitHub Release assets (≤ 2 GB each), fetched by `tools/fetch_weights.sh`, acceptable? | | | |
+| K2 | The track slides (consolidated V3, slide 22) show a flat JSON (`label` a string, actions with `start`/`end` and no score, `importance` on highlights) that differs from `kit/TEAM_README.md` | — | Kit files outrank slides (CLAUDE.md §2): we keep the kit's six-key schema, as decided for the brochure variant | none |
 | D1 | **A → B:** switch video metadata + decoding from ffprobe/OpenCV to PyAV (`av==18.0.0`, the newest with Python 3.11 wheels)? OpenCV silently stopped after 44 of 10,418 frames on EPIC GoPro files (audio + 3 data streams); PyAV decodes them fully, 2.5× faster (threaded), by presentation time, and needs no ffmpeg binary. Implemented in `video_io.iter_frames` / `probe_video`; `ffprobe_meta` kept | 2026-11-11, PROGRESS (PK) | 2026-11-12, DA: **approved** (decoding with PyAV; `run.sh` metadata stays on ffprobe) | ARCHITECTURE.md §3.1 `video_io` row updated in #17 |
 | K1 | Do the second-hand kit rules (`ARCHITECTURE.md` §7) match our own kit copy? | — | 2026-11-11: yes, all of R1–R13 | `ARCHITECTURE.md` §7 now cites `kit/` |
 
-**Email draft (to prism@samsung.com, subject "Track 4 — questions on the student package"):**
+**Email draft (to m.shankar@samsung.com and prakhar.c@samsung.com, subject "Track 4 — questions on the student package"; Q7 answered 2026-11-17, so its line is dropped):**
 
 > Hello, we are a Track 4 team. Thank you for the student package. A few questions:
 > 1. `TEAM_README.md` lists `validate.py`, but it wasn't in the zip we received. Could you send it?
@@ -437,7 +441,7 @@ Label errors (8): jumping -> plane (3), bikepolo -> bike (2), bike -> motor, lon
 > 3. What is the exact soft penalty when highlights exceed 15% of the duration?
 > 4. `skiing_03.json` uses the label `skiing`, but `supported_classes.json` has `ski`. Should we use `ski`?
 > 5. What team ID should we use in `team_id`? The examples show `T07`.
-> 6. Is the demo video limit 3 or 5 minutes? The brochure mentions both.
+> 6. The final instructions ask for the package in a public GitHub repo. Our model weights are larger than GitHub's 100 MB file limit. May we host them as GitHub Release assets downloaded by a script in the repo?
 >
 > Thank you.
 
@@ -449,6 +453,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 | Date | Decision | Why | By |
 |---|---|---|---|
+| 2026-11-17 | Deadline moves to 22 Nov 2026, 11:59 PM IST; P8 planned Nov 16–21, P9 Nov 22. The rule "no new features on submission day" now applies to Nov 22 | Organizers' mail of 2026-11-17 (dates: submission 22 Nov, top-12 29 Nov, final demo 9 Dec, results 12 Dec) | DA (B), from the organizers |
 | 2026-11-16 | Each person reviews and merges their own PRs; the cross-review agent loop (`tools/pr_watch.py`) is removed. Never merge or push to the other person's PR | Requested by B; in practice A already self-merged #24–#43 | DA (B) |
 | 2026-11-16 | S1: cluster-distribution temperature stays 1.0 | Swept on `tune` with real ActionFormer proposals (adopt rule: mean gain ≥ 0.005 and more wins than losses): T 0.5 → 0.4706, 0.75 → 0.4893, 1.0 → 0.4883, 1.5 → 0.4804, 2.0 → 0.4894, 3.0 → 0.4829. Flat within noise; no value adopted. Caveat: tune detections are over-confident (ActionFormer's training videos), the case where a temperature would matter most, so report-side calibration remains unmeasured by design | PK |
 | 2026-11-14 | Cut SlowFast extraction from the MP4 (P4) | Its only use is a clean machine whose EPIC files differ from ours. The organizers re-run on the official EPIC-KITCHENS files; ours are those files (MD5-checked against the official md5.csv), so content fingerprints match and the shipped released features are found. Cost: ~10–15 min CPU per video plus a cosine check. Residual risk: a re-encoded copy falls back to zero-shot actions (report mAP 0.0015 vs 0.1493) | PK |
@@ -485,6 +490,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-17 · DA · P0/P8/P9 · Organizer mail recorded: deadline 22 Nov; everything (code, deck, demo, package, README) goes in a public GitHub repo; demo max 3 min (Q7 closed); queries to m.shankar@ / prakhar.c@; re-sent kit identical to `kit/`; deck template committed to `docs/organizers/`; new Q12 (weights > 100 MB in a public repo), K2 (slides' flat JSON vs kit) · this PR
 - 2026-11-16 · DA · P9 · Self-review fixes to `make_submission.py`: `--check-video` ran the repo's code when started from `code/` (cwd on sys.path; now a scratch cwd, regression test first); fallback outputs (label `other`) and fallback re-runs are refused; uncommitted shipped paths refused and the commit SHA printed; ID scan is case-insensitive substring and also covers weight text files; weights copied, not hard-linked; timeouts and missing JSON reported; a package failing the re-run is removed; `/dist/` gitignored · #44
 - 2026-11-16 · DA · P9/P1/P5 · `tools/make_submission.py` assembles `TEAM_ID/` (§13 + `configs/default.yaml`) and refuses on a placeholder team ID, an output whose `team_id` differs from the config, a missing or invalid output, a missing configured weight, or a manifest video ID in any shipped text file; `--check-video` re-runs the packaged run.sh from an empty cache and requires byte-identical JSON. Tests first (9 deliberate breakages caught). The new ID scan found 10 mentions (README, Dockerfile, comments in `video_io.py` and `gt_fpvsum.py`), all reworded. README setup now builds `weights/vn_prior.npy` (a fresh clone silently used a uniform prior). P1 and P5 closed with Result blocks · —
 - 2026-11-16 · DA · process · Review-agent loop removed (supersedes the #7 entry): each person reviews and merges their own PRs and never merges the other's; `tools/pr_watch.py` and its tests deleted; CLAUDE.md §4–§5 updated · #45
