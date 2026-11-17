@@ -18,7 +18,8 @@ first-person video it writes one JSON file containing:
 
 Scoring: action coverage 40% · action mAP 25% · highlight F1 25% · label accuracy 10%.
 Datasets: EPIC-KITCHENS-100 (138 val videos) and FPVSum (49 videos).
-**Final submission: 18 Nov 2026, 11:59 PM IST. No extension.**
+**Final submission: 22 Nov 2026, 11:59 PM IST** (extended from 18 Nov by the organizers' mail
+of 2026-11-17). Everything goes in a public GitHub repo, submitted via the Google Form.
 
 ## 2. Which document to read for what
 
