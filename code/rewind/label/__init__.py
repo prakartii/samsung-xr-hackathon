@@ -39,10 +39,27 @@ def fpvsum_label(
     keys: Sequence[str],
     logit_scale: float,
     n_keyframes: int,
+    aggregate: str = "prob",
 ) -> tuple[str, float]:
-    """Zero-shot (name, score) over FPVSum classes (`keys` excludes cooking and other)."""
-    frames = np.asarray(clip_emb)[keyframe_indices(len(clip_emb), n_keyframes)]
-    probs = zero_shot_probs(frames, class_emb, logit_scale).mean(axis=0)
+    """Zero-shot (name, score) over FPVSum classes (`keys` excludes cooking and other).
+
+    ``aggregate`` combines the keyframes: ``prob`` = mean of per-frame softmax;
+    ``logprob`` = mean of per-frame log-probabilities, renormalized (a normalized
+    geometric mean); ``embedding`` = one softmax of the mean unit embedding."""
+    frames = np.asarray(clip_emb, dtype=np.float64)
+    frames = frames[keyframe_indices(len(frames), n_keyframes)]
+    if aggregate == "prob":
+        probs = zero_shot_probs(frames, class_emb, logit_scale).mean(axis=0)
+    elif aggregate == "logprob":
+        logp = np.log(np.clip(zero_shot_probs(frames, class_emb, logit_scale), 1e-300, None))
+        m = logp.mean(axis=0)
+        e = np.exp(m - m.max())
+        probs = e / e.sum()
+    elif aggregate == "embedding":
+        unit = frames / np.linalg.norm(frames, axis=1, keepdims=True)
+        probs = zero_shot_probs(unit.mean(axis=0, keepdims=True), class_emb, logit_scale)[0]
+    else:
+        raise ValueError(f"unknown aggregate {aggregate!r}")
     best = int(np.argmax(probs))
     return keys[best], float(probs[best])
 
