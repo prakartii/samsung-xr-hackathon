@@ -175,7 +175,8 @@ to keys once, in `rewind/vocab.py`.
 ### 3.3 `tools/`
 
 `fetch_weights.sh`, `fetch_annotations.sh`, `cache_features.py` (batch, longest
-videos first, resumable), `run_all.py`, `tune.py` (grid/random search on `tune` only),
+videos first, resumable), `run_all.py`, `tune_epic_selector.py` / `tune_fpvsum.py` / `tune_label.py`
+(coordinate search, FPVSum CV, label nested CV; `tune` only),
 `ablate.py`, `latency.py`, `make_reel.py` (ffmpeg reel from a JSON, optional padding
 and crossfades for the demo only), `timeline_html.py` (demo viewer: one static
 HTML page over output JSONs, template in `timeline_template.html`; demo only), `make_demo.py`
