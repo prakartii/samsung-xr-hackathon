@@ -131,6 +131,11 @@ pytest                                           # fast suite (< 60 s)
 feature cache in minutes; `tools/ablate.py` and `tools/deck_numbers.py` rebuild the
 tables and numbers above.
 
+## Deck and demo
+
+Submission deck: [`docs/VITVellore_Nexus.pdf`](docs/VITVellore_Nexus.pdf) (PowerPoint: `docs/VITVellore_Nexus.pptx`,
+rebuilt by `tools/make_deck.py`, which needs `pip install python-pptx`).
+
 ## Demo tools
 
 Not part of the submission path; both read our output JSON and the original MP4.
