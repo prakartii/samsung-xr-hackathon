@@ -1,6 +1,6 @@
 """The submission Docker image on real videos with real weights (tier: slow, data).
 
-What the organizers do (kit §6): build the image, run ./run.sh on sample videos in an
+What the organizers do (kit §8): build the image, run ./run.sh on sample videos in an
 isolated container. CI only smoke-tests the fallback path (no large weights); this
 checks the full models inside the image:
 

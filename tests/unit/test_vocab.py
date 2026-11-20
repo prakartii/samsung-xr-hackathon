@@ -18,7 +18,7 @@ def test_load_vocab_has_kit_counts():
 
 
 def test_load_vocab_label_names_use_kit_spelling():
-    # The kit's example file says "skiing", but the vocabulary has "ski" (PROGRESS Q10).
+    # The kit spells it "ski" (its first example file said "skiing"; PROGRESS Q10).
     v = load_vocab()
 
     assert "ski" in v.labels

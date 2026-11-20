@@ -162,7 +162,7 @@ def baseline_predictions(
 
 def read_predictions(pred_dir: Path, video_ids: list[str]) -> dict[str, Prediction]:
     """Load prediction files. A file that is missing, unreadable or fails the kit's
-    validation (``strict=False``) scores as empty, i.e. 0 on every metric (kit §4)."""
+    validation (``strict=False``) scores as empty, i.e. 0 on every metric (kit §5)."""
     vocab = load_vocab()
     out = {}
     for vid in video_ids:

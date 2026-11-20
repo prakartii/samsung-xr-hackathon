@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Submission entry point (kit §6): ./run.sh <video.mp4> <out.json>
+# Submission entry point (kit §7): ./run.sh <video.mp4> <out.json>
 # Uses ./.venv if present, else $PYTHON, else python3. Writes a valid JSON or exits 2.
 set -euo pipefail
 

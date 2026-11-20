@@ -230,7 +230,7 @@ HTML page over output JSONs, template in `timeline_template.html`; demo only), `
 
 **Inference inputs.** `run.sh` gets only the MP4 path and the output path. The
 organizers re-run it on sample videos in an isolated environment, and hardcoded
-video IDs mean disqualification (kit §6). So inference never reads `kit/manifest.csv`
+video IDs mean disqualification (kit §8). So inference never reads `kit/manifest.csv`
 and never derives the route, label or anything else from the filename; `video_id` is
 only echoed into the JSON. A contract test renames the input and checks that only
 `video_id` changes.
@@ -289,7 +289,9 @@ probability is computed from how many seconds of its span the union covers:
 - `any_overlap` rule: `cap = 1` if the union overlaps the span at all.
 - `fraction` rule: `cap = sigmoid((covered / span_len − θ) / τ)` with θ, τ in config.
 
-The rule is `cfg.select.capture_rule` **[verify Q4]**; the default is `any_overlap`.
+The rule is `cfg.select.capture_rule`; the default is `any_overlap`. The official
+scorer uses the fraction rule with θ = 0.5 (Q4, answered 2026-11-20); which rule the
+selector should use is measured on `tune` (PROGRESS.md Decisions).
 
 ### 5.4 Expected-coverage selection (`select/coverage.py`)
 
@@ -431,8 +433,7 @@ embeddings to per-second importance, 5-fold CV over videos.
 
 - EPIC route → `("cooking", 1.0)`.
 - Names are exactly the keys in `kit/supported_classes.json` (`ski`, not `skiing`;
-  the kit's `skiing_03.json` example uses `skiing`, which is not in the vocabulary
-  **[verify Q10]**).
+  confirmed by the organizers and the 2026-11-20 kit reissue, Q10).
 - FPVSum route → CLIP zero-shot over the 14 FPVSum categories with a prompt ensemble
   (`cfg.label.prompts`), averaged over `cfg.label.n_keyframes` (8) evenly spaced
   frames; the score is the softmax probability of the argmax. `other` only on the
@@ -442,9 +443,9 @@ embeddings to per-second importance, 5-fold CV over videos.
 
 ## 7. Output schema and validation rules (`schema.py`)
 
-Source: the official kit, `kit/TEAM_README.md` §3–§4 (received 2026-11-11). The kit
-lists a `validate.py`, but it was missing from our package **[verify Q8]**; until it
-arrives, our validator is the reference.
+Source: the official kit, `kit/TEAM_README.md` §4–§5 (received 2026-11-11, reissued
+2026-11-20). There is no official validator: the organizers ask teams to write their
+own (Q8, 2026-11-20), so ours is the reference.
 
 ```json
 {
@@ -482,16 +483,18 @@ bounds exactly (no float slack), as a plain `end - start >= 4.0` check would.
 keys are always errors (conservative: the kit only requires the six to be present).
 
 Timestamps have at most 2 decimal places (kit). Any invalid or missing file scores
-0 on every metric for that video (kit §4).
+0 on every metric for that video (kit §5).
 
-**Scoring facts from the kit (§5):** mAP and coverage are scored on EPIC only; F1 and
-label accuracy on FPVSum only. Coverage counts distinct GT (verb, noun) pairs captured
-by highlights, with a soft penalty over 15%. Only a hidden subset of the 187 videos is
-scored, so every output matters.
+**Scoring facts from the kit (§6, §9) and the organizers (2026-11-20):** mAP and
+coverage are scored on EPIC only; F1 and label accuracy on FPVSum only. Coverage counts
+distinct GT (verb, noun) pairs captured by highlights, with a soft penalty over 15%.
+An action is captured if at least 50% of its duration falls inside the union of the
+highlights; labels don't matter for coverage (Q4). Only a hidden subset of the 187
+videos is scored (committed by a hash), so every output matters. The FPVSum videos
+Scuba_KD74Ywuy9ng and Scuba_Um4kqB8bQBg are not scored (no longer on YouTube, Q14).
 
-**Still open** (see `PROGRESS.md` → Open questions): what counts as "captured" (Q4;
-we select with any-overlap and report both capture variants), and the shape of the
-over-budget penalty (Q8).
+**Still open** (see `PROGRESS.md` → Open questions): the shape of the over-budget
+penalty (Q8).
 
 ---
 
@@ -517,18 +520,18 @@ weights hash, fps and resolution. A version mismatch → recompute. Writes are a
 ## 9. Evaluation definitions (`rewind_eval/`)
 
 These are **our approximations** of the official metrics; the kit gives only one-line
-definitions (`kit/TEAM_README.md` §5). Keep each one parameterized where the official definition is unknown.
+definitions (`kit/TEAM_README.md` §6). Keep each one parameterized where the official definition is unknown.
 
 ### 9.1 Action coverage
 For a video: let `G` be the set of distinct GT (verb, noun) pairs. A pair is
 captured if any of its GT instances is captured by any highlight of length ≥ 4.0 s,
-under the capture rule: `any_overlap` (overlap > 0; touching doesn't count) or
-`fraction` (the valid highlights together cover ≥ θ of the instance's span, default
-θ = 0.5). `coverage = |captured pairs| / |G|`; a video with no GT actions is left out
+under the capture rule: `fraction` (the valid highlights together cover ≥ θ of the
+instance's span, θ = 0.5: the official rule, Q4) or `any_overlap` (overlap > 0;
+touching doesn't count; our pre-answer default, still reported). `coverage = |captured pairs| / |G|`; a video with no GT actions is left out
 of the mean. Highlights under 4 s capture nothing but still count toward the budget.
 Apply an over-budget penalty:
 `× max(0, 1 − λ · max(0, total/T − 0.15) / 0.15)` with λ configurable (default 1.0)
-**[verify Q4, Q8]**. Report the mean over EPIC videos. Always report both capture variants.
+**[verify Q8]**. Report the mean over EPIC videos. Always report both capture variants.
 
 ### 9.2 Action mAP
 ActivityNet-style, with classes = (verb, noun) pairs present in GT. For each tIoU in
@@ -624,7 +627,7 @@ accepts a file only if its SHA-256 matches `tools/weights.sha256`.
    features from the same extractor, and how to regenerate them from raw MP4.
 5. Everything else (decode, flow, hands, CLIP, ActionFormer inference, selection)
    runs on CPU.
-6. **Data size:** the 138 EPIC videos are ~184 GB (13.2 h of video; kit §2), FPVSum
+6. **Data size:** the 138 EPIC videos are ~184 GB (13.2 h of video; kit §3), FPVSum
    49 videos ~2.4 h from YouTube via `yt-dlp`. Keep only what is being processed on
    disk if space is short; cached features are small.
 
@@ -658,7 +661,7 @@ Report measured latency per minute of video in the deck (`tools/latency.py`).
 
 ---
 
-## 13. Submission package layout (`kit/TEAM_README.md` §6)
+## 13. Submission package layout (`kit/TEAM_README.md` §7)
 
 ```
 TEAM_ID/
@@ -678,7 +681,7 @@ Dockerfile.
 any of these holds: `team.team_id` is a placeholder or differs from an output's; an
 output is missing, fails strict validation or is the fallback (label `other`); a
 configured weight is missing; a shipped path has uncommitted changes; or a shipped
-file names a manifest video ID (case-insensitive substring; kit §6 scans for hardcoded
+file names a manifest video ID (case-insensitive substring; kit §8 scans for hardcoded
 IDs; a test keeps the repo clean). `--check-video` re-runs the packaged run.sh from an
 empty cache in a scratch directory and requires a byte-identical JSON with no stage
 falling back; a package that fails it is removed. Weights are copied, not linked. No

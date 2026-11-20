@@ -80,8 +80,7 @@ pytest -m "slow or data or gpu"             # heavy suite: needs data/, cache/ o
 python tools/run_all.py --manifest kit/manifest.csv --videos data/videos --out outputs/
 
 # validate + score
-python -m rewind_eval.validate --dir outputs/          # our validator (all kit rules)
-python kit/validate.py --dir outputs/                  # official one, once the organizers send it (missing from our kit)
+python -m rewind_eval.validate --dir outputs/          # our validator (all kit rules; there is no official one)
 python -m rewind_eval.score --pred outputs/ --split report --tag "<short description>"
 
 ```
@@ -142,7 +141,7 @@ a new entry.
    Inference reads only the MP4 (plus config and weights). It never reads
    `kit/manifest.csv` and never derives the route, label or anything else from the
    filename: organizers re-run `run.sh` in an isolated environment, and hardcoded
-   video IDs disqualify (kit §6). FPVSum filenames even contain the category
+   video IDs disqualify (kit §8). FPVSum filenames even contain the category
    (`Ski_…`). `video_id` is only echoed into the JSON. Tests enforce this.
 2. **No tuning on the report split.** Hyperparameters are chosen on `tune`
    (~20 EPIC *train* videos + FPVSum cross-validation folds). `report` (138 EPIC val +

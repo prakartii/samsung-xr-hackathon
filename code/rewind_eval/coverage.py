@@ -1,7 +1,7 @@
 """Action coverage (ARCHITECTURE.md §9.1): share of distinct GT (verb, noun) pairs
 captured by highlights ≥ 4 s, times an over-budget penalty. Pure.
 
-Capture rules (the official one is unknown, PROGRESS.md Q4):
+Capture rules (the official one is ``fraction`` with theta 0.5, PROGRESS.md Q4):
 - ``any_overlap``: a GT instance is captured if a valid highlight overlaps it at all.
 - ``fraction``: captured if the valid highlights cover at least ``theta`` of its span.
 """
@@ -51,8 +51,8 @@ def coverage(
 ) -> float | None:
     """Coverage for one video, or None if it has no GT actions (excluded from means).
 
-    Highlights under 4 s are ignored for capture (kit §4) but still count toward the
-    budget, since they are still part of the submitted total.
+    Highlights under 4 s are ignored for capture (first kit issue, 2026-11-11; kept)
+    but still count toward the budget, since they are still part of the submitted total.
     """
     pairs = {(v, n) for _, v, n in gt}
     if not pairs:
