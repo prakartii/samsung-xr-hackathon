@@ -27,7 +27,6 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(REPO / "code"), str(REPO / "tools")]
 
-WEIGHTS = {"coverage_any": 0.40, "map": 0.25, "f1": 0.25, "label_acc": 0.10}
 METRICS = ["weighted", "coverage_any", "pct_oracle", "map", "f1", "label_acc"]
 N_FOLDS = 5
 
@@ -52,6 +51,8 @@ def combine_tune(epic: dict, folds: list[dict]) -> dict[str, float]:
     out = {k: float(epic[k]) for k in ("coverage_any", "coverage_frac", "pct_oracle", "map")}
     for k in ("f1", "label_acc"):
         out[k] = sum(float(r[k]) for r in folds) / len(folds)
+    from rewind_eval.score import WEIGHTS  # one source for the kit weights
+
     out["weighted"] = sum(w * out[k] for k, w in WEIGHTS.items())
     return out
 

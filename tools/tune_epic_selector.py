@@ -5,7 +5,8 @@
 ActionFormer runs once per `tune` EPIC video (features from the cache); each config
 variant then reruns exactly `rewind.analyze.summarize` (pairing → clusters → expected-
 coverage selection → post-processing) and is scored with the competition coverage
-(any-overlap, the eval section's lambda/theta) against the tune GT. Only `tune` is
+(the official fraction rule, PROGRESS.md Q4, with the eval section's lambda/theta)
+against the tune GT. Only `tune` is
 used (CLAUDE.md §6.2).
 
 Search: one parameter at a time from the current config (coordinate search, two
@@ -40,6 +41,10 @@ GRID: dict[str, list[Any]] = {
     "pairing.alpha": [0.0, 0.5, 1.0, 2.0],
     "post.merge_gap": [0.0, 0.5, 2.0],
     "calibration.temperature": [0.5, 0.75, 1.5, 2.0, 3.0],  # S1; > 1 flattens
+    "select.capture_rule": ["any_overlap", "fraction"],  # the selector's model of capture
+    "select.fraction_theta": [0.4, 0.5, 0.55, 0.6, 0.7],  # used only by the fraction rule
+    "select.fraction_tau": [0.02, 0.05, 0.1],
+    "select.budget_frac": [0.14, 0.145],  # never above 0.145: the kit's 15% plus a margin
 }
 
 
@@ -133,11 +138,11 @@ def main() -> None:
         for vid, (duration, signals, dets) in inputs.items():
             r = summarize(vid, duration, signals, text, prior, cfg, lambda d=dets: d)
             out[vid] = coverage(data.epic_gt[vid], list(r.highlights), data.epic_dur[vid],
-                                rule="any_overlap", theta=theta, lam=lam)  # fmt: skip
+                                rule="fraction", theta=theta, lam=lam)  # fmt: skip
         return out
 
     best_dict, best = base_dict, evaluate(base_dict)
-    print(f"current config: coverage_any {_mean(best):.4f}", flush=True)
+    print(f"current config: coverage_frac {_mean(best):.4f}", flush=True)
     changed: dict[str, Any] = {}
     for p in range(args.passes):
         moved = False
@@ -161,14 +166,14 @@ def main() -> None:
                     node = value
         if not moved:
             break
-    print(f"\nfinal coverage_any {_mean(best):.4f}; changes vs config: {changed or 'none'}")
+    print(f"\nfinal coverage_frac {_mean(best):.4f}; changes vs config: {changed or 'none'}")
     if args.write:
         cfg = config_from_dict(best_dict)
         append_row(LEADERBOARD, {
             "date": time.strftime("%Y-%m-%d"), "git_sha": _git_sha(),
             "tag": f"P7 tune_epic_selector {changed or 'no change'}",
             "config_hash": config_hash(cfg)[:10], "split": "tune", "n_epic": len(ids),
-            "n_fpvsum": 0, "coverage_any": f"{_mean(best):.4f}",
+            "n_fpvsum": 0, "coverage_frac": f"{_mean(best):.4f}",
         })  # fmt: skip
 
 

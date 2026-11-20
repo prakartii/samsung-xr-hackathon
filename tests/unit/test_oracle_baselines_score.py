@@ -126,10 +126,13 @@ def test_compute_scores_hand_computed():
     assert s["label_acc"] == pytest.approx(1.0, abs=1e-12)
 
 
-def test_compute_scores_weighted_total_uses_kit_weights():
+def test_compute_scores_weighted_total_uses_kit_weights_and_official_coverage():
     preds = {
-        # Captures both pairs → coverage 1.0; actions for one of two classes → mAP 0.5.
-        "E": Prediction([(9.0, 13.05), (48.0, 52.05)], [((10.0, 11.0), "cut", "onion", 0.9)]),
+        # (9, 13.05) covers all of cut/onion (10, 11). (50.6, 54.65) overlaps wash/knife
+        # (50, 51) by 0.4 s = 40% < 50%: captured under any-overlap only. So
+        # coverage_any 1.0, coverage_frac (official, Q4) 0.5. Actions for one of two
+        # classes → mAP 0.5.
+        "E": Prediction([(9.0, 13.05), (50.6, 54.65)], [((10.0, 11.0), "cut", "onion", 0.9)]),
         "F": Prediction([(10.0, 14.05)], [], "ski"),  # F1 0.75, label 1.0
     }
 
@@ -137,8 +140,9 @@ def test_compute_scores_weighted_total_uses_kit_weights():
         make_data(), preds, budget_frac=0.145, lam=1.0, theta=0.5, oracle_cov={"E": 1.0}
     )
 
-    # 0.40 · 1.0 + 0.25 · 0.5 + 0.25 · 0.75 + 0.10 · 1.0 = 0.8125
-    assert s["weighted"] == pytest.approx(0.8125, abs=1e-12)
+    assert (s["coverage_any"], s["coverage_frac"]) == pytest.approx((1.0, 0.5), abs=1e-12)
+    # 0.40 · 0.5 + 0.25 · 0.5 + 0.25 · 0.75 + 0.10 · 1.0 = 0.2 + 0.125 + 0.1875 + 0.1 = 0.6125
+    assert s["weighted"] == pytest.approx(0.6125, abs=1e-12)
     assert sum(WEIGHTS.values()) == pytest.approx(1.0, abs=1e-12)
 
 

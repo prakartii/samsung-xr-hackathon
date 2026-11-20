@@ -13,7 +13,8 @@ class Splits:
     tune_epic: tuple[str, ...]  # EPIC-100 train videos, never val
     fpvsum_folds: dict[str, int]  # video_id → CV fold
     report_epic: tuple[str, ...]  # the 138 manifest EPIC val videos
-    report_fpvsum: tuple[str, ...]  # the 49 manifest FPVSum videos
+    report_fpvsum: tuple[str, ...]  # the 49 manifest FPVSum videos (all predicted)
+    unscored_fpvsum: frozenset[str] = frozenset()  # of those, left out of official scoring
 
 
 def load_splits(path: Path = DEFAULT_SPLITS) -> Splits:
@@ -24,4 +25,5 @@ def load_splits(path: Path = DEFAULT_SPLITS) -> Splits:
         fpvsum_folds=dict(d["tune"]["fpvsum_folds"]),
         report_epic=tuple(d["report"]["epic"]),
         report_fpvsum=tuple(d["report"]["fpvsum"]),
+        unscored_fpvsum=frozenset(d["report"].get("unscored_fpvsum", [])),
     )
