@@ -32,7 +32,7 @@ from rewind_eval.gt_fpvsum import FpvGT, load_fpvsum
 from rewind_eval.label_acc import label_accuracy
 from rewind_eval.map import mean_ap
 from rewind_eval.oracle import coverage_oracle, f1_oracle
-from rewind_eval.splits import load_splits
+from rewind_eval.splits import Splits, load_splits
 
 ROOT = Path(__file__).resolve().parents[2]
 ANN = ROOT / "data" / "annotations"
@@ -41,7 +41,8 @@ COLUMNS = [
     "date", "git_sha", "tag", "config_hash", "split", "n_epic", "n_fpvsum",
     "coverage_any", "coverage_frac", "pct_oracle", "map", "f1", "label_acc", "weighted",
 ]  # fmt: skip
-WEIGHTS = {"coverage_any": 0.40, "map": 0.25, "f1": 0.25, "label_acc": 0.10}
+# Kit weights; coverage under the official capture rule (≥ 50% inside, PROGRESS.md Q4).
+WEIGHTS = {"coverage_frac": 0.40, "map": 0.25, "f1": 0.25, "label_acc": 0.10}
 
 
 @dataclass
@@ -188,9 +189,15 @@ def read_predictions(pred_dir: Path, video_ids: list[str]) -> dict[str, Predicti
     return out
 
 
+def scored_report_fpvsum(s: Splits) -> list[str]:
+    """The report FPVSum videos the organizers score: all minus ``unscored_fpvsum``."""
+    return [v for v in s.report_fpvsum if v not in s.unscored_fpvsum]
+
+
 def load_eval_data(split: str, fold: int | None = None) -> EvalData:
     """GT for a split. FPVSum has no separate tune videos, so ``tune`` includes FPVSum
-    only for one held-out CV ``fold`` (CLAUDE.md §6.2); ``report`` has all 49."""
+    only for one held-out CV ``fold`` (CLAUDE.md §6.2). ``report`` has the 49 manifest
+    videos minus the ones the organizers don't score (PROGRESS.md Q14)."""
     s = load_splits()
     with open(ROOT / "kit" / "manifest.csv", encoding="utf-8", newline="") as f:
         manifest = {r["video_id"]: float(r["duration_sec"]) for r in csv.DictReader(f)}
@@ -208,7 +215,7 @@ def load_eval_data(split: str, fold: int | None = None) -> EvalData:
     else:
         raise ValueError(f"unknown split {split!r}")
     if split == "report":
-        fpv_ids = list(s.report_fpvsum)
+        fpv_ids = scored_report_fpvsum(s)
     else:
         fpv_ids = [v for v, k in s.fpvsum_folds.items() if fold is not None and k == fold]
     fpv_dur = {v: manifest[v] for v in sorted(fpv_ids)}

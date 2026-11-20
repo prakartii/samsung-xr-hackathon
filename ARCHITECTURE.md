@@ -290,8 +290,9 @@ probability is computed from how many seconds of its span the union covers:
 - `fraction` rule: `cap = sigmoid((covered / span_len − θ) / τ)` with θ, τ in config.
 
 The rule is `cfg.select.capture_rule`; the default is `any_overlap`. The official
-scorer uses the fraction rule with θ = 0.5 (Q4, answered 2026-11-20); which rule the
-selector should use is measured on `tune` (PROGRESS.md Decisions).
+scorer uses the fraction rule with θ = 0.5 (Q4, answered 2026-11-20). Re-tuned on
+`tune` against the official rule, `fraction` (any θ, τ) was not clearly better, so the
+default stays (PROGRESS.md Decisions 2026-11-20).
 
 ### 5.4 Expected-coverage selection (`select/coverage.py`)
 
@@ -567,8 +568,9 @@ can beat it (101% on clean simulated proposals). Report `system / oracle` as "% 
 oracle". Measured ceilings (report split, 4.05/5/6 s windows): coverage 0.737, F1 0.718.
 
 ### 9.6 Weighted total
-`0.40·coverage + 0.25·mAP + 0.25·F1 + 0.10·label_acc`. Computed per split for the
-leaderboard; it is our estimate, not the official score.
+`0.40·coverage + 0.25·mAP + 0.25·F1 + 0.10·label_acc`, with coverage under the official
+`fraction` rule (`coverage_frac`, Q4; rows before 2026-11-20 used `coverage_any`).
+Computed per split for the leaderboard; it is our estimate, not the official score.
 
 The fraction capture threshold θ of the metric is `cfg.eval.capture_theta` (0.5), not
 the selector's `select.fraction_theta`, so tuning the selector never changes what a
@@ -579,7 +581,9 @@ empty (0), like a missing file.
 - `tune`: 20 EPIC-100 **train** videos (chosen to match the val duration
   distribution) + FPVSum 5-fold CV. `score --split tune` includes FPVSum only with
   `--fold k` (the held-out fold); without it the FPVSum columns are blank.
-- `report`: the 138 EPIC val + 49 FPVSum videos in `kit/manifest.csv`.
+- `report`: the 138 EPIC val + 49 FPVSum videos in `kit/manifest.csv`. We predict all
+  49; scoring leaves out `report.unscored_fpvsum` (two videos gone from YouTube, which
+  the organizers don't score, Q14), so FPVSum metrics on `report` are over 47.
 
 ---
 

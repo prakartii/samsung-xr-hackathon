@@ -15,12 +15,13 @@ _spec.loader.exec_module(tool)
 
 def test_combine_tune_averages_folds_and_reweights():
     # EPIC: coverage 0.5, mAP 0.4. Folds: f1 0.2 and 0.4 -> 0.3; label 1.0 and 0.5 -> 0.75.
-    # weighted = 0.40 * 0.5 + 0.25 * 0.4 + 0.25 * 0.3 + 0.10 * 0.75
-    #          = 0.2 + 0.1 + 0.075 + 0.075 = 0.45
+    # weighted uses the official coverage (fraction rule, 0.3), not any-overlap (0.5):
+    #          = 0.40 * 0.3 + 0.25 * 0.4 + 0.25 * 0.3 + 0.10 * 0.75
+    #          = 0.12 + 0.1 + 0.075 + 0.075 = 0.37
     epic = {"coverage_any": "0.5", "coverage_frac": "0.3", "pct_oracle": "0.6", "map": "0.4"}
     folds = [{"f1": "0.2", "label_acc": "1.0"}, {"f1": "0.4", "label_acc": "0.5"}]
     out = tool.combine_tune(epic, folds)
     assert out["f1"] == pytest.approx(0.3, abs=1e-12)
     assert out["label_acc"] == pytest.approx(0.75, abs=1e-12)
-    assert out["weighted"] == pytest.approx(0.45, abs=1e-12)
+    assert out["weighted"] == pytest.approx(0.37, abs=1e-12)
     assert out["coverage_any"] == pytest.approx(0.5, abs=1e-12)

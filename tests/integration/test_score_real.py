@@ -18,14 +18,18 @@ pytestmark = [
 
 
 def test_uniform_baseline_on_report_reproduces_the_leaderboard_row():
-    # Leaderboard (P2): uniform on report → coverage 0.3380, F1 0.1626.
+    # Leaderboard (P2): uniform on report → coverage 0.3380 (any), 0.1768 (fraction).
+    # F1 was 0.1626 over 49 videos; 0.1645 once 3 mistimed GTs left F1 (2026-11-12);
+    # 0.1669 over the 44 usable of the 47 the organizers score (Q14, 2026-11-20).
     data = load_eval_data("report")
     preds = baseline_predictions(data, "uniform", 0.145)
 
     s = compute_scores(data, preds, budget_frac=0.145, lam=1.0, theta=0.5, oracle_cov={})
 
+    assert len(data.fpv_gt) == 47
     assert s["coverage_any"] == pytest.approx(0.3380, abs=5e-5)
-    assert s["f1"] == pytest.approx(0.1626, abs=5e-5)
+    assert s["coverage_frac"] == pytest.approx(0.1768, abs=5e-5)
+    assert s["f1"] == pytest.approx(0.1669, abs=5e-5)
 
 
 def test_tune_uses_only_the_requested_fpvsum_fold():

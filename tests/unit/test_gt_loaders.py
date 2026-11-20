@@ -142,3 +142,31 @@ def test_committed_splits_are_consistent_with_the_manifest():
     assert set(s.report_epic) == {v for v, d in manifest.items() if d == "epic_kitchens_100"}
     assert set(s.report_fpvsum) == {v for v, d in manifest.items() if d == "fpvsum"}
     assert set(s.fpvsum_folds) == set(s.report_fpvsum)
+    # Organizers, 2026-11-20 (PROGRESS.md Q14): gone from YouTube, not scored.
+    assert s.unscored_fpvsum == {"Scuba_KD74Ywuy9ng", "Scuba_Um4kqB8bQBg"}
+    assert s.unscored_fpvsum < set(s.report_fpvsum)
+
+
+def test_load_splits_without_unscored_list_scores_every_report_video(tmp_path):
+    from rewind_eval.score import scored_report_fpvsum
+
+    p = tmp_path / "splits.yaml"
+    p.write_text(
+        "tune: {epic: [], fpvsum_folds: {}}\nreport: {epic: [], fpvsum: [A, B, C]}\n",
+        encoding="utf-8",
+    )
+
+    assert scored_report_fpvsum(load_splits(p)) == ["A", "B", "C"]
+
+
+def test_scored_report_fpvsum_leaves_out_unscored_videos(tmp_path):
+    from rewind_eval.score import scored_report_fpvsum
+
+    p = tmp_path / "splits.yaml"
+    p.write_text(
+        "tune: {epic: [], fpvsum_folds: {}}\n"
+        "report: {epic: [], fpvsum: [A, B, C], unscored_fpvsum: [B]}\n",
+        encoding="utf-8",
+    )
+
+    assert scored_report_fpvsum(load_splits(p)) == ["A", "C"]

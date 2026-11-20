@@ -28,6 +28,12 @@ by our implementation of the kit metrics (`rewind_eval`, `results/leaderboard.cs
 | Uniform windows | 0.176 | 0.338 | 0 | 0.165 | 0 |
 | Oracle (GT-aware) | 0.818 | 0.731 | 1 | 0.702 | 1 |
 
+Coverage in this table counts an action as captured if a highlight overlaps it at all.
+The organizers have since confirmed the official rule: at least 50% of the action
+must fall inside the highlights. Under that rule the same run scores coverage 0.256
+and weighted 0.289 (`results/leaderboard.csv`, "P7 full pipeline, report"). The
+table is refreshed from the final outputs at submission.
+
 - **85.8% of visual tokens pruned** (highlight seconds vs video seconds, all 187).
 - **39.4 s of CPU time per minute of video**, full pipeline from an empty cache on a
   laptop CPU (`tools/latency.py`, `results/latency.csv`). No GPU needed.
