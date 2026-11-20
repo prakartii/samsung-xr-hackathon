@@ -69,7 +69,9 @@ def compute_scores(
     theta: float,
     oracle_cov: dict[str, float | None],
 ) -> dict[str, float | None]:
-    """All leaderboard metrics. ``oracle_cov``: video_id → oracle coverage (any-overlap).
+    """All leaderboard metrics. ``oracle_cov``: video_id → oracle coverage under
+    the official capture rule (fraction, ``theta``); ``pct_oracle`` = official coverage /
+    that, the share of the GT-aware reference reached.
 
     FPVSum metrics (F1, label) and the weighted total are None when the data has no
     FPVSum videos (``tune`` without ``--fold``).
@@ -82,6 +84,7 @@ def compute_scores(
         cov_any[vid] = coverage(gt, hl, T, rule="any_overlap", theta=theta, lam=lam)
         cov_frac[vid] = coverage(gt, hl, T, rule="fraction", theta=theta, lam=lam)
     c_any = mean_ignoring_none(cov_any.values())
+    c_frac = mean_ignoring_none(cov_frac.values())
     c_oracle = mean_ignoring_none(oracle_cov.get(v) for v in data.epic_gt)
     m = mean_ap({v: preds.get(v, empty).actions for v in data.epic_gt}, data.epic_gt)["avg"]
     f1s = [
@@ -96,8 +99,8 @@ def compute_scores(
     has_fpv = bool(data.fpv_gt)
     scores: dict[str, float | None] = {
         "coverage_any": c_any,
-        "coverage_frac": mean_ignoring_none(cov_frac.values()),
-        "pct_oracle": c_any / c_oracle if c_oracle > 0 else 0.0,
+        "coverage_frac": c_frac,
+        "pct_oracle": c_frac / c_oracle if c_oracle > 0 else 0.0,
         "map": m,
         "f1": float(np.mean(f1s)) if f1s else None,
         "label_acc": label if has_fpv else None,
@@ -110,14 +113,25 @@ def compute_scores(
 
 
 def oracle_predictions(
-    data: EvalData, budget_frac: float, lengths: tuple[float, ...], stride: float
+    data: EvalData,
+    budget_frac: float,
+    lengths: tuple[float, ...],
+    stride: float,
+    theta: float = 0.5,
 ) -> dict[str, Prediction]:
-    """GT-derived upper reference: coverage oracle windows, GT actions, GT labels."""
+    """GT-derived upper reference: coverage oracle windows (official capture rule,
+    ``theta`` of an action inside), GT actions, GT labels."""
     out = {}
     for vid, gt in data.epic_gt.items():
         out[vid] = Prediction(
             highlights=coverage_oracle(
-                gt, data.epic_dur[vid], budget_frac=budget_frac, lengths=lengths, stride=stride
+                gt,
+                data.epic_dur[vid],
+                budget_frac=budget_frac,
+                lengths=lengths,
+                stride=stride,
+                rule="fraction",
+                theta=theta,
             ),
             actions=[(s, v, n, 1.0) for s, v, n in gt],
             label="cooking",
@@ -282,8 +296,10 @@ def main(argv: list[str] | None = None) -> int:
     oracle_cov = {}
     for v, gt in data.epic_gt.items():
         T = data.epic_dur[v]
-        hl = coverage_oracle(gt, T, budget_frac=budget, lengths=lengths, stride=stride)
-        oracle_cov[v] = coverage(gt, hl, T, rule="any_overlap", theta=theta, lam=lam)
+        hl = coverage_oracle(
+            gt, T, budget_frac=budget, lengths=lengths, stride=stride, rule="fraction", theta=theta
+        )
+        oracle_cov[v] = coverage(gt, hl, T, rule="fraction", theta=theta, lam=lam)
     scores = compute_scores(
         data, preds, budget_frac=budget, lam=lam, theta=theta, oracle_cov=oracle_cov
     )
