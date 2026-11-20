@@ -27,7 +27,8 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(REPO / "code"), str(REPO / "tools")]
 
-METRICS = ["weighted", "coverage_any", "pct_oracle", "map", "f1", "label_acc"]
+# Official coverage first (fraction rule, Q4); any-overlap kept last for reference.
+METRICS = ["weighted", "coverage_frac", "pct_oracle", "map", "f1", "label_acc", "coverage_any"]
 N_FOLDS = 5
 
 # name -> (dotted config overrides, ActionFormer on)
@@ -36,8 +37,6 @@ VARIANTS: dict[str, tuple[dict, bool]] = {
     "zero-shot actions (no ActionFormer)": ({}, False),
     "label-dedup selector (no expected coverage)": ({"select.mode": "dedup"}, True),
     "no verb-noun prior (selector too)": ({"pairing.alpha": 0.0}, True),
-    "no audio terms (FPVSum)": (
-        {"importance.w_audio_rms": 0.0, "importance.w_audio_flux": 0.0}, True),
     "no hand signal": ({"importance.w_hands": 0.0, "hedge.w_hands": 0.0}, True),
     "no flow / camera motion": (
         {"importance.w_flow": 0.0, "importance.w_global_motion": 0.0, "hedge.w_flow": 0.0}, True),
@@ -71,7 +70,7 @@ def score_variant(split: str, src: list[str], tag: str, write: bool) -> dict[str
     base = ["--split", split, *src, "--tag", tag] + ([] if write else ["--no-write"])
     if split == "report":
         row = _score(base)
-        return {k: float(row[k]) for k in [*METRICS, "coverage_frac"] if row[k] != ""}
+        return {k: float(row[k]) for k in METRICS if row[k] != ""}
     folds = [_score([*base, "--fold", str(k)]) for k in range(N_FOLDS)]
     return combine_tune(_score(base), folds)
 
