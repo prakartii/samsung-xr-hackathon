@@ -78,7 +78,7 @@ select:
   window_lengths: [4.05, 5.0, 6.0]  # candidate window lengths in s; each >= 4.05
   stride: 1.0              # candidate window start grid in s; P7 tune: 1.0 > 0.5 (real AF tune 0.4883 vs 0.4687, noisy sim 0.5217 vs 0.5112; clean sim 0.7305 vs 0.7438)
   budget_frac: 0.145       # highlight budget as a fraction of T (kit 0.15 minus a margin)
-  capture_rule: any_overlap  # any_overlap | fraction (PROGRESS.md Q4)
+  capture_rule: fraction   # any_overlap | fraction; official rule (>= 50% inside, Q4); tune 2026-11-21: 0.2883 -> 0.2970
   fraction_theta: 0.5      # fraction rule: overlap/span midpoint of the sigmoid
   fraction_tau: 0.05       # fraction rule: sigmoid temperature
   mode: expected           # expected | dedup: expected coverage (§5.4), or the label-dedup baseline (P5 kill rule)

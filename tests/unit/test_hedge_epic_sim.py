@@ -119,8 +119,12 @@ def test_select_epic_dedup_mode_ignores_second_choices():
     # Expected: c1 still adds B with p .5 → second window on c1. Dedup: c1 collapses to
     # {A}, a repeat, like c2 → no gain anywhere → one coverage window (leftover budget
     # then goes to a hedge, value 0).
+    # Windows below were worked out under any-overlap capture; this tests the mode, so
+    # the capture rule is pinned rather than taken from the shipped config.
     cfg = load_config(DEFAULT_CONFIG)
-    cfg = dataclasses.replace(cfg, select=dataclasses.replace(cfg.select, budget_frac=0.09))
+    cfg = dataclasses.replace(
+        cfg, select=dataclasses.replace(cfg.select, budget_frac=0.09, capture_rule="any_overlap")
+    )
     cs = [
         cl(0, (5.0, 6.0), {("a", "x"): 1.0}),
         cl(1, (40.0, 41.0), {("a", "x"): 0.5, ("b", "y"): 0.5}),
@@ -138,7 +142,12 @@ def test_select_epic_dedup_mode_ignores_second_choices():
 def test_select_epic_short_video_picks_the_best_single_window():
     # T = 20: budget 0.145 · 20 = 2.9 s < 4.05, but one 4.05 s window must still go where
     # the clusters are: two distinct pairs at (14, 15) and (15.5, 16) → one window over both.
+    # Value 2.0 = two clusters each captured with probability exactly 1 (any-overlap;
+    # the fraction rule's smooth step gives 0.99995 each), so the rule is pinned.
     cfg = load_config(DEFAULT_CONFIG)
+    cfg = dataclasses.replace(
+        cfg, select=dataclasses.replace(cfg.select, capture_rule="any_overlap")
+    )
     cs = [cl(0, (14.0, 15.0), {("a", "x"): 1.0}), cl(1, (15.5, 16.0), {("b", "x"): 1.0})]
 
     segs, values = select_epic(cs, 20.0, cfg)
@@ -208,3 +217,26 @@ def test_simulate_scores_are_a_confidence_split_over_the_top_k():
         scores = [x for _, _, x in p.pairs]
         assert all(x > 0 for x in scores) and 0.3 - 1e-9 <= sum(scores) <= 0.9 + 1e-9
         assert scores == sorted(scores, reverse=True)
+
+
+@pytest.mark.parametrize(
+    ("rule", "expected"),
+    [
+        # Earliest window touching (5, 6): (1.0, 5.05), only 0.05 s (5%) inside.
+        ("any_overlap", [(1.0, 5.05)]),
+        # Official rule needs >= 50% inside: the earliest window holding all of (5, 6)
+        # is (2.0, 6.05) (cap 0.99995 vs 0.00012 for the grazing one).
+        ("fraction", [(2.0, 6.05)]),
+    ],
+)
+def test_select_epic_capture_rule_decides_whether_a_grazing_window_counts(rule, expected):
+    # One action at (5, 6) in 100 s; budget 0.045 * 100 = 4.5 s holds one 4.05 s window
+    # (5 and 6 s windows don't fit). No hedge.
+    cfg = load_config(DEFAULT_CONFIG)
+    cfg = dataclasses.replace(
+        cfg,
+        select=dataclasses.replace(cfg.select, budget_frac=0.045, capture_rule=rule),
+        hedge=dataclasses.replace(cfg.hedge, share=0.0),
+    )
+    segs, values = select_epic([cl(0, (5.0, 6.0), {("a", "x"): 1.0})], 100.0, cfg)
+    assert [seg for seg, v in zip(segs, values, strict=True) if v > 0] == expected
