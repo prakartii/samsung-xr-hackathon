@@ -42,6 +42,9 @@ GRID: dict[str, list[Any]] = {
     "post.merge_gap": [0.0, 0.5, 2.0],
     "calibration.temperature": [0.5, 0.75, 1.5, 2.0, 3.0],  # S1; > 1 flattens
     "select.capture_rule": ["any_overlap", "fraction"],  # the selector's model of capture
+    "select.fraction_theta": [0.4, 0.5, 0.55, 0.6, 0.7],  # used only by the fraction rule
+    "select.fraction_tau": [0.02, 0.05, 0.1],
+    "select.budget_frac": [0.14, 0.145],  # never above 0.145: the kit's 15% plus a margin
 }
 
 
