@@ -361,9 +361,9 @@ def how_card(f: Fonts) -> np.ndarray:
 def results_card(f: Fonts, abl: dict, tokens: float, latency: float) -> np.ndarray:
     c = Canvas()
     c.text((90, 70), "RESULTS", f.head, ACCENT)
-    c.text((90, 100), "187 kit videos (138 EPIC-KITCHENS val + 49 FPVSum), kit metrics", f.body,
+    c.text((90, 100), "185 scored videos (138 EPIC-KITCHENS + 47 FPVSum), official metrics", f.body,
            MUTED)  # fmt: skip
-    cols = [("weighted", "Score"), ("coverage_any", "Coverage 40%"), ("map", "mAP 25%"),
+    cols = [("weighted", "Score"), ("coverage_frac", "Coverage 40%"), ("map", "mAP 25%"),
             ("f1", "F1 25%"), ("label_acc", "Label 10%")]  # fmt: skip
     rows = [("REWIND", "full pipeline"), ("Uniform windows", "uniform baseline"),
             ("Oracle (sees GT)", "oracle baseline")]  # fmt: skip

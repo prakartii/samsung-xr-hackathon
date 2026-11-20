@@ -11,6 +11,7 @@ PowerPoint to export a PDF.
 
 import argparse
 import copy
+import csv
 import json
 import tempfile
 from pathlib import Path
@@ -69,17 +70,22 @@ CODEBG = RGBColor(0x06, 0x0A, 0x14)
 
 prs = Presentation(str(args.template))
 S = list(prs.slides)
+_md = (REPO / "results" / "ablation_report.md").read_text(encoding="utf-8").splitlines()
+_rows = [ln for ln in _md if ln.startswith("|")]
+_hdr = [x.strip() for x in _rows[0].strip("|").split("|")][1:]
 abl = {}
-for ln in (REPO / "results" / "ablation_report.md").read_text(encoding="utf-8").splitlines()[4:]:
+for ln in _rows[2:]:
     c = [x.strip() for x in ln.strip("|").split("|")]
-    if len(c) > 1:
-        abl[c[0]] = dict(
-            zip(
-                ["weighted", "coverage_any", "pct_oracle", "map", "f1", "label_acc"],
-                [float(x) if x else None for x in c[1:]],
-                strict=True,
-            )
-        )
+    abl[c[0]] = {k: float(x) if x else None for k, x in zip(_hdr, c[1:], strict=True)}
+_preds = sorted((REPO / "results" / "preds" / "full_report").glob("*.json"))
+_docs = [json.loads(q.read_text(encoding="utf-8")) for q in _preds]
+_kept = sum(e - b for d in _docs for b, e in (h["segment"] for h in d["highlights"]))
+PRUNED = 1.0 - _kept / sum(float(d["duration_sec"]) for d in _docs)
+with (REPO / "results" / "latency.csv").open(encoding="utf-8") as _f:
+    _lat = list(csv.DictReader(_f))
+SEC_PER_MIN = sum(float(r["seconds"]) for r in _lat) / (
+    sum(float(r["duration_sec"]) for r in _lat) / 60.0
+)
 FULL, UNI, ORA = abl["full pipeline"], abl["uniform baseline"], abl["oracle baseline"]
 
 
@@ -536,7 +542,7 @@ rows = [("REWIND", FULL), ("Uniform", UNI), ("Oracle*", ORA)]
 for j, h in enumerate(hdr):
     t.cell(0, j).text = h
 for i, (n, r) in enumerate(rows, 1):
-    vals = [n] + [f"{r[k]:.3f}" for k in ("weighted", "coverage_any", "map", "f1")]
+    vals = [n] + [f"{r[k]:.3f}" for k in ("weighted", "coverage_frac", "map", "f1")]
     for j, v in enumerate(vals):
         t.cell(i, j).text = v
 t.columns[0].width = Inches(1.2)
@@ -562,7 +568,7 @@ text(
     4.6,
     0.45,
     [
-        "Kit metrics, all 187 videos. *Oracle sees the ground truth.",
+        "185 scored videos; coverage: ≥ 50% of an action inside. *Oracle sees the GT.",
         "Score = 40% coverage + 25% mAP + 25% F1 + 10% label.",
     ],
     size=10,
@@ -571,8 +577,8 @@ text(
 )
 nums = [
     (f"{100 * FULL['pct_oracle']:.0f}%", "of oracle coverage"),
-    ("86%", "of frames pruned"),
-    ("39 s", "CPU per video minute"),
+    (f"{100 * PRUNED:.0f}%", "of frames pruned"),
+    (f"{SEC_PER_MIN:.0f} s", "CPU per video minute"),
 ]
 for i, (big, small) in enumerate(nums):
     x = 5.0 + 1.56 * i
@@ -585,11 +591,11 @@ title(s, "Spend the budget on distinct steps, not busy pixels")
 cd = CategoryChartData()
 cats = ["Uniform windows", "Zero-shot actions", "Label dedup", "REWIND", "Oracle (GT)"]
 vals = [
-    UNI["coverage_any"],
-    abl["zero-shot actions (no ActionFormer)"]["coverage_any"],
-    abl["label-dedup selector (no expected coverage)"]["coverage_any"],
-    FULL["coverage_any"],
-    ORA["coverage_any"],
+    UNI["coverage_frac"],
+    abl["zero-shot actions (no ActionFormer)"]["coverage_frac"],
+    abl["label-dedup selector (no expected coverage)"]["coverage_frac"],
+    FULL["coverage_frac"],
+    ORA["coverage_frac"],
 ]
 cd.categories = cats
 cd.add_series("Action coverage", [round(v, 3) for v in vals])
@@ -600,7 +606,7 @@ gf.name = "Coverage chart"
 ch = gf.chart
 ch.has_legend = False
 ch.has_title = True
-ch.chart_title.text_frame.text = "Action coverage, 138 EPIC val videos"
+ch.chart_title.text_frame.text = "Action coverage (official rule), 138 EPIC val videos"
 tp = ch.chart_title.text_frame.paragraphs[0]
 tp.runs[0].font.size = Pt(12)
 tp.runs[0].font.color.rgb = WHITE
@@ -642,7 +648,7 @@ pts = [
     ),
     (
         "Honest by construction",
-        "Tuned only on EPIC train videos and FPVSum CV folds; no "
+        "Tuned only on EPIC train videos; FPVSum GT never used to choose a setting. No "
         "ground truth, filename or manifest at inference (enforced by tests).",
     ),
     ("Runs anywhere", "CPU only, deterministic, Docker image built and tested in CI."),
@@ -714,7 +720,7 @@ text(
     4.45,
     0.6,
     "Weights (2.3 GB) download from our GitHub release, SHA-256 "
-    "checked. About 39 s of CPU per minute of video.",
+    f"checked. About {SEC_PER_MIN:.0f} s of CPU per minute of video.",
     size=11,
     color=MUTED,
     name="Setup note",
@@ -767,7 +773,7 @@ drops = [
         "Expected coverage",
         FULL["weighted"] - abl["label-dedup selector (no expected coverage)"]["weighted"],
     ),
-    ("Audio (FPVSum)", FULL["weighted"] - abl["no audio terms (FPVSum)"]["weighted"]),
+    ("Scene change", FULL["weighted"] - abl["no scene change (FPVSum)"]["weighted"]),
     ("Flow / motion", FULL["weighted"] - abl["no flow / camera motion"]["weighted"]),
     ("Hands", FULL["weighted"] - abl["no hand signal"]["weighted"]),
 ]
