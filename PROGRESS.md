@@ -40,8 +40,9 @@ starts on GT-derived proposals before P4 lands, so neither person waits.
       `supported_classes.json`, `P02_109.json`, `skiing_03.json`; files are flat, not in `examples/`)
 - [x] Diff the kit against `ARCHITECTURE.md` §7 (schema, R1–R13): all rules match; `ARCHITECTURE.md` updated to v1.1
 - [x] Check whether the official `validate.py` is in our kit: **no**, although `TEAM_README.md` lists it (asked in Q8)
-- [ ] Email the organizers with Q4, Q8, Q10, Q11, Q12 (draft in §3); record the date sent. Since the 2026-11-17 mail, queries go to m.shankar@samsung.com and prakhar.c@samsung.com (not prism@)
+- [ ] Email the organizers with what is still open, the penalty curve (Q8) and weights hosting (Q12) (draft in §3); record the date sent. Q4 and Q10 were answered in the 2026-11-20 mail. Since the 2026-11-17 mail, queries go to m.shankar@samsung.com and prakhar.c@samsung.com (not prism@)
 - [x] Organizer mail of 2026-11-17 (deadline extension + final instructions) checked: the re-sent `Student package_track04.zip` is byte-identical to `kit/` (still no `validate.py`); the submission deck template is in `docs/organizers/`; consequences recorded in P8, P9, Open questions (Q7, Q12) and Decisions
+- [x] Organizer mail of 2026-11-20 (answers to teams' questions, a reissued `TEAM_README.md` and `skiing_03.json`, sent as .docx "due to limitations", with a request to convert them): converted into `kit/` with the text unchanged (Markdown and JSON rebuilt from the .docx; the docx's "To-Do Problem Statement" title line dropped). The reissue drops `validate.py`, renumbers sections (references updated), states the capture rule and adds an FAQ; `skiing_03.json` now says `ski`. Answers recorded in §3 (Q4, Q8, Q10, Q13, Q14)
 - [x] Confirm our assigned team ID and set `team.team_id` in config (Q11) — **decided 2026-11-17: our registered team name**, `VITVellore_Nexus`, set in `configs/default.yaml`
 - [x] Output schema: the kit's nested six-key schema; the flat brochure variant is dropped
 - [x] Kit constants confirmed: 4.0 s minimum, 15% budget (warning), ±0.5 s duration, 0–2000 actions, `end ≤ duration + 0.5`, 2 decimals, 16/98/301 classes, 187 videos (138 EPIC + 49 FPVSum)
@@ -422,27 +423,26 @@ Label errors (8): jumping -> plane (3), bikepolo -> bike (2), bike -> motor, lon
 
 | # | Question | Asked (date, how) | Answer (date, source) | Changes made |
 |---|---|---|---|---|
-| Q4 | How is a GT action "captured" by a highlight (any overlap, tIoU, fraction)? | | Kit §5 says only "distinct GT action pairs captured within the selected highlights" | Still open; select with any-overlap, report both |
+| Q4 | How is a GT action "captured" by a highlight (any overlap, tIoU, fraction)? | | Kit §5 says only "distinct GT action pairs captured within the selected highlights". **2026-11-20, organizers' mail (and kit reissue §6, §9): captured if at least 50% of its duration falls inside the union of all highlights; verb and noun don't need to match** | Our `fraction` rule with θ = 0.5 (`eval.capture_theta`) is the official one; ARCHITECTURE §5.3, §7, §9.1. Selector and weighted total: next PR |
 | Q6 | Is highlight F1 scored on EPIC? Is mAP scored on FPVSum? | — | 2026-11-11, `kit/TEAM_README.md` §5: mAP + coverage on EPIC only; F1 + label on FPVSum only; FPVSum `actions` may be `[]` | `ARCHITECTURE.md` §4, §7 |
 | Q7 | Demo video max 3 or 5 min? | | 2026-11-17, organizers' mail (consolidated slides V3, slide 24 "Registrations & Submissions"): **max 3 minutes**, YouTube or Drive link (slides 23 and 26 still say 5 min; we stay under 3, which satisfies both) | P8 demo item; our cut is 2:27 |
-| Q8 | `validate.py` is listed in `TEAM_README.md` but missing from our package: please send it. What is the over-budget penalty curve? | | Partly, kit §4–§5: < 4 s segments are ignored in scoring; ≥ 4 s is pass/fail; the 15% budget is a warning with a soft coverage penalty (so short videos keep one 4 s window) | `ARCHITECTURE.md` §5.6, §7 |
+| Q8 | `validate.py` is listed in `TEAM_README.md` but missing from our package: please send it. What is the over-budget penalty curve? | | Partly, kit §4–§5: < 4 s segments are ignored in scoring; ≥ 4 s is pass/fail; the 15% budget is a warning with a soft coverage penalty (so short videos keep one 4 s window). **2026-11-20, organizers' mail: `validate.py` won't be provided; teams write their own and check the edge cases** (the reissue lists the checks in §5, all covered by R1–R14). Penalty curve still unknown | `ARCHITECTURE.md` §5.6, §7 |
 | Q9 | May `run.sh` read `manifest.csv`? Scoring only on the 187 videos? | — | 2026-11-11, kit §6: a hidden subset of the 187 is scored; re-runs happen in an isolated environment | Closed by decision: inference doesn't read the manifest |
-| Q10 | The example `skiing_03.json` uses label `skiing`, but `supported_classes.json` has `ski`. Which is correct? | | | We use `ski` (the vocabulary file) |
+| Q10 | The example `skiing_03.json` uses label `skiing`, but `supported_classes.json` has `ski`. Which is correct? | | **2026-11-20, organizers' mail: `supported_classes.json` (`ski`); the example was illustration only** (the reissued example says `ski`) | We use `ski` (the vocabulary file); no change |
 | Q11 | What is our team ID? The kit examples use `T07`. | | Still open after the 2026-11-17 mail. The slides name teams `CollegeName_TeamName` (registration) but give no ID. 2026-11-17, team decision (DA): use the registered team name, **`VITVellore_Nexus`** | `team.team_id` = `VITVellore_Nexus`; the deck is `VITVellore_Nexus` too |
 | Q12 | The 2026-11-17 mail wants the package in the public GitHub repo, but `weights/` (CLIP 571 MB, ActionFormer 2 × ~460 MB, released features) can't be committed (GitHub's 100 MB file limit). Are GitHub Release assets (≤ 2 GB each), fetched by `tools/fetch_weights.sh`, acceptable? | | 2026-11-17, team decision (DA): yes, GitHub Release assets on our repo; still asked in the email in case the organizers want something else | P9 release item |
+| Q13 | (Asked by another team) Are there runtime or hardware limits when the organizers re-run `run.sh`? May the public FPVSum annotations be used? | — | 2026-11-20, organizers' mail: **no hardware or runtime limits**; FPVSum annotations: **"advised to treat them as hidden test labels"** | Inference never reads them (CLAUDE.md §6.1). We used them offline for 5-fold CV and adopted only the two audio importance weights from it (Decisions 2026-11-13); every other CV search kept the defaults. **Team decision needed:** keep the audio weights and disclose the CV use in the README, or revert them |
+| Q14 | (Asked by another team) Two manifest FPVSum videos, Scuba_KD74Ywuy9ng and Scuba_Um4kqB8bQBg, are gone from YouTube | — | 2026-11-20, organizers' mail: they are **excluded from final scoring** | We still write all 187 files (kit §5); our `report` scoring drops the two: next PR |
 | K2 | The track slides (consolidated V3, slide 22) show a flat JSON (`label` a string, actions with `start`/`end` and no score, `importance` on highlights) that differs from `kit/TEAM_README.md` | — | Kit files outrank slides (CLAUDE.md §2): we keep the kit's six-key schema, as decided for the brochure variant | none |
 | D1 | **A → B:** switch video metadata + decoding from ffprobe/OpenCV to PyAV (`av==18.0.0`, the newest with Python 3.11 wheels)? OpenCV silently stopped after 44 of 10,418 frames on EPIC GoPro files (audio + 3 data streams); PyAV decodes them fully, 2.5× faster (threaded), by presentation time, and needs no ffmpeg binary. Implemented in `video_io.iter_frames` / `probe_video`; `ffprobe_meta` kept | 2026-11-11, PROGRESS (PK) | 2026-11-12, DA: **approved** (decoding with PyAV; `run.sh` metadata stays on ffprobe) | ARCHITECTURE.md §3.1 `video_io` row updated in #17 |
 | K1 | Do the second-hand kit rules (`ARCHITECTURE.md` §7) match our own kit copy? | — | 2026-11-11: yes, all of R1–R13 | `ARCHITECTURE.md` §7 now cites `kit/` |
 
-**Email draft (to m.shankar@samsung.com and prakhar.c@samsung.com, subject "Track 4 — questions on the student package"; Q7 answered 2026-11-17, so its line is dropped):**
+**Email draft (to m.shankar@samsung.com and prakhar.c@samsung.com, subject "Track 4 — questions on the student package"; Q7 answered 2026-11-17, Q4, Q8's validator part and Q10 answered 2026-11-20, so their lines are dropped):**
 
-> Hello, we are a Track 4 team. Thank you for the student package. A few questions:
-> 1. `TEAM_README.md` lists `validate.py`, but it wasn't in the zip we received. Could you send it?
-> 2. Action coverage: when does a highlight "capture" a ground-truth action: any overlap, a minimum tIoU, or a fraction of the action inside the highlight?
-> 3. What is the exact soft penalty when highlights exceed 15% of the duration?
-> 4. `skiing_03.json` uses the label `skiing`, but `supported_classes.json` has `ski`. Should we use `ski`?
-> 5. What team ID should we use in `team_id`? The examples show `T07`.
-> 6. The final instructions ask for the package in a public GitHub repo. Our model weights are larger than GitHub's 100 MB file limit. May we host them as GitHub Release assets downloaded by a script in the repo?
+> Hello, we are a Track 4 team. Thank you for the answers of 20 November. Three questions remain:
+> 1. What is the exact soft penalty when highlights exceed 15% of the duration?
+> 2. What team ID should we use in `team_id`? The examples show `T07`; we plan to use our registered team name, `VITVellore_Nexus`.
+> 3. The final instructions ask for the package in a public GitHub repo. Our model weights are larger than GitHub's 100 MB file limit. May we host them as GitHub Release assets downloaded by a script in the repo?
 >
 > Thank you.
 
@@ -497,6 +497,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-20 · DA · P0 · Organizers' 2026-11-20 answers recorded (Q4 capture = ≥ 50% of the action inside the highlights' union, Q8 no official validator, Q10 `ski`, new Q13 no runtime limits + FPVSum annotations advised as hidden labels, Q14 two Scuba videos unscored); reissued `TEAM_README.md` and `skiing_03.json` converted from .docx into `kit/`; kit section references renumbered; kit example test now expects no warnings (seen failing on the old file); ARCHITECTURE §5.3, §6.3, §7, §9.1 and CLAUDE.md §4 updated · this PR
 - 2026-11-19 · PK · P8 · Submission deck `docs/VITVellore_Nexus.pptx` / `.pdf` (organizers' template, 9 slides) and its generator `tools/make_deck.py` · this PR
 - 2026-11-18 · PK · P7 · Spec sync: ARCHITECTURE §3.3 names the three tuning tools that replaced `tune.py`; P7 SlowFast-from-MP4 item closed as cut · this PR
 - 2026-11-18 · PK · P6 · Label refinement checked by nested CV (`tools/tune_label.py`, `fpvsum_label(aggregate=...)` option, default unchanged): no setting beats the current one held out; config unchanged · this PR

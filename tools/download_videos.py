@@ -1,4 +1,4 @@
-"""Download the 187 manifest videos (kit/TEAM_README.md §2) into one flat folder.
+"""Download the 187 manifest videos (kit/TEAM_README.md §3) into one flat folder.
 
 Offline data tool, not inference: reading kit/manifest.csv here is fine
 (CLAUDE.md §6.1 forbids it only inside code/rewind/).
@@ -55,7 +55,7 @@ FPVSUM_LIST_URL = (
     "https://raw.githubusercontent.com/azuxmioy/fpvsum/"
     "9af31f9027ef2b3f5f34a39bf17df5b120a9cc25/crawler/FPVSum_videolist.csv"
 )
-DURATION_TOL = 0.5  # kit §3: duration within ±0.5 s of the manifest
+DURATION_TOL = 0.5  # kit §4: duration within ±0.5 s of the manifest
 
 # data.bris.ac.uk sometimes serves a chain with a SHA-1-signed CA, which OpenSSL's
 # default security level 2 rejects ("CA signature digest algorithm too weak"; seen

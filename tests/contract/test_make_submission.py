@@ -1,4 +1,4 @@
-"""tools/make_submission.py: the P9 package (kit §6, ARCHITECTURE.md §13).
+"""tools/make_submission.py: the P9 package (kit §7, ARCHITECTURE.md §13).
 
 The package is what the organizers re-run, so these tests check what it contains, that
 its own run.sh runs on its own code, and that every refusal rule fires.

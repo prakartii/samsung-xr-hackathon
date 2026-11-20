@@ -1,4 +1,4 @@
-"""Assemble the submission folder TEAM_ID/ (P9; kit §6, ARCHITECTURE.md §13).
+"""Assemble the submission folder TEAM_ID/ (P9; kit §7, ARCHITECTURE.md §13).
 
     python tools/make_submission.py --outputs outputs/ --dest dist/
     python tools/make_submission.py --outputs outputs/ --dest dist/ \
@@ -11,7 +11,7 @@ Refuses to write anything if the package would not be submittable:
     an output is the safe fallback (label `other`: the models did not run);
   - a weight file named in the config is missing (run.sh would silently fall back);
   - a shipped text file mentions a manifest video ID, matched as a case-insensitive
-    substring (kit §6: automated scans for hardcoded IDs disqualify);
+    substring (kit §8: automated scans for hardcoded IDs disqualify);
   - a shipped path has uncommitted changes (the package must match the tagged repo).
 
 The package holds run.sh, code/ (rewind, rewind_eval, third_party), configs/default.yaml,

@@ -48,7 +48,7 @@ def test_coverage_fraction_rule_captures_other_instance_of_same_pair():
 
 
 def test_coverage_highlight_under_4s_is_ignored():
-    # (9, 12.99) is 3.99 s: ignored for capture (kit §4).
+    # (9, 12.99) is 3.99 s: ignored for capture (first kit issue, 2026-11-11; kept).
     assert cov([(9.0, 12.99)]) == pytest.approx(0.0, abs=1e-12)
 
 

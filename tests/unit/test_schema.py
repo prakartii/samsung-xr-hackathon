@@ -322,15 +322,16 @@ def test_validate_negative_label_score_is_r4_error():
     assert rules(errors) == ["R4"]
 
 
-def test_validate_kit_skiing_example_has_no_errors_at_kit_severity():
+def test_validate_kit_skiing_example_is_clean_at_kit_severity():
     from tests.conftest import KIT_DIR
 
     doc = json.loads((KIT_DIR / "skiing_03.json").read_text(encoding="utf-8"))
 
     errors, warnings = validate(doc, VOCAB, filename_stem="skiing_03")
 
-    assert errors == []
-    assert rules(warnings) == ["R4"]  # "skiing" isn't a kit label (PROGRESS.md Q10)
+    # The 2026-11-20 reissue labels it "ski" (the first issue said "skiing", an R4
+    # warning; PROGRESS.md Q10). Highlights 12 + 12 + 13 = 37 s of 258 s = 14.3% ≤ 15%.
+    assert (errors, warnings) == ([], [])
 
 
 def test_validate_huge_integer_is_an_error_not_a_crash():
