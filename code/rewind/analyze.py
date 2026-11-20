@@ -217,7 +217,8 @@ def summarize(
     detect: runs ActionFormer when this video has SlowFast features (returns None
     otherwise); called only on routes that emit actions.
     audio: dense time grid → {"rms", "flux"} (None: no audio stream); called only for
-    importance-based (non-cooking) highlights. A failure drops the audio terms.
+    importance-based (non-cooking) highlights, and only when an audio weight is
+    non-zero. A failure drops the audio terms.
     """
     flow, hands, clip = signals["flow"], signals["hands"], signals["clip"]
     if not np.array_equal(np.asarray(flow["t"]), np.asarray(hands["t"])):
@@ -251,7 +252,8 @@ def summarize(
         segs, values, profile = epic_highlights(proposals, flow, hands, clip, duration, cfg)
     else:
         aud = None
-        if audio is not None:
+        imp = cfg.importance
+        if audio is not None and (imp.w_audio_rms != 0.0 or imp.w_audio_flux != 0.0):
             try:
                 aud = audio(np.asarray(flow["t"]))
             except Exception as exc:  # audio only refines importance; never lose highlights

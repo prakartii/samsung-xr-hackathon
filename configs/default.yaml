@@ -106,8 +106,9 @@ importance:
   max_window: 10.0         # longest FPVSum window in s
   len_step: 1.0            # window-length grid step in s between min_window and max_window; P6
   stride: 0.5              # window start grid step in s; P6
-  w_audio_rms: 1.0         # importance weight: z(log loudness); P6 ablation on FPVSum CV (0 = off)
-  w_audio_flux: 0.25       # importance weight: z(spectral flux); P6 ablation on FPVSum CV
+  w_audio_rms: 0.0         # importance weight: z(log loudness); 0 = off. Was 1.0, chosen on FPVSum GT (CV);
+                           # off since the organizers asked to treat that GT as hidden test labels (PROGRESS.md Q13)
+  w_audio_flux: 0.0        # importance weight: z(spectral flux); 0 = off (was 0.25, same reason)
 
 label:
   prompts:                 # CLIP prompt templates; {} is the category name
