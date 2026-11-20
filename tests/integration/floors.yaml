@@ -4,7 +4,8 @@
 #
 # Set 2026-11-13 from tools/predict_cached.py --split tune at config ae3f3677f0;
 # raised the same day after tuning select.stride to 1.0 (config 5df9225f6a) and
-# adding the FPVSum audio terms.
+# adding the FPVSum audio terms; FPVSum f1 lowered 2026-11-21 when those terms were
+# turned off (PROGRESS.md Q13, Decisions 2026-11-21).
 # Caveat: tune EPIC videos are ActionFormer's training videos, so `map` (and the
 # coverage that depends on its proposals) is optimistic; it guards against
 # regressions, it is not an estimate of the report score (0.117 mAP there).
@@ -17,5 +18,5 @@ tune_epic:          # 20 EPIC train videos
   map: 0.6532              # output actions without the verb-noun prior (actions.prior_alpha 0)
 
 tune_fpvsum_cv:     # mean over the 5 FPVSum CV folds (49 videos, 46 with usable GT timing)
-  f1: 0.2636             # with audio terms (in-sample; held-out CV 0.24-0.25); uniform 0.1636
+  f1: 0.2228             # audio terms off since 2026-11-21 (Q13; was 0.2636 with them); uniform 0.1636
   label_acc: 0.8352

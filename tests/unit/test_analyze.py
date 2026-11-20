@@ -216,11 +216,28 @@ def test_summarize_fpvsum_highlight_follows_loud_audio():
     # the first window wins ([0, ...]). With audio the one highlight (budget 0.145 * 60
     # = 8.7 s) must sit on the loud stretch: its centre inside [40, 50]. (Smoothing,
     # sigma 2 s, blurs the stretch's edges, so the window may start a little before 40.)
-    r = summarize("v", T, signals(BIKE), TEXT, PRIOR, CFG, audio=loud_between(40.0, 50.0))
+    cfg = replace(CFG, importance=replace(CFG.importance, w_audio_rms=1.0, w_audio_flux=0.0))
+    r = summarize("v", T, signals(BIKE), TEXT, PRIOR, cfg, audio=loud_between(40.0, 50.0))
 
     assert len(r.highlights) == 1
     s, e_ = r.highlights[0]
     assert 40.0 <= (s + e_) / 2 <= 50.0
+
+
+def test_summarize_audio_weights_zero_never_decodes_audio():
+    # Both audio weights 0 (the shipped config, PROGRESS.md Q13): the terms add nothing,
+    # so the soundtrack must not even be decoded. (A raise would be swallowed by the
+    # audio-failure handler, so record calls instead.)
+    calls = []
+
+    def audio(t):
+        calls.append(len(t))
+        return loud_between(40.0, 50.0)(t)
+
+    cfg = replace(CFG, importance=replace(CFG.importance, w_audio_rms=0.0, w_audio_flux=0.0))
+    r = summarize("v", T, signals(BIKE), TEXT, PRIOR, cfg, audio=audio)
+    assert calls == []
+    assert len(r.highlights) >= 1
 
 
 def test_summarize_epic_route_never_loads_audio():
@@ -235,7 +252,8 @@ def test_summarize_audio_failure_keeps_fpvsum_highlights():
     def audio(t):
         raise RuntimeError("no audio stream")
 
-    r = summarize("v", T, signals(BIKE), TEXT, PRIOR, CFG, audio=audio)
+    cfg = replace(CFG, importance=replace(CFG.importance, w_audio_rms=1.0, w_audio_flux=0.25))
+    r = summarize("v", T, signals(BIKE), TEXT, PRIOR, cfg, audio=audio)
     assert len(r.highlights) >= 1
     assert strict_errors(r) == []
 
