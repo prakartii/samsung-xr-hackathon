@@ -414,7 +414,9 @@ w6 = `w_audio_flux`) use loudness and spectral flux of the mono track resampled 
 `cfg.features.audio.sample_rate`, each summarised over `cfg.features.audio.window` s
 around every dense timestep (`features/audio.py`); they are decoded only on this
 route, cached by fingerprint, and left out when the video has no audio stream.
-Weights are tuned on FPVSum cross-validation folds only.
+**Shipped with w5 = w6 = 0** (audio off, not even decoded): the CV-chosen values
+(1.0, 0.25) came from FPVSum GT, which the organizers asked to treat as hidden test
+labels (PROGRESS.md Q13). No FPVSum weight is tuned on that GT; w1–w4 are defaults.
 
 Segments: find shots from CLIP change points (change > `cfg.importance.shot_thr`).
 Within each shot, slide windows of `min_window`…`max_window` s (lengths every

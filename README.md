@@ -46,8 +46,7 @@ outputs at submission.
 
 1. **Signals** (`code/rewind/features/`): one PyAV decode pass → optical flow and
    camera motion (OpenCV Farneback), hand presence (MediaPipe), CLIP ViT-B/16 frame
-   embeddings; audio loudness and spectral flux on the FPVSum route. All cached by
-   the MP4's content fingerprint, never its name.
+   embeddings. All cached by the MP4's content fingerprint, never its name.
 2. **Route** (`routing.py`): CLIP zero-shot P(cooking) decides EPIC (kitchen) vs
    FPVSum (outdoor activity); an uncertain video still gets actions.
 3. **Actions** (`detect/`): ActionFormer's EPIC-100 verb and noun models on SlowFast
@@ -57,7 +56,7 @@ outputs at submission.
    distinct steps; windows are chosen greedily by expected new coverage per second
    within the 15% budget, then post-processed to the kit rules.
 5. **FPVSum highlights and label** (`select/importance.py`, `label/`): an importance
-   proxy (flow, hands, camera motion, scene change, audio) → best windows per shot;
+   proxy (flow, hands, camera motion, scene change) → best windows per shot;
    CLIP zero-shot label over the kit classes.
 
 Full specification: `ARCHITECTURE.md`. Design rationale: `REWIND_v2.3_plan.md`.
@@ -116,13 +115,16 @@ The image is built and smoke-tested in CI (`.github/workflows/docker.yml`).
 ## Tuning-split statement
 
 All hyperparameters were chosen on the **`tune` split only**: 20 EPIC-KITCHENS-100
-*train* videos (never val) and, for FPVSum, 5-fold cross-validation (choose on four
-folds, score the fifth). The `report` split (the 138 EPIC val videos and the 49
+*train* videos (never val). The `report` split (the 138 EPIC val videos and the 49
 FPVSum videos) was used only to measure. Two caveats, both recorded in `PROGRESS.md`:
-the `tune` EPIC videos are ActionFormer's own training videos, so detector settings
-were left at their defaults rather than tuned there; and FPVSum has no videos outside
-the scored 49, so only a handful of importance weights were fitted, by
-cross-validation.
+
+- The `tune` EPIC videos are ActionFormer's own training videos, so detector settings
+  were left at their defaults rather than tuned there.
+- **No setting comes from the FPVSum annotations.** The organizers asked teams to
+  treat them as hidden test labels (2026-11-20). FPVSum has no videos outside the
+  scored 49; we had run cross-validation experiments on them earlier, and the only
+  values ever adopted from those (two audio importance weights) are set back to 0.
+  The FPVSum importance weights and label settings are the untuned defaults.
 
 ## Reproduce
 
