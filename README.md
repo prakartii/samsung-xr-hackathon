@@ -19,28 +19,27 @@ JSON. If any stage fails, `run.sh` still writes a valid fallback and exits 0.
 
 ## Results
 
-On the kit's 187 videos (`report` = 138 EPIC-KITCHENS-100 val + 49 FPVSum), scored
-by our implementation of the kit metrics (`rewind_eval`, `results/leaderboard.csv`):
+On the videos the organizers score (`report` = 138 EPIC-KITCHENS-100 val + 47 FPVSum;
+two Scuba videos left YouTube and are not scored), by our implementation of the kit
+metrics under the **official coverage rule**: an action is captured when at least 50%
+of it lies inside the highlights (`rewind_eval`, `results/leaderboard.csv`):
 
 | | Weighted | Action coverage (40%) | Action mAP (25%) | Highlight F1 (25%) | Label acc. (10%) |
 |---|---|---|---|---|---|
-| **REWIND** | **0.361** | 0.437 (59.8% of oracle) | 0.149 | 0.263 | 0.837 |
-| Uniform windows | 0.176 | 0.338 | 0 | 0.165 | 0 |
-| Oracle (GT-aware) | 0.818 | 0.731 | 1 | 0.702 | 1 |
+| **REWIND** | **0.279** | 0.256 (43.1% of oracle) | 0.149 | 0.226 | 0.830 |
+| Uniform windows | 0.112 | 0.177 (29.8%) | 0 | 0.167 | 0 |
+| Oracle (GT-aware) | 0.762 | 0.593 | 1 | 0.700 | 1 |
 
-Coverage in this table counts an action as captured if a highlight overlaps it at all.
-The organizers have since confirmed the official rule: at least 50% of the action
-must fall inside the highlights. Under that rule the same run scores coverage 0.256
-and weighted 0.289 (`results/leaderboard.csv`, "P7 full pipeline, report"; F1 and
-label still over all 49 FPVSum videos, two of which the organizers no longer score).
-"% of oracle" stays on the any-overlap rule. The table is refreshed from the final
-outputs at submission.
+"% of oracle" divides our coverage by that of a reference that sees the ground truth
+and picks windows under the same rule and budget. FPVSum settings are untuned defaults
+(see the tuning-split statement).
 
-- **85.8% of visual tokens pruned** (highlight seconds vs video seconds, all 187).
+- **85.8% of visual tokens pruned** (highlight seconds vs video seconds, all 187 outputs).
 - **39.4 s of CPU time per minute of video**, full pipeline from an empty cache on a
   laptop CPU (`tools/latency.py`, `results/latency.csv`). No GPU needed.
-- Every component helps; ablations in `results/ablation_report.md` and
-  `results/ablation_tune.md` (`tools/ablate.py`).
+- Every component helps on `tune` except the verb-noun prior in the selector, which is
+  within noise; ablations in `results/ablation_report.md` and `results/ablation_tune.md`
+  (`tools/ablate.py`).
 
 ## How it works
 

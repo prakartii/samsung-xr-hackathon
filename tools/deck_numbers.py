@@ -2,7 +2,8 @@
 
     python tools/deck_numbers.py --pred results/preds/full_report --tag "<leaderboard tag>"
 
-1. % of oracle coverage: `pct_oracle` of the leaderboard row with --tag (EPIC, report).
+1. % of oracle coverage: `pct_oracle` of the leaderboard row with --tag (EPIC, report;
+   official capture rule since 2026-11-21).
 2. Visual tokens pruned: 1 - (highlight seconds / video seconds) pooled over every
    output in --pred (frames kept vs total at any fixed frame rate).
 3. CPU seconds per minute of video: pooled over results/latency.csv.

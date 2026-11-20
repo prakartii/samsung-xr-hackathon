@@ -9,7 +9,7 @@ from rewind_eval.baselines import random_highlights, uniform_highlights
 from rewind_eval.coverage import coverage
 from rewind_eval.gt_fpvsum import FpvGT
 from rewind_eval.oracle import coverage_oracle, f1_oracle
-from rewind_eval.score import WEIGHTS, EvalData, Prediction, compute_scores
+from rewind_eval.score import WEIGHTS, EvalData, Prediction, compute_scores, oracle_predictions
 
 # --- baselines ---------------------------------------------------------------
 
@@ -196,6 +196,31 @@ def test_compute_scores_capture_rules_differ_on_a_grazing_highlight():
 
     assert s["coverage_any"] == pytest.approx(1.0, abs=1e-12)
     assert s["coverage_frac"] == pytest.approx(0.5, abs=1e-12)
+
+
+def test_compute_scores_pct_oracle_uses_the_official_capture_rule():
+    # Same grazing highlight: any = 1.0 but official (fraction) coverage = 0.5. The
+    # oracle reference (1.0 here) is under the official rule too, so % of oracle is
+    # 0.5 / 1.0 = 0.5, not the any-overlap 1.0 / 1.0.
+    preds = {"E": Prediction([(9.0, 13.05), (50.9, 54.95)])}
+
+    s = compute_scores(
+        make_data(), preds, budget_frac=0.145, lam=1.0, theta=0.5, oracle_cov={"E": 1.0}
+    )
+
+    assert s["pct_oracle"] == pytest.approx(0.5, abs=1e-12)
+
+
+def test_oracle_predictions_capture_under_the_official_rule():
+    # GT (10, 20) "open door", 100 s, budget 0.145 -> 14.5 s; windows 4.05 or 8 s.
+    # Any-overlap: the first window touching it, (6.0, 10.05), "captures" it with 0.05 s
+    # inside. Official rule: >= 5 s of it must lie inside the union of highlights, so
+    # the oracle must actually cover most of the action.
+    gt = [((10.0, 20.0), "open", "door")]
+    data = EvalData(epic_gt={"E": gt}, epic_dur={"E": 100.0}, fpv_gt={}, fpv_dur={})
+    hl = oracle_predictions(data, 0.145, (4.05, 8.0), 0.5)["E"].highlights
+    inside = sum(max(0.0, min(e, 20.0) - max(s_, 10.0)) for s_, e in hl)
+    assert inside >= 5.0
 
 
 def test_compute_scores_leaves_mistimed_fpvsum_gt_out_of_f1_only():
