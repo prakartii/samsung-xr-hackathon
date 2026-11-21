@@ -74,3 +74,41 @@ def reality_scores(
     z = (x - np.asarray(mean)) / np.where(np.asarray(std) > 0, np.asarray(std), 1.0)
     logit = coef[0] + z @ np.asarray(coef[1:])
     return 1.0 / (1.0 + np.exp(-logit))
+
+
+PAIR_FEATURES = (*FEATURES, "pair_prob", "log_pair_rank", "pair_ratio")
+
+
+def pair_features(clusters: Sequence[Cluster], duration: float) -> tuple[np.ndarray, list]:
+    """(rows, keys): one row per (cluster, pair) = the cluster's features + the pair's
+    probability within the cluster, log(1 + rank) and probability / top-1 probability."""
+    cx = cluster_features(clusters, duration)
+    rows, keys = [], []
+    for i, c in enumerate(clusters):
+        items = sorted(c.pair_dist.items(), key=lambda kv: (-kv[1], kv[0]))
+        total = sum(p for _, p in items) or 1.0
+        top = items[0][1] / total if items else 1.0
+        for r, (pair, p) in enumerate(items):
+            q = p / total
+            rows.append([*cx[i], q, math.log1p(r), q / top if top > 0 else 0.0])
+            keys.append((i, pair))
+    return (np.array(rows, dtype=float) if rows else np.zeros((0, len(PAIR_FEATURES)))), keys
+
+
+def pair_scores(
+    clusters: Sequence[Cluster],
+    duration: float,
+    coef: Sequence[float],
+    mean: Sequence[float],
+    std: Sequence[float],
+) -> list[dict]:
+    """Per cluster, {pair: P(this pair really happens in the cluster span)}."""
+    x, keys = pair_features(clusters, duration)
+    out: list[dict] = [{} for _ in clusters]
+    if x.shape[0] == 0:
+        return out
+    sd = np.where(np.asarray(std) > 0, np.asarray(std), 1.0)
+    p = 1.0 / (1.0 + np.exp(-(coef[0] + ((x - np.asarray(mean)) / sd) @ np.asarray(coef[1:]))))
+    for (i, pair), v in zip(keys, p, strict=True):
+        out[i][pair] = float(v)
+    return out
