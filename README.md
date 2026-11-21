@@ -32,7 +32,9 @@ of it lies inside the highlights (`rewind_eval`, `results/leaderboard.csv`):
 
 "% of oracle" divides our coverage by that of a reference that sees the ground truth
 and picks windows under the same rule and budget. FPVSum settings are untuned defaults
-(see the tuning-split statement).
+(see the tuning-split statement). Highlight F1 is over the 44 FPVSum videos with usable
+ground-truth timing: `rewind_eval` leaves out three videos whose annotation timing doesn't
+match any standard frame rate. Over all 47, F1 is 0.222 and the weighted total about 0.288.
 
 - **85.7% of visual tokens pruned** (highlight seconds vs video seconds, all 187 outputs).
 - **41 s of CPU time per minute of video** (measured 2026-11-21): `run.sh`'s full
