@@ -273,7 +273,7 @@ def test_config_hash_ignores_key_order_and_int_vs_float(default_cfg_dict):
 
 def test_config_hash_changes_when_a_value_changes(default_cfg_dict):
     before = config_hash(config_from_dict(default_cfg_dict))
-    default_cfg_dict["select"]["stride"] = 0.25
+    default_cfg_dict["select"]["stride"] = 0.5  # any value other than the default
 
     assert config_hash(config_from_dict(default_cfg_dict)) != before
 
