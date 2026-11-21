@@ -84,7 +84,7 @@ select:
   mode: expected           # expected | dedup: expected coverage (§5.4), or the label-dedup baseline (P5 kill rule)
 
 hedge:
-  share: 0.0               # budget fraction for hedge windows; 0 until activity signals exist (P5 sim: 0.125 cost ~0.08 coverage)
+  share: 0.0               # budget fraction for hedge windows; off: lost coverage on tune at 0.1 and 0.2 (2026-11-21)
   gap: 1.0                 # s kept clear around selected windows
   strong: 0.8              # clusters at or above this confidence are masked out
   min_spacing: 10.0        # min s between hedge window centres
