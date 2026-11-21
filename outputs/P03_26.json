@@ -1,0 +1,784 @@
+{
+ "team_id": "VITVellore_Nexus",
+ "video_id": "P03_26",
+ "duration_sec": 11.14,
+ "label": {
+  "name": "cooking",
+  "score": 1.0
+ },
+ "actions": [
+  {
+   "segment": [
+    6.36,
+    7.61
+   ],
+   "verb": "open",
+   "noun": "fridge",
+   "score": 0.8325
+  },
+  {
+   "segment": [
+    3.12,
+    4.7
+   ],
+   "verb": "put",
+   "noun": "plate",
+   "score": 0.7981
+  },
+  {
+   "segment": [
+    7.76,
+    9.16
+   ],
+   "verb": "insert",
+   "noun": "fridge",
+   "score": 0.6469
+  },
+  {
+   "segment": [
+    7.76,
+    9.16
+   ],
+   "verb": "insert",
+   "noun": "box",
+   "score": 0.6386
+  },
+  {
+   "segment": [
+    7.76,
+    9.16
+   ],
+   "verb": "insert",
+   "noun": "bowl",
+   "score": 0.6093
+  },
+  {
+   "segment": [
+    6.36,
+    7.61
+   ],
+   "verb": "insert",
+   "noun": "fridge",
+   "score": 0.6029
+  },
+  {
+   "segment": [
+    9.1,
+    10.02
+   ],
+   "verb": "close",
+   "noun": "fridge",
+   "score": 0.598
+  },
+  {
+   "segment": [
+    6.36,
+    7.61
+   ],
+   "verb": "put",
+   "noun": "fridge",
+   "score": 0.5824
+  },
+  {
+   "segment": [
+    7.76,
+    9.16
+   ],
+   "verb": "insert",
+   "noun": "container",
+   "score": 0.5779
+  },
+  {
+   "segment": [
+    7.76,
+    9.16
+   ],
+   "verb": "put",
+   "noun": "fridge",
+   "score": 0.5728
+  },
+  {
+   "segment": [
+    6.36,
+    7.61
+   ],
+   "verb": "open",
+   "noun": "box",
+   "score": 0.5599
+  },
+  {
+   "segment": [
+    3.12,
+    4.7
+   ],
+   "verb": "move",
+   "noun": "plate",
+   "score": 0.5342
+  },
+  {
+   "segment": [
+    6.36,
+    7.61
+   ],
+   "verb": "take",
+   "noun": "fridge",
+   "score": 0.508
+  },
+  {
+   "segment": [
+    3.12,
+    4.7
+   ],
+   "verb": "take",
+   "noun": "plate",
+   "score": 0.5042
+  },
+  {
+   "segment": [
+    3.12,
+    4.7
+   ],
+   "verb": "open",
+   "noun": "plate",
+   "score": 0.4864
+  },
+  {
+   "segment": [
+    3.12,
+    4.7
+   ],
+   "verb": "put",
+   "noun": "cupboard",
+   "score": 0.4842
+  },
+  {
+   "segment": [
+    9.1,
+    10.02
+   ],
+   "verb": "put",
+   "noun": "fridge",
+   "score": 0.4403
+  },
+  {
+   "segment": [
+    9.1,
+    10.02
+   ],
+   "verb": "close",
+   "noun": "cheese",
+   "score": 0.3873
+  },
+  {
+   "segment": [
+    9.1,
+    10.02
+   ],
+   "verb": "remove",
+   "noun": "fridge",
+   "score": 0.3819
+  },
+  {
+   "segment": [
+    9.1,
+    10.02
+   ],
+   "verb": "close",
+   "noun": "juice",
+   "score": 0.3814
+  },
+  {
+   "segment": [
+    1.32,
+    4.69
+   ],
+   "verb": "put",
+   "noun": "plate",
+   "score": 0.3785
+  },
+  {
+   "segment": [
+    1.32,
+    4.69
+   ],
+   "verb": "take",
+   "noun": "plate",
+   "score": 0.3769
+  },
+  {
+   "segment": [
+    1.32,
+    4.69
+   ],
+   "verb": "transition",
+   "noun": "plate",
+   "score": 0.3461
+  },
+  {
+   "segment": [
+    1.09,
+    2.97
+   ],
+   "verb": "take",
+   "noun": "cupboard",
+   "score": 0.3382
+  },
+  {
+   "segment": [
+    1.32,
+    4.69
+   ],
+   "verb": "close",
+   "noun": "plate",
+   "score": 0.335
+  },
+  {
+   "segment": [
+    1.09,
+    2.97
+   ],
+   "verb": "take",
+   "noun": "lid",
+   "score": 0.331
+  },
+  {
+   "segment": [
+    0.51,
+    2.28
+   ],
+   "verb": "transition",
+   "noun": "cupboard",
+   "score": 0.3309
+  },
+  {
+   "segment": [
+    1.09,
+    2.97
+   ],
+   "verb": "take",
+   "noun": "drawer",
+   "score": 0.3259
+  },
+  {
+   "segment": [
+    0.51,
+    2.28
+   ],
+   "verb": "transition",
+   "noun": "lid",
+   "score": 0.3238
+  },
+  {
+   "segment": [
+    2.6,
+    5.77
+   ],
+   "verb": "move",
+   "noun": "fridge",
+   "score": 0.3204
+  },
+  {
+   "segment": [
+    0.51,
+    2.28
+   ],
+   "verb": "transition",
+   "noun": "drawer",
+   "score": 0.3187
+  },
+  {
+   "segment": [
+    1.09,
+    2.97
+   ],
+   "verb": "take",
+   "noun": "plate",
+   "score": 0.3182
+  },
+  {
+   "segment": [
+    1.32,
+    4.69
+   ],
+   "verb": "put",
+   "noun": "cupboard",
+   "score": 0.3118
+  },
+  {
+   "segment": [
+    0.51,
+    2.28
+   ],
+   "verb": "transition",
+   "noun": "plate",
+   "score": 0.3112
+  },
+  {
+   "segment": [
+    5.33,
+    6.84
+   ],
+   "verb": "open",
+   "noun": "fridge",
+   "score": 0.3049
+  },
+  {
+   "segment": [
+    2.6,
+    5.77
+   ],
+   "verb": "take",
+   "noun": "fridge",
+   "score": 0.3025
+  },
+  {
+   "segment": [
+    1.09,
+    2.97
+   ],
+   "verb": "take",
+   "noun": "kitchen",
+   "score": 0.2965
+  },
+  {
+   "segment": [
+    5.33,
+    6.84
+   ],
+   "verb": "put",
+   "noun": "fridge",
+   "score": 0.2937
+  },
+  {
+   "segment": [
+    2.6,
+    5.77
+   ],
+   "verb": "move",
+   "noun": "pan",
+   "score": 0.2936
+  },
+  {
+   "segment": [
+    2.6,
+    5.77
+   ],
+   "verb": "open",
+   "noun": "fridge",
+   "score": 0.2918
+  },
+  {
+   "segment": [
+    0.51,
+    2.28
+   ],
+   "verb": "transition",
+   "noun": "kitchen",
+   "score": 0.29
+  },
+  {
+   "segment": [
+    5.33,
+    6.84
+   ],
+   "verb": "take",
+   "noun": "fridge",
+   "score": 0.2869
+  },
+  {
+   "segment": [
+    10.34,
+    11.14
+   ],
+   "verb": "close",
+   "noun": "fridge",
+   "score": 0.2866
+  },
+  {
+   "segment": [
+    2.6,
+    5.77
+   ],
+   "verb": "move",
+   "noun": "lid",
+   "score": 0.2837
+  },
+  {
+   "segment": [
+    10.34,
+    11.14
+   ],
+   "verb": "close",
+   "noun": "juice",
+   "score": 0.2793
+  },
+  {
+   "segment": [
+    5.33,
+    6.84
+   ],
+   "verb": "open",
+   "noun": "plate",
+   "score": 0.2786
+  },
+  {
+   "segment": [
+    10.34,
+    11.14
+   ],
+   "verb": "put",
+   "noun": "fridge",
+   "score": 0.2778
+  },
+  {
+   "segment": [
+    5.33,
+    6.84
+   ],
+   "verb": "transition",
+   "noun": "fridge",
+   "score": 0.2724
+  },
+  {
+   "segment": [
+    10.34,
+    11.14
+   ],
+   "verb": "put",
+   "noun": "juice",
+   "score": 0.2707
+  },
+  {
+   "segment": [
+    10.34,
+    11.14
+   ],
+   "verb": "take",
+   "noun": "fridge",
+   "score": 0.2704
+  },
+  {
+   "segment": [
+    2.2,
+    3.42
+   ],
+   "verb": "put",
+   "noun": "cutlery",
+   "score": 0.2326
+  },
+  {
+   "segment": [
+    4.89,
+    6.07
+   ],
+   "verb": "transition",
+   "noun": "fridge",
+   "score": 0.2283
+  },
+  {
+   "segment": [
+    2.2,
+    3.42
+   ],
+   "verb": "put",
+   "noun": "plate",
+   "score": 0.2256
+  },
+  {
+   "segment": [
+    2.2,
+    3.42
+   ],
+   "verb": "put",
+   "noun": "tray",
+   "score": 0.2181
+  },
+  {
+   "segment": [
+    2.2,
+    3.42
+   ],
+   "verb": "take",
+   "noun": "cutlery",
+   "score": 0.217
+  },
+  {
+   "segment": [
+    2.2,
+    3.42
+   ],
+   "verb": "put",
+   "noun": "fork",
+   "score": 0.2125
+  },
+  {
+   "segment": [
+    4.89,
+    6.07
+   ],
+   "verb": "transition",
+   "noun": "squash",
+   "score": 0.2125
+  },
+  {
+   "segment": [
+    4.89,
+    6.07
+   ],
+   "verb": "transition",
+   "noun": "glass",
+   "score": 0.2108
+  },
+  {
+   "segment": [
+    4.89,
+    6.07
+   ],
+   "verb": "transition",
+   "noun": "knife",
+   "score": 0.2107
+  },
+  {
+   "segment": [
+    10.83,
+    11.14
+   ],
+   "verb": "put",
+   "noun": "drawer",
+   "score": 0.2107
+  },
+  {
+   "segment": [
+    4.89,
+    6.07
+   ],
+   "verb": "transition",
+   "noun": "egg",
+   "score": 0.2078
+  },
+  {
+   "segment": [
+    0.0,
+    1.12
+   ],
+   "verb": "close",
+   "noun": "drawer",
+   "score": 0.2071
+  },
+  {
+   "segment": [
+    10.83,
+    11.14
+   ],
+   "verb": "put",
+   "noun": "salad",
+   "score": 0.206
+  },
+  {
+   "segment": [
+    0.0,
+    1.12
+   ],
+   "verb": "close",
+   "noun": "plate",
+   "score": 0.2044
+  },
+  {
+   "segment": [
+    0.0,
+    1.12
+   ],
+   "verb": "close",
+   "noun": "cutlery",
+   "score": 0.2033
+  },
+  {
+   "segment": [
+    0.0,
+    1.12
+   ],
+   "verb": "put",
+   "noun": "drawer",
+   "score": 0.2017
+  },
+  {
+   "segment": [
+    5.14,
+    11.14
+   ],
+   "verb": "put",
+   "noun": "vegetable",
+   "score": 0.2017
+  },
+  {
+   "segment": [
+    10.83,
+    11.14
+   ],
+   "verb": "close",
+   "noun": "drawer",
+   "score": 0.1998
+  },
+  {
+   "segment": [
+    5.14,
+    11.14
+   ],
+   "verb": "put",
+   "noun": "dishwasher",
+   "score": 0.1992
+  },
+  {
+   "segment": [
+    0.0,
+    1.12
+   ],
+   "verb": "put",
+   "noun": "plate",
+   "score": 0.1991
+  },
+  {
+   "segment": [
+    10.83,
+    11.14
+   ],
+   "verb": "take",
+   "noun": "drawer",
+   "score": 0.1972
+  },
+  {
+   "segment": [
+    10.83,
+    11.14
+   ],
+   "verb": "close",
+   "noun": "salad",
+   "score": 0.1953
+  },
+  {
+   "segment": [
+    5.14,
+    11.14
+   ],
+   "verb": "put",
+   "noun": "fridge",
+   "score": 0.1933
+  },
+  {
+   "segment": [
+    0.0,
+    0.53
+   ],
+   "verb": "take",
+   "noun": "drawer",
+   "score": 0.1915
+  },
+  {
+   "segment": [
+    0.0,
+    0.53
+   ],
+   "verb": "take",
+   "noun": "plate",
+   "score": 0.189
+  },
+  {
+   "segment": [
+    0.0,
+    0.53
+   ],
+   "verb": "take",
+   "noun": "cutlery",
+   "score": 0.188
+  },
+  {
+   "segment": [
+    0.0,
+    0.53
+   ],
+   "verb": "eat",
+   "noun": "drawer",
+   "score": 0.187
+  },
+  {
+   "segment": [
+    0.0,
+    0.53
+   ],
+   "verb": "drink",
+   "noun": "drawer",
+   "score": 0.1847
+  },
+  {
+   "segment": [
+    5.14,
+    11.14
+   ],
+   "verb": "put",
+   "noun": "lettuce",
+   "score": 0.1741
+  },
+  {
+   "segment": [
+    5.14,
+    11.14
+   ],
+   "verb": "put",
+   "noun": "plate",
+   "score": 0.1708
+  },
+  {
+   "segment": [
+    0.0,
+    9.44
+   ],
+   "verb": "insert",
+   "noun": "fridge",
+   "score": 0.1652
+  },
+  {
+   "segment": [
+    0.0,
+    9.44
+   ],
+   "verb": "insert",
+   "noun": "dishwasher",
+   "score": 0.149
+  },
+  {
+   "segment": [
+    0.0,
+    9.44
+   ],
+   "verb": "insert",
+   "noun": "plate",
+   "score": 0.146
+  },
+  {
+   "segment": [
+    0.0,
+    9.44
+   ],
+   "verb": "insert",
+   "noun": "cupboard",
+   "score": 0.1394
+  },
+  {
+   "segment": [
+    0.0,
+    9.44
+   ],
+   "verb": "turn",
+   "noun": "fridge",
+   "score": 0.138
+  }
+ ],
+ "highlights": [
+  {
+   "segment": [
+    7.0,
+    11.05
+   ]
+  }
+ ]
+}

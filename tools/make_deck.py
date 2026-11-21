@@ -81,7 +81,7 @@ _preds = sorted((REPO / "results" / "preds" / "full_report").glob("*.json"))
 _docs = [json.loads(q.read_text(encoding="utf-8")) for q in _preds]
 _kept = sum(e - b for d in _docs for b, e in (h["segment"] for h in d["highlights"]))
 PRUNED = 1.0 - _kept / sum(float(d["duration_sec"]) for d in _docs)
-with (REPO / "results" / "latency.csv").open(encoding="utf-8") as _f:
+with (REPO / "results" / "latency_2026-11-21.csv").open(encoding="utf-8") as _f:
     _lat = list(csv.DictReader(_f))
 SEC_PER_MIN = sum(float(r["seconds"]) for r in _lat) / (
     sum(float(r["duration_sec"]) for r in _lat) / 60.0
@@ -406,7 +406,7 @@ node(
     1.5,
     1.55,
     "Signals",
-    "one PyAV decode: optical flow, MediaPipe hands, CLIP frames, audio",
+    "one PyAV decode: optical flow, MediaPipe hands, CLIP frames",
     CYAN,
     "Signals",
 )
@@ -427,7 +427,7 @@ lane = [
     ("ActionFormer", "verb + noun detections"),
     ("Pair", "+ verb-noun prior"),
     ("Cluster", "into distinct steps"),
-    ("Select", "expected coverage + hedge"),
+    ("Select", "expected coverage, ≥ 50% rule"),
 ]
 for i, (h, sub) in enumerate(lane):
     node(4.45 + 1.27 * i, 1.9, 1.12, 0.8, h, sub, TEAL, f"EPIC {i + 1}")
@@ -446,7 +446,7 @@ text(
     name="FPVSum lane label",
 )
 fl = [
-    ("Importance", "flow, hands, motion, scene cuts, audio", 1.75),
+    ("Importance", "flow, hands, camera motion, scene cuts", 1.75),
     ("Windows", "best ≥ 4 s per shot, 15% budget", 1.45),
     ("Label", "CLIP zero-shot category", 1.4),
 ]
@@ -639,12 +639,12 @@ pts = [
     (
         "Expected coverage, not label dedup",
         "Top-1 labels are often wrong. We keep top-k label distributions per cluster and "
-        "maximize expected distinct steps: submodular, so greedy is near-optimal.",
+        "greedily maximize expected distinct steps per second of highlight.",
     ),
     (
-        "Hedge windows",
-        "A small share of the budget goes to active, hands-busy stretches "
-        "with no detections, to catch steps the detector missed.",
+        "Optimizes the official rule",
+        "A window only gets credit for actions it covers at least 50% of, the rule Samsung "
+        "scores; switching to it raised coverage on held-out videos.",
     ),
     (
         "Honest by construction",
@@ -740,7 +740,7 @@ text(
         [("Demo tools, from our JSON", {"bold": True, "size": 13})],
         [
             ("make_demo.py  ", {"font": "Courier New", "size": 11, "color": TEAL}),
-            ("the 2:27 demo video", {"size": 11, "color": MUTED}),
+            ("the demo video (under 3 min)", {"size": 11, "color": MUTED}),
         ],
         [
             ("make_reel.py  ", {"font": "Courier New", "size": 11, "color": TEAL}),

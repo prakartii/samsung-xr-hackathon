@@ -1,0 +1,1324 @@
+{
+ "team_id": "VITVellore_Nexus",
+ "video_id": "P32_07",
+ "duration_sec": 28.99,
+ "label": {
+  "name": "cooking",
+  "score": 1.0
+ },
+ "actions": [
+  {
+   "segment": [
+    3.43,
+    9.93
+   ],
+   "verb": "remove",
+   "noun": "bag",
+   "score": 0.5773
+  },
+  {
+   "segment": [
+    3.43,
+    9.93
+   ],
+   "verb": "remove",
+   "noun": "salad",
+   "score": 0.5705
+  },
+  {
+   "segment": [
+    18.74,
+    22.96
+   ],
+   "verb": "take",
+   "noun": "lettuce",
+   "score": 0.5687
+  },
+  {
+   "segment": [
+    3.43,
+    9.93
+   ],
+   "verb": "remove",
+   "noun": "package",
+   "score": 0.5342
+  },
+  {
+   "segment": [
+    18.74,
+    22.96
+   ],
+   "verb": "take",
+   "noun": "package",
+   "score": 0.53
+  },
+  {
+   "segment": [
+    18.74,
+    22.96
+   ],
+   "verb": "take",
+   "noun": "salad",
+   "score": 0.5297
+  },
+  {
+   "segment": [
+    3.43,
+    9.93
+   ],
+   "verb": "remove",
+   "noun": "water",
+   "score": 0.5222
+  },
+  {
+   "segment": [
+    3.43,
+    9.93
+   ],
+   "verb": "take",
+   "noun": "bag",
+   "score": 0.5212
+  },
+  {
+   "segment": [
+    13.61,
+    16.65
+   ],
+   "verb": "insert",
+   "noun": "rice",
+   "score": 0.5173
+  },
+  {
+   "segment": [
+    18.74,
+    22.96
+   ],
+   "verb": "take",
+   "noun": "rice",
+   "score": 0.4981
+  },
+  {
+   "segment": [
+    13.61,
+    16.65
+   ],
+   "verb": "take",
+   "noun": "rice",
+   "score": 0.4895
+  },
+  {
+   "segment": [
+    13.61,
+    16.65
+   ],
+   "verb": "remove",
+   "noun": "rice",
+   "score": 0.4887
+  },
+  {
+   "segment": [
+    18.74,
+    22.96
+   ],
+   "verb": "take",
+   "noun": "cover",
+   "score": 0.4849
+  },
+  {
+   "segment": [
+    0.54,
+    2.96
+   ],
+   "verb": "take",
+   "noun": "package",
+   "score": 0.4755
+  },
+  {
+   "segment": [
+    0.54,
+    2.96
+   ],
+   "verb": "take",
+   "noun": "bag",
+   "score": 0.4743
+  },
+  {
+   "segment": [
+    0.54,
+    2.96
+   ],
+   "verb": "remove",
+   "noun": "package",
+   "score": 0.4722
+  },
+  {
+   "segment": [
+    0.54,
+    2.96
+   ],
+   "verb": "remove",
+   "noun": "bag",
+   "score": 0.4709
+  },
+  {
+   "segment": [
+    0.54,
+    2.96
+   ],
+   "verb": "open",
+   "noun": "package",
+   "score": 0.4708
+  },
+  {
+   "segment": [
+    24.09,
+    26.84
+   ],
+   "verb": "close",
+   "noun": "milk",
+   "score": 0.4656
+  },
+  {
+   "segment": [
+    11.35,
+    13.86
+   ],
+   "verb": "remove",
+   "noun": "food",
+   "score": 0.4646
+  },
+  {
+   "segment": [
+    11.35,
+    13.86
+   ],
+   "verb": "remove",
+   "noun": "plate",
+   "score": 0.4598
+  },
+  {
+   "segment": [
+    24.09,
+    26.84
+   ],
+   "verb": "close",
+   "noun": "package",
+   "score": 0.457
+  },
+  {
+   "segment": [
+    16.26,
+    18.14
+   ],
+   "verb": "insert",
+   "noun": "container",
+   "score": 0.4534
+  },
+  {
+   "segment": [
+    13.61,
+    16.65
+   ],
+   "verb": "put",
+   "noun": "rice",
+   "score": 0.4439
+  },
+  {
+   "segment": [
+    24.09,
+    26.84
+   ],
+   "verb": "open",
+   "noun": "milk",
+   "score": 0.4416
+  },
+  {
+   "segment": [
+    11.35,
+    13.86
+   ],
+   "verb": "remove",
+   "noun": "mat",
+   "score": 0.4413
+  },
+  {
+   "segment": [
+    24.09,
+    26.84
+   ],
+   "verb": "turn-on",
+   "noun": "milk",
+   "score": 0.4376
+  },
+  {
+   "segment": [
+    24.09,
+    26.84
+   ],
+   "verb": "open",
+   "noun": "package",
+   "score": 0.4334
+  },
+  {
+   "segment": [
+    16.26,
+    18.14
+   ],
+   "verb": "put",
+   "noun": "container",
+   "score": 0.4265
+  },
+  {
+   "segment": [
+    23.0,
+    24.07
+   ],
+   "verb": "put",
+   "noun": "colander",
+   "score": 0.4255
+  },
+  {
+   "segment": [
+    11.35,
+    13.86
+   ],
+   "verb": "insert",
+   "noun": "food",
+   "score": 0.4238
+  },
+  {
+   "segment": [
+    12.61,
+    19.53
+   ],
+   "verb": "put",
+   "noun": "wrap",
+   "score": 0.4232
+  },
+  {
+   "segment": [
+    11.35,
+    13.86
+   ],
+   "verb": "insert",
+   "noun": "plate",
+   "score": 0.4194
+  },
+  {
+   "segment": [
+    23.0,
+    24.07
+   ],
+   "verb": "put",
+   "noun": "plate",
+   "score": 0.4148
+  },
+  {
+   "segment": [
+    23.0,
+    24.07
+   ],
+   "verb": "put",
+   "noun": "cover",
+   "score": 0.408
+  },
+  {
+   "segment": [
+    13.61,
+    16.65
+   ],
+   "verb": "open",
+   "noun": "rice",
+   "score": 0.4071
+  },
+  {
+   "segment": [
+    16.26,
+    18.14
+   ],
+   "verb": "insert",
+   "noun": "rice",
+   "score": 0.4009
+  },
+  {
+   "segment": [
+    12.61,
+    19.53
+   ],
+   "verb": "put",
+   "noun": "dumpling",
+   "score": 0.3994
+  },
+  {
+   "segment": [
+    8.65,
+    11.14
+   ],
+   "verb": "remove",
+   "noun": "mat",
+   "score": 0.3951
+  },
+  {
+   "segment": [
+    16.26,
+    18.14
+   ],
+   "verb": "insert",
+   "noun": "salt",
+   "score": 0.3928
+  },
+  {
+   "segment": [
+    8.65,
+    11.14
+   ],
+   "verb": "remove",
+   "noun": "plate",
+   "score": 0.3895
+  },
+  {
+   "segment": [
+    2.64,
+    5.06
+   ],
+   "verb": "open",
+   "noun": "bag",
+   "score": 0.3812
+  },
+  {
+   "segment": [
+    16.26,
+    18.14
+   ],
+   "verb": "put",
+   "noun": "rice",
+   "score": 0.377
+  },
+  {
+   "segment": [
+    10.51,
+    12.96
+   ],
+   "verb": "put",
+   "noun": "mat",
+   "score": 0.3727
+  },
+  {
+   "segment": [
+    8.65,
+    11.14
+   ],
+   "verb": "remove",
+   "noun": "salad",
+   "score": 0.368
+  },
+  {
+   "segment": [
+    12.61,
+    19.53
+   ],
+   "verb": "put",
+   "noun": "mat",
+   "score": 0.3667
+  },
+  {
+   "segment": [
+    23.0,
+    24.07
+   ],
+   "verb": "put",
+   "noun": "wrap",
+   "score": 0.3648
+  },
+  {
+   "segment": [
+    23.0,
+    24.07
+   ],
+   "verb": "put",
+   "noun": "pot",
+   "score": 0.3645
+  },
+  {
+   "segment": [
+    9.78,
+    10.95
+   ],
+   "verb": "put",
+   "noun": "plate",
+   "score": 0.3631
+  },
+  {
+   "segment": [
+    8.65,
+    11.14
+   ],
+   "verb": "remove",
+   "noun": "bag",
+   "score": 0.3581
+  },
+  {
+   "segment": [
+    2.64,
+    5.06
+   ],
+   "verb": "open",
+   "noun": "package",
+   "score": 0.3575
+  },
+  {
+   "segment": [
+    20.74,
+    23.79
+   ],
+   "verb": "take",
+   "noun": "package",
+   "score": 0.3569
+  },
+  {
+   "segment": [
+    2.64,
+    5.06
+   ],
+   "verb": "remove",
+   "noun": "bag",
+   "score": 0.3559
+  },
+  {
+   "segment": [
+    2.64,
+    5.06
+   ],
+   "verb": "open",
+   "noun": "spinach",
+   "score": 0.3549
+  },
+  {
+   "segment": [
+    8.65,
+    11.14
+   ],
+   "verb": "remove",
+   "noun": "dumpling",
+   "score": 0.3541
+  },
+  {
+   "segment": [
+    27.14,
+    28.55
+   ],
+   "verb": "open",
+   "noun": "cover",
+   "score": 0.35
+  },
+  {
+   "segment": [
+    10.51,
+    12.96
+   ],
+   "verb": "put",
+   "noun": "rice",
+   "score": 0.3468
+  },
+  {
+   "segment": [
+    2.64,
+    5.06
+   ],
+   "verb": "open",
+   "noun": "grape",
+   "score": 0.3449
+  },
+  {
+   "segment": [
+    20.74,
+    23.79
+   ],
+   "verb": "take",
+   "noun": "colander",
+   "score": 0.3448
+  },
+  {
+   "segment": [
+    6.13,
+    22.31
+   ],
+   "verb": "remove",
+   "noun": "wrap",
+   "score": 0.3437
+  },
+  {
+   "segment": [
+    12.61,
+    19.53
+   ],
+   "verb": "remove",
+   "noun": "wrap",
+   "score": 0.3437
+  },
+  {
+   "segment": [
+    27.14,
+    28.55
+   ],
+   "verb": "open",
+   "noun": "top",
+   "score": 0.3398
+  },
+  {
+   "segment": [
+    27.14,
+    28.55
+   ],
+   "verb": "open",
+   "noun": "cap",
+   "score": 0.3368
+  },
+  {
+   "segment": [
+    20.74,
+    23.79
+   ],
+   "verb": "take",
+   "noun": "rice",
+   "score": 0.3354
+  },
+  {
+   "segment": [
+    20.74,
+    23.79
+   ],
+   "verb": "take",
+   "noun": "plate",
+   "score": 0.3327
+  },
+  {
+   "segment": [
+    9.78,
+    10.95
+   ],
+   "verb": "put",
+   "noun": "mat",
+   "score": 0.3324
+  },
+  {
+   "segment": [
+    10.51,
+    12.96
+   ],
+   "verb": "take",
+   "noun": "mat",
+   "score": 0.3323
+  },
+  {
+   "segment": [
+    18.78,
+    20.78
+   ],
+   "verb": "take",
+   "noun": "lettuce",
+   "score": 0.3306
+  },
+  {
+   "segment": [
+    9.78,
+    10.95
+   ],
+   "verb": "put",
+   "noun": "salad",
+   "score": 0.3303
+  },
+  {
+   "segment": [
+    20.74,
+    23.79
+   ],
+   "verb": "move",
+   "noun": "package",
+   "score": 0.33
+  },
+  {
+   "segment": [
+    6.13,
+    22.31
+   ],
+   "verb": "remove",
+   "noun": "package",
+   "score": 0.3294
+  },
+  {
+   "segment": [
+    9.78,
+    10.95
+   ],
+   "verb": "remove",
+   "noun": "plate",
+   "score": 0.3284
+  },
+  {
+   "segment": [
+    27.14,
+    28.55
+   ],
+   "verb": "open",
+   "noun": "bottle",
+   "score": 0.3282
+  },
+  {
+   "segment": [
+    27.14,
+    28.55
+   ],
+   "verb": "open",
+   "noun": "button",
+   "score": 0.328
+  },
+  {
+   "segment": [
+    7.34,
+    10.34
+   ],
+   "verb": "remove",
+   "noun": "mat",
+   "score": 0.3269
+  },
+  {
+   "segment": [
+    6.13,
+    22.31
+   ],
+   "verb": "remove",
+   "noun": "dumpling",
+   "score": 0.3244
+  },
+  {
+   "segment": [
+    12.61,
+    19.53
+   ],
+   "verb": "remove",
+   "noun": "dumpling",
+   "score": 0.3244
+  },
+  {
+   "segment": [
+    7.34,
+    10.34
+   ],
+   "verb": "remove",
+   "noun": "plate",
+   "score": 0.3222
+  },
+  {
+   "segment": [
+    26.65,
+    27.63
+   ],
+   "verb": "open",
+   "noun": "machine:washing",
+   "score": 0.3213
+  },
+  {
+   "segment": [
+    2.83,
+    4.01
+   ],
+   "verb": "take",
+   "noun": "package",
+   "score": 0.3212
+  },
+  {
+   "segment": [
+    2.83,
+    4.01
+   ],
+   "verb": "take",
+   "noun": "spinach",
+   "score": 0.3188
+  },
+  {
+   "segment": [
+    6.13,
+    22.31
+   ],
+   "verb": "remove",
+   "noun": "cover",
+   "score": 0.3186
+  },
+  {
+   "segment": [
+    3.58,
+    6.41
+   ],
+   "verb": "take",
+   "noun": "kale",
+   "score": 0.3118
+  },
+  {
+   "segment": [
+    2.83,
+    4.01
+   ],
+   "verb": "take",
+   "noun": "grape",
+   "score": 0.3099
+  },
+  {
+   "segment": [
+    10.51,
+    12.96
+   ],
+   "verb": "put",
+   "noun": "plate",
+   "score": 0.3099
+  },
+  {
+   "segment": [
+    10.51,
+    12.96
+   ],
+   "verb": "take",
+   "noun": "rice",
+   "score": 0.3092
+  },
+  {
+   "segment": [
+    3.58,
+    6.41
+   ],
+   "verb": "take",
+   "noun": "spinach",
+   "score": 0.3091
+  },
+  {
+   "segment": [
+    2.83,
+    4.01
+   ],
+   "verb": "take",
+   "noun": "kale",
+   "score": 0.3071
+  },
+  {
+   "segment": [
+    18.78,
+    20.78
+   ],
+   "verb": "take",
+   "noun": "cupboard",
+   "score": 0.3068
+  },
+  {
+   "segment": [
+    6.13,
+    22.31
+   ],
+   "verb": "take",
+   "noun": "wrap",
+   "score": 0.3047
+  },
+  {
+   "segment": [
+    18.78,
+    20.78
+   ],
+   "verb": "take",
+   "noun": "raisin",
+   "score": 0.3019
+  },
+  {
+   "segment": [
+    7.34,
+    10.34
+   ],
+   "verb": "put",
+   "noun": "mat",
+   "score": 0.3016
+  },
+  {
+   "segment": [
+    9.78,
+    10.95
+   ],
+   "verb": "remove",
+   "noun": "mat",
+   "score": 0.3007
+  },
+  {
+   "segment": [
+    7.34,
+    10.34
+   ],
+   "verb": "put",
+   "noun": "plate",
+   "score": 0.2974
+  },
+  {
+   "segment": [
+    18.78,
+    20.78
+   ],
+   "verb": "take",
+   "noun": "spinach",
+   "score": 0.2972
+  },
+  {
+   "segment": [
+    2.83,
+    4.01
+   ],
+   "verb": "take",
+   "noun": "bag",
+   "score": 0.2969
+  },
+  {
+   "segment": [
+    7.34,
+    10.34
+   ],
+   "verb": "remove",
+   "noun": "bag",
+   "score": 0.2963
+  },
+  {
+   "segment": [
+    18.78,
+    20.78
+   ],
+   "verb": "take",
+   "noun": "liquid:washing",
+   "score": 0.2929
+  },
+  {
+   "segment": [
+    24.18,
+    25.18
+   ],
+   "verb": "close",
+   "noun": "lid",
+   "score": 0.2922
+  },
+  {
+   "segment": [
+    24.18,
+    25.18
+   ],
+   "verb": "take",
+   "noun": "lid",
+   "score": 0.2917
+  },
+  {
+   "segment": [
+    20.76,
+    28.99
+   ],
+   "verb": "take",
+   "noun": "cover",
+   "score": 0.2872
+  },
+  {
+   "segment": [
+    26.65,
+    27.63
+   ],
+   "verb": "open",
+   "noun": "button",
+   "score": 0.2868
+  },
+  {
+   "segment": [
+    0.28,
+    5.46
+   ],
+   "verb": "open",
+   "noun": "bag",
+   "score": 0.2864
+  },
+  {
+   "segment": [
+    3.58,
+    6.41
+   ],
+   "verb": "take",
+   "noun": "bag",
+   "score": 0.2845
+  },
+  {
+   "segment": [
+    0.28,
+    5.46
+   ],
+   "verb": "remove",
+   "noun": "bag",
+   "score": 0.2843
+  },
+  {
+   "segment": [
+    0.28,
+    5.46
+   ],
+   "verb": "open",
+   "noun": "grape",
+   "score": 0.2824
+  },
+  {
+   "segment": [
+    26.65,
+    27.63
+   ],
+   "verb": "open",
+   "noun": "cover",
+   "score": 0.2811
+  },
+  {
+   "segment": [
+    0.28,
+    5.46
+   ],
+   "verb": "remove",
+   "noun": "grape",
+   "score": 0.2803
+  },
+  {
+   "segment": [
+    24.18,
+    25.18
+   ],
+   "verb": "close",
+   "noun": "container",
+   "score": 0.2803
+  },
+  {
+   "segment": [
+    26.65,
+    27.63
+   ],
+   "verb": "open",
+   "noun": "lid",
+   "score": 0.28
+  },
+  {
+   "segment": [
+    24.18,
+    25.18
+   ],
+   "verb": "take",
+   "noun": "container",
+   "score": 0.2798
+  },
+  {
+   "segment": [
+    0.28,
+    5.46
+   ],
+   "verb": "press",
+   "noun": "bag",
+   "score": 0.2763
+  },
+  {
+   "segment": [
+    24.18,
+    25.18
+   ],
+   "verb": "put",
+   "noun": "lid",
+   "score": 0.273
+  },
+  {
+   "segment": [
+    26.65,
+    27.63
+   ],
+   "verb": "open",
+   "noun": "container",
+   "score": 0.2722
+  },
+  {
+   "segment": [
+    3.58,
+    6.41
+   ],
+   "verb": "shake",
+   "noun": "kale",
+   "score": 0.2719
+  },
+  {
+   "segment": [
+    3.58,
+    6.41
+   ],
+   "verb": "shake",
+   "noun": "spinach",
+   "score": 0.2696
+  },
+  {
+   "segment": [
+    5.05,
+    7.75
+   ],
+   "verb": "open",
+   "noun": "kale",
+   "score": 0.2613
+  },
+  {
+   "segment": [
+    20.76,
+    28.99
+   ],
+   "verb": "take",
+   "noun": "lid",
+   "score": 0.2588
+  },
+  {
+   "segment": [
+    0.0,
+    1.73
+   ],
+   "verb": "open",
+   "noun": "bag",
+   "score": 0.2587
+  },
+  {
+   "segment": [
+    5.05,
+    7.75
+   ],
+   "verb": "open",
+   "noun": "bag",
+   "score": 0.2553
+  },
+  {
+   "segment": [
+    20.76,
+    28.99
+   ],
+   "verb": "take",
+   "noun": "top",
+   "score": 0.2508
+  },
+  {
+   "segment": [
+    10.62,
+    11.61
+   ],
+   "verb": "take",
+   "noun": "wrap",
+   "score": 0.2496
+  },
+  {
+   "segment": [
+    5.05,
+    7.75
+   ],
+   "verb": "take",
+   "noun": "kale",
+   "score": 0.2478
+  },
+  {
+   "segment": [
+    15.18,
+    16.8
+   ],
+   "verb": "insert",
+   "noun": "rice",
+   "score": 0.2478
+  },
+  {
+   "segment": [
+    0.0,
+    1.73
+   ],
+   "verb": "open",
+   "noun": "cover",
+   "score": 0.2459
+  },
+  {
+   "segment": [
+    20.76,
+    28.99
+   ],
+   "verb": "take",
+   "noun": "wrap",
+   "score": 0.2449
+  },
+  {
+   "segment": [
+    10.62,
+    11.61
+   ],
+   "verb": "open",
+   "noun": "wrap",
+   "score": 0.2439
+  },
+  {
+   "segment": [
+    0.0,
+    1.73
+   ],
+   "verb": "open",
+   "noun": "package",
+   "score": 0.2429
+  },
+  {
+   "segment": [
+    5.05,
+    7.75
+   ],
+   "verb": "take",
+   "noun": "bag",
+   "score": 0.2421
+  },
+  {
+   "segment": [
+    20.76,
+    28.99
+   ],
+   "verb": "take",
+   "noun": "mat",
+   "score": 0.2392
+  },
+  {
+   "segment": [
+    10.62,
+    11.61
+   ],
+   "verb": "turn-off",
+   "noun": "wrap",
+   "score": 0.2388
+  },
+  {
+   "segment": [
+    10.62,
+    11.61
+   ],
+   "verb": "take",
+   "noun": "plate",
+   "score": 0.2382
+  },
+  {
+   "segment": [
+    5.05,
+    7.75
+   ],
+   "verb": "remove",
+   "noun": "kale",
+   "score": 0.2368
+  },
+  {
+   "segment": [
+    10.62,
+    11.61
+   ],
+   "verb": "take",
+   "noun": "top",
+   "score": 0.2346
+  },
+  {
+   "segment": [
+    0.16,
+    0.53
+   ],
+   "verb": "open",
+   "noun": "bag",
+   "score": 0.234
+  },
+  {
+   "segment": [
+    0.0,
+    1.73
+   ],
+   "verb": "open",
+   "noun": "water",
+   "score": 0.2278
+  },
+  {
+   "segment": [
+    15.18,
+    16.8
+   ],
+   "verb": "insert",
+   "noun": "container",
+   "score": 0.2216
+  },
+  {
+   "segment": [
+    0.0,
+    1.73
+   ],
+   "verb": "open",
+   "noun": "wrap:plastic",
+   "score": 0.2215
+  },
+  {
+   "segment": [
+    15.18,
+    16.8
+   ],
+   "verb": "insert",
+   "noun": "lid",
+   "score": 0.2207
+  },
+  {
+   "segment": [
+    0.16,
+    0.53
+   ],
+   "verb": "take",
+   "noun": "bag",
+   "score": 0.2145
+  },
+  {
+   "segment": [
+    0.16,
+    0.53
+   ],
+   "verb": "open",
+   "noun": "package",
+   "score": 0.2144
+  },
+  {
+   "segment": [
+    0.16,
+    0.53
+   ],
+   "verb": "open",
+   "noun": "cover",
+   "score": 0.2109
+  },
+  {
+   "segment": [
+    15.18,
+    16.8
+   ],
+   "verb": "insert",
+   "noun": "napkin",
+   "score": 0.2084
+  },
+  {
+   "segment": [
+    15.18,
+    16.8
+   ],
+   "verb": "take",
+   "noun": "rice",
+   "score": 0.2058
+  },
+  {
+   "segment": [
+    0.16,
+    0.53
+   ],
+   "verb": "open",
+   "noun": "water",
+   "score": 0.2006
+  }
+ ],
+ "highlights": [
+  {
+   "segment": [
+    24.75,
+    28.8
+   ]
+  }
+ ]
+}
