@@ -1,0 +1,1774 @@
+{
+ "team_id": "VITVellore_Nexus",
+ "video_id": "P02_13",
+ "duration_sec": 29.53,
+ "label": {
+  "name": "cooking",
+  "score": 1.0
+ },
+ "actions": [
+  {
+   "segment": [
+    19.67,
+    21.03
+   ],
+   "verb": "open",
+   "noun": "oven",
+   "score": 0.8311
+  },
+  {
+   "segment": [
+    23.22,
+    24.65
+   ],
+   "verb": "close",
+   "noun": "oven",
+   "score": 0.8151
+  },
+  {
+   "segment": [
+    24.65,
+    27.32
+   ],
+   "verb": "set",
+   "noun": "alarm",
+   "score": 0.7979
+  },
+  {
+   "segment": [
+    2.59,
+    3.78
+   ],
+   "verb": "take",
+   "noun": "glove",
+   "score": 0.7453
+  },
+  {
+   "segment": [
+    7.05,
+    9.48
+   ],
+   "verb": "put",
+   "noun": "tray",
+   "score": 0.7438
+  },
+  {
+   "segment": [
+    10.45,
+    13.26
+   ],
+   "verb": "close",
+   "noun": "oven",
+   "score": 0.7195
+  },
+  {
+   "segment": [
+    7.05,
+    9.48
+   ],
+   "verb": "insert",
+   "noun": "tray",
+   "score": 0.7028
+  },
+  {
+   "segment": [
+    24.65,
+    27.32
+   ],
+   "verb": "set",
+   "noun": "oven",
+   "score": 0.6951
+  },
+  {
+   "segment": [
+    27.42,
+    28.49
+   ],
+   "verb": "put",
+   "noun": "glove",
+   "score": 0.6821
+  },
+  {
+   "segment": [
+    12.73,
+    13.76
+   ],
+   "verb": "close",
+   "noun": "oven",
+   "score": 0.6808
+  },
+  {
+   "segment": [
+    2.59,
+    3.78
+   ],
+   "verb": "take",
+   "noun": "bag",
+   "score": 0.677
+  },
+  {
+   "segment": [
+    24.65,
+    27.32
+   ],
+   "verb": "close",
+   "noun": "alarm",
+   "score": 0.6648
+  },
+  {
+   "segment": [
+    10.45,
+    13.26
+   ],
+   "verb": "close",
+   "noun": "tray",
+   "score": 0.6462
+  },
+  {
+   "segment": [
+    20.88,
+    22.8
+   ],
+   "verb": "insert",
+   "noun": "tray",
+   "score": 0.6419
+  },
+  {
+   "segment": [
+    24.65,
+    27.32
+   ],
+   "verb": "check",
+   "noun": "alarm",
+   "score": 0.6267
+  },
+  {
+   "segment": [
+    2.59,
+    3.78
+   ],
+   "verb": "wear",
+   "noun": "glove",
+   "score": 0.6255
+  },
+  {
+   "segment": [
+    19.67,
+    21.03
+   ],
+   "verb": "open",
+   "noun": "tray",
+   "score": 0.6203
+  },
+  {
+   "segment": [
+    4.94,
+    6.78
+   ],
+   "verb": "take",
+   "noun": "tray",
+   "score": 0.6145
+  },
+  {
+   "segment": [
+    20.88,
+    22.8
+   ],
+   "verb": "open",
+   "noun": "tray",
+   "score": 0.6066
+  },
+  {
+   "segment": [
+    20.88,
+    22.8
+   ],
+   "verb": "put",
+   "noun": "tray",
+   "score": 0.6051
+  },
+  {
+   "segment": [
+    21.79,
+    23.78
+   ],
+   "verb": "put",
+   "noun": "tray",
+   "score": 0.6051
+  },
+  {
+   "segment": [
+    16.46,
+    18.94
+   ],
+   "verb": "take",
+   "noun": "tray",
+   "score": 0.6047
+  },
+  {
+   "segment": [
+    19.95,
+    21.89
+   ],
+   "verb": "insert",
+   "noun": "oven",
+   "score": 0.6042
+  },
+  {
+   "segment": [
+    10.45,
+    13.26
+   ],
+   "verb": "insert",
+   "noun": "oven",
+   "score": 0.5991
+  },
+  {
+   "segment": [
+    21.79,
+    23.78
+   ],
+   "verb": "close",
+   "noun": "tray",
+   "score": 0.5988
+  },
+  {
+   "segment": [
+    24.65,
+    27.32
+   ],
+   "verb": "remove",
+   "noun": "alarm",
+   "score": 0.593
+  },
+  {
+   "segment": [
+    3.62,
+    7.3
+   ],
+   "verb": "open",
+   "noun": "tray",
+   "score": 0.5831
+  },
+  {
+   "segment": [
+    4.94,
+    6.78
+   ],
+   "verb": "open",
+   "noun": "tray",
+   "score": 0.5831
+  },
+  {
+   "segment": [
+    21.79,
+    23.78
+   ],
+   "verb": "put",
+   "noun": "oven",
+   "score": 0.5803
+  },
+  {
+   "segment": [
+    2.59,
+    3.78
+   ],
+   "verb": "take",
+   "noun": "package",
+   "score": 0.578
+  },
+  {
+   "segment": [
+    21.79,
+    23.78
+   ],
+   "verb": "close",
+   "noun": "oven",
+   "score": 0.5742
+  },
+  {
+   "segment": [
+    19.95,
+    21.89
+   ],
+   "verb": "put",
+   "noun": "oven",
+   "score": 0.5725
+  },
+  {
+   "segment": [
+    19.67,
+    21.03
+   ],
+   "verb": "open",
+   "noun": "dishwasher",
+   "score": 0.5712
+  },
+  {
+   "segment": [
+    2.59,
+    3.78
+   ],
+   "verb": "wear",
+   "noun": "bag",
+   "score": 0.5681
+  },
+  {
+   "segment": [
+    23.22,
+    24.65
+   ],
+   "verb": "close",
+   "noun": "alarm",
+   "score": 0.5671
+  },
+  {
+   "segment": [
+    19.95,
+    21.89
+   ],
+   "verb": "open",
+   "noun": "oven",
+   "score": 0.5662
+  },
+  {
+   "segment": [
+    3.68,
+    5.01
+   ],
+   "verb": "wear",
+   "noun": "glove",
+   "score": 0.5637
+  },
+  {
+   "segment": [
+    4.94,
+    6.78
+   ],
+   "verb": "take",
+   "noun": "glove",
+   "score": 0.563
+  },
+  {
+   "segment": [
+    20.88,
+    22.8
+   ],
+   "verb": "insert",
+   "noun": "oven",
+   "score": 0.5608
+  },
+  {
+   "segment": [
+    3.62,
+    7.3
+   ],
+   "verb": "wear",
+   "noun": "tray",
+   "score": 0.5598
+  },
+  {
+   "segment": [
+    4.94,
+    6.78
+   ],
+   "verb": "wear",
+   "noun": "tray",
+   "score": 0.5598
+  },
+  {
+   "segment": [
+    23.22,
+    24.65
+   ],
+   "verb": "close",
+   "noun": "dishwasher",
+   "score": 0.5558
+  },
+  {
+   "segment": [
+    7.05,
+    9.48
+   ],
+   "verb": "slide",
+   "noun": "tray",
+   "score": 0.5537
+  },
+  {
+   "segment": [
+    3.62,
+    7.3
+   ],
+   "verb": "put",
+   "noun": "tray",
+   "score": 0.5529
+  },
+  {
+   "segment": [
+    10.45,
+    13.26
+   ],
+   "verb": "close",
+   "noun": "glove",
+   "score": 0.5506
+  },
+  {
+   "segment": [
+    27.42,
+    28.49
+   ],
+   "verb": "take",
+   "noun": "glove",
+   "score": 0.5494
+  },
+  {
+   "segment": [
+    27.42,
+    28.49
+   ],
+   "verb": "remove",
+   "noun": "glove",
+   "score": 0.5427
+  },
+  {
+   "segment": [
+    4.94,
+    6.78
+   ],
+   "verb": "take",
+   "noun": "oven",
+   "score": 0.539
+  },
+  {
+   "segment": [
+    10.45,
+    13.26
+   ],
+   "verb": "insert",
+   "noun": "tray",
+   "score": 0.5381
+  },
+  {
+   "segment": [
+    3.62,
+    7.3
+   ],
+   "verb": "open",
+   "noun": "glove",
+   "score": 0.5342
+  },
+  {
+   "segment": [
+    27.42,
+    28.49
+   ],
+   "verb": "insert",
+   "noun": "glove",
+   "score": 0.5325
+  },
+  {
+   "segment": [
+    20.88,
+    22.8
+   ],
+   "verb": "open",
+   "noun": "oven",
+   "score": 0.5299
+  },
+  {
+   "segment": [
+    7.05,
+    9.48
+   ],
+   "verb": "open",
+   "noun": "tray",
+   "score": 0.5291
+  },
+  {
+   "segment": [
+    19.67,
+    21.03
+   ],
+   "verb": "open",
+   "noun": "drawer",
+   "score": 0.5282
+  },
+  {
+   "segment": [
+    21.79,
+    23.78
+   ],
+   "verb": "insert",
+   "noun": "tray",
+   "score": 0.5256
+  },
+  {
+   "segment": [
+    19.67,
+    21.03
+   ],
+   "verb": "open",
+   "noun": "microwave",
+   "score": 0.5208
+  },
+  {
+   "segment": [
+    7.05,
+    9.48
+   ],
+   "verb": "put",
+   "noun": "drawer",
+   "score": 0.5204
+  },
+  {
+   "segment": [
+    16.46,
+    18.94
+   ],
+   "verb": "take",
+   "noun": "oven",
+   "score": 0.5186
+  },
+  {
+   "segment": [
+    15.7,
+    17.02
+   ],
+   "verb": "take",
+   "noun": "drawer",
+   "score": 0.5178
+  },
+  {
+   "segment": [
+    23.22,
+    24.65
+   ],
+   "verb": "close",
+   "noun": "drawer",
+   "score": 0.5172
+  },
+  {
+   "segment": [
+    15.7,
+    17.02
+   ],
+   "verb": "take",
+   "noun": "tray",
+   "score": 0.5158
+  },
+  {
+   "segment": [
+    3.62,
+    7.3
+   ],
+   "verb": "wear",
+   "noun": "glove",
+   "score": 0.5129
+  },
+  {
+   "segment": [
+    16.46,
+    18.94
+   ],
+   "verb": "put",
+   "noun": "tray",
+   "score": 0.5106
+  },
+  {
+   "segment": [
+    23.22,
+    24.65
+   ],
+   "verb": "put",
+   "noun": "oven",
+   "score": 0.5101
+  },
+  {
+   "segment": [
+    27.42,
+    28.49
+   ],
+   "verb": "throw",
+   "noun": "glove",
+   "score": 0.5092
+  },
+  {
+   "segment": [
+    19.95,
+    21.89
+   ],
+   "verb": "wear",
+   "noun": "oven",
+   "score": 0.5033
+  },
+  {
+   "segment": [
+    16.36,
+    17.4
+   ],
+   "verb": "take",
+   "noun": "tray",
+   "score": 0.4928
+  },
+  {
+   "segment": [
+    3.68,
+    5.01
+   ],
+   "verb": "take",
+   "noun": "glove",
+   "score": 0.4882
+  },
+  {
+   "segment": [
+    19.95,
+    21.89
+   ],
+   "verb": "take",
+   "noun": "oven",
+   "score": 0.4804
+  },
+  {
+   "segment": [
+    16.46,
+    18.94
+   ],
+   "verb": "close",
+   "noun": "tray",
+   "score": 0.4757
+  },
+  {
+   "segment": [
+    17.49,
+    20.96
+   ],
+   "verb": "close",
+   "noun": "tray",
+   "score": 0.4757
+  },
+  {
+   "segment": [
+    17.89,
+    19.47
+   ],
+   "verb": "close",
+   "noun": "tray",
+   "score": 0.4757
+  },
+  {
+   "segment": [
+    12.73,
+    13.76
+   ],
+   "verb": "close",
+   "noun": "tray",
+   "score": 0.4653
+  },
+  {
+   "segment": [
+    12.73,
+    13.76
+   ],
+   "verb": "close",
+   "noun": "dishwasher",
+   "score": 0.463
+  },
+  {
+   "segment": [
+    3.68,
+    5.01
+   ],
+   "verb": "wear",
+   "noun": "hand",
+   "score": 0.4598
+  },
+  {
+   "segment": [
+    9.29,
+    12.36
+   ],
+   "verb": "put",
+   "noun": "oven",
+   "score": 0.459
+  },
+  {
+   "segment": [
+    16.46,
+    18.94
+   ],
+   "verb": "wear",
+   "noun": "tray",
+   "score": 0.4522
+  },
+  {
+   "segment": [
+    17.49,
+    20.96
+   ],
+   "verb": "take",
+   "noun": "tray",
+   "score": 0.4494
+  },
+  {
+   "segment": [
+    17.89,
+    19.47
+   ],
+   "verb": "take",
+   "noun": "tray",
+   "score": 0.4494
+  },
+  {
+   "segment": [
+    17.49,
+    20.96
+   ],
+   "verb": "put",
+   "noun": "tray",
+   "score": 0.4482
+  },
+  {
+   "segment": [
+    17.89,
+    19.47
+   ],
+   "verb": "put",
+   "noun": "tray",
+   "score": 0.4482
+  },
+  {
+   "segment": [
+    10.0,
+    11.19
+   ],
+   "verb": "take",
+   "noun": "oven",
+   "score": 0.4454
+  },
+  {
+   "segment": [
+    10.0,
+    11.19
+   ],
+   "verb": "close",
+   "noun": "oven",
+   "score": 0.4434
+  },
+  {
+   "segment": [
+    3.68,
+    5.01
+   ],
+   "verb": "wear",
+   "noun": "oven",
+   "score": 0.4423
+  },
+  {
+   "segment": [
+    15.7,
+    17.02
+   ],
+   "verb": "take",
+   "noun": "jug",
+   "score": 0.4384
+  },
+  {
+   "segment": [
+    0.78,
+    2.79
+   ],
+   "verb": "transition",
+   "noun": "ladder",
+   "score": 0.4376
+  },
+  {
+   "segment": [
+    10.0,
+    11.19
+   ],
+   "verb": "remove",
+   "noun": "oven",
+   "score": 0.4316
+  },
+  {
+   "segment": [
+    3.68,
+    5.01
+   ],
+   "verb": "wear",
+   "noun": "tray",
+   "score": 0.431
+  },
+  {
+   "segment": [
+    17.89,
+    19.47
+   ],
+   "verb": "open",
+   "noun": "tray",
+   "score": 0.431
+  },
+  {
+   "segment": [
+    10.0,
+    11.19
+   ],
+   "verb": "take",
+   "noun": "glove",
+   "score": 0.4298
+  },
+  {
+   "segment": [
+    8.9,
+    9.98
+   ],
+   "verb": "put",
+   "noun": "tray",
+   "score": 0.4297
+  },
+  {
+   "segment": [
+    10.0,
+    11.19
+   ],
+   "verb": "close",
+   "noun": "glove",
+   "score": 0.4278
+  },
+  {
+   "segment": [
+    4.93,
+    10.8
+   ],
+   "verb": "slide",
+   "noun": "tray",
+   "score": 0.4276
+  },
+  {
+   "segment": [
+    27.01,
+    27.94
+   ],
+   "verb": "set",
+   "noun": "glove",
+   "score": 0.427
+  },
+  {
+   "segment": [
+    4.93,
+    10.8
+   ],
+   "verb": "put",
+   "noun": "tray",
+   "score": 0.4216
+  },
+  {
+   "segment": [
+    9.29,
+    12.36
+   ],
+   "verb": "open",
+   "noun": "oven",
+   "score": 0.4214
+  },
+  {
+   "segment": [
+    16.36,
+    17.4
+   ],
+   "verb": "take",
+   "noun": "drawer",
+   "score": 0.4177
+  },
+  {
+   "segment": [
+    9.29,
+    12.36
+   ],
+   "verb": "put",
+   "noun": "glove",
+   "score": 0.4103
+  },
+  {
+   "segment": [
+    12.73,
+    13.76
+   ],
+   "verb": "remove",
+   "noun": "oven",
+   "score": 0.4103
+  },
+  {
+   "segment": [
+    4.93,
+    10.8
+   ],
+   "verb": "open",
+   "noun": "tray",
+   "score": 0.4086
+  },
+  {
+   "segment": [
+    16.36,
+    17.4
+   ],
+   "verb": "close",
+   "noun": "tray",
+   "score": 0.4085
+  },
+  {
+   "segment": [
+    15.7,
+    17.02
+   ],
+   "verb": "take",
+   "noun": "board:chopping",
+   "score": 0.4071
+  },
+  {
+   "segment": [
+    17.49,
+    20.96
+   ],
+   "verb": "insert",
+   "noun": "tray",
+   "score": 0.4028
+  },
+  {
+   "segment": [
+    9.29,
+    12.36
+   ],
+   "verb": "take",
+   "noun": "oven",
+   "score": 0.4008
+  },
+  {
+   "segment": [
+    4.93,
+    10.8
+   ],
+   "verb": "close",
+   "noun": "tray",
+   "score": 0.4002
+  },
+  {
+   "segment": [
+    17.89,
+    19.47
+   ],
+   "verb": "wear",
+   "noun": "tray",
+   "score": 0.3999
+  },
+  {
+   "segment": [
+    15.7,
+    17.02
+   ],
+   "verb": "take",
+   "noun": "can",
+   "score": 0.3944
+  },
+  {
+   "segment": [
+    9.29,
+    12.36
+   ],
+   "verb": "insert",
+   "noun": "oven",
+   "score": 0.393
+  },
+  {
+   "segment": [
+    12.73,
+    13.76
+   ],
+   "verb": "close",
+   "noun": "pizza",
+   "score": 0.3907
+  },
+  {
+   "segment": [
+    4.93,
+    10.8
+   ],
+   "verb": "take",
+   "noun": "tray",
+   "score": 0.3906
+  },
+  {
+   "segment": [
+    8.9,
+    9.98
+   ],
+   "verb": "take",
+   "noun": "tray",
+   "score": 0.3862
+  },
+  {
+   "segment": [
+    17.49,
+    20.96
+   ],
+   "verb": "slide",
+   "noun": "tray",
+   "score": 0.3844
+  },
+  {
+   "segment": [
+    26.63,
+    29.53
+   ],
+   "verb": "transition",
+   "noun": "alarm",
+   "score": 0.3814
+  },
+  {
+   "segment": [
+    27.01,
+    27.94
+   ],
+   "verb": "set",
+   "noun": "alarm",
+   "score": 0.3811
+  },
+  {
+   "segment": [
+    0.78,
+    2.79
+   ],
+   "verb": "transition",
+   "noun": "bag",
+   "score": 0.3791
+  },
+  {
+   "segment": [
+    0.78,
+    2.79
+   ],
+   "verb": "transition",
+   "noun": "glove",
+   "score": 0.3771
+  },
+  {
+   "segment": [
+    13.15,
+    14.01
+   ],
+   "verb": "close",
+   "noun": "oven",
+   "score": 0.3761
+  },
+  {
+   "segment": [
+    0.78,
+    2.79
+   ],
+   "verb": "transition",
+   "noun": "apron",
+   "score": 0.3747
+  },
+  {
+   "segment": [
+    8.9,
+    9.98
+   ],
+   "verb": "put",
+   "noun": "oven",
+   "score": 0.374
+  },
+  {
+   "segment": [
+    8.9,
+    9.98
+   ],
+   "verb": "open",
+   "noun": "tray",
+   "score": 0.3722
+  },
+  {
+   "segment": [
+    0.78,
+    2.79
+   ],
+   "verb": "put",
+   "noun": "ladder",
+   "score": 0.364
+  },
+  {
+   "segment": [
+    6.45,
+    7.52
+   ],
+   "verb": "open",
+   "noun": "oven",
+   "score": 0.359
+  },
+  {
+   "segment": [
+    27.01,
+    27.94
+   ],
+   "verb": "set",
+   "noun": "drawer",
+   "score": 0.3478
+  },
+  {
+   "segment": [
+    13.44,
+    16.3
+   ],
+   "verb": "take",
+   "noun": "drawer",
+   "score": 0.3475
+  },
+  {
+   "segment": [
+    16.36,
+    17.4
+   ],
+   "verb": "close",
+   "noun": "drawer",
+   "score": 0.3463
+  },
+  {
+   "segment": [
+    13.44,
+    16.3
+   ],
+   "verb": "take",
+   "noun": "oven",
+   "score": 0.345
+  },
+  {
+   "segment": [
+    26.63,
+    29.53
+   ],
+   "verb": "set",
+   "noun": "alarm",
+   "score": 0.3438
+  },
+  {
+   "segment": [
+    27.01,
+    27.94
+   ],
+   "verb": "transition",
+   "noun": "glove",
+   "score": 0.3413
+  },
+  {
+   "segment": [
+    16.36,
+    17.4
+   ],
+   "verb": "take",
+   "noun": "pan",
+   "score": 0.3392
+  },
+  {
+   "segment": [
+    8.9,
+    9.98
+   ],
+   "verb": "put",
+   "noun": "glove",
+   "score": 0.3391
+  },
+  {
+   "segment": [
+    27.01,
+    27.94
+   ],
+   "verb": "check",
+   "noun": "glove",
+   "score": 0.3373
+  },
+  {
+   "segment": [
+    26.63,
+    29.53
+   ],
+   "verb": "transition",
+   "noun": "glove",
+   "score": 0.3372
+  },
+  {
+   "segment": [
+    13.44,
+    16.3
+   ],
+   "verb": "put",
+   "noun": "drawer",
+   "score": 0.3346
+  },
+  {
+   "segment": [
+    26.63,
+    29.53
+   ],
+   "verb": "transition",
+   "noun": "towel",
+   "score": 0.3343
+  },
+  {
+   "segment": [
+    13.44,
+    16.3
+   ],
+   "verb": "put",
+   "noun": "oven",
+   "score": 0.3321
+  },
+  {
+   "segment": [
+    28.69,
+    29.53
+   ],
+   "verb": "take",
+   "noun": "glove",
+   "score": 0.3316
+  },
+  {
+   "segment": [
+    26.63,
+    29.53
+   ],
+   "verb": "open",
+   "noun": "alarm",
+   "score": 0.3285
+  },
+  {
+   "segment": [
+    6.45,
+    7.52
+   ],
+   "verb": "put",
+   "noun": "oven",
+   "score": 0.3256
+  },
+  {
+   "segment": [
+    14.61,
+    21.85
+   ],
+   "verb": "put",
+   "noun": "apron",
+   "score": 0.3256
+  },
+  {
+   "segment": [
+    6.45,
+    7.52
+   ],
+   "verb": "open",
+   "noun": "tray",
+   "score": 0.3254
+  },
+  {
+   "segment": [
+    13.44,
+    16.3
+   ],
+   "verb": "close",
+   "noun": "drawer",
+   "score": 0.3212
+  },
+  {
+   "segment": [
+    13.15,
+    14.01
+   ],
+   "verb": "open",
+   "noun": "oven",
+   "score": 0.3211
+  },
+  {
+   "segment": [
+    28.69,
+    29.53
+   ],
+   "verb": "take",
+   "noun": "hand",
+   "score": 0.3179
+  },
+  {
+   "segment": [
+    14.61,
+    21.85
+   ],
+   "verb": "put",
+   "noun": "pizza",
+   "score": 0.3167
+  },
+  {
+   "segment": [
+    14.61,
+    21.85
+   ],
+   "verb": "put",
+   "noun": "spatula",
+   "score": 0.3159
+  },
+  {
+   "segment": [
+    23.13,
+    29.53
+   ],
+   "verb": "set",
+   "noun": "alarm",
+   "score": 0.3065
+  },
+  {
+   "segment": [
+    28.69,
+    29.53
+   ],
+   "verb": "put",
+   "noun": "glove",
+   "score": 0.3017
+  },
+  {
+   "segment": [
+    28.69,
+    29.53
+   ],
+   "verb": "open",
+   "noun": "glove",
+   "score": 0.3009
+  },
+  {
+   "segment": [
+    6.45,
+    7.52
+   ],
+   "verb": "close",
+   "noun": "oven",
+   "score": 0.3003
+  },
+  {
+   "segment": [
+    13.15,
+    14.01
+   ],
+   "verb": "put",
+   "noun": "oven",
+   "score": 0.2999
+  },
+  {
+   "segment": [
+    6.45,
+    7.52
+   ],
+   "verb": "hold",
+   "noun": "oven",
+   "score": 0.2967
+  },
+  {
+   "segment": [
+    13.15,
+    14.01
+   ],
+   "verb": "take",
+   "noun": "oven",
+   "score": 0.2928
+  },
+  {
+   "segment": [
+    28.69,
+    29.53
+   ],
+   "verb": "take",
+   "noun": "apron",
+   "score": 0.2915
+  },
+  {
+   "segment": [
+    23.13,
+    29.53
+   ],
+   "verb": "insert",
+   "noun": "alarm",
+   "score": 0.2897
+  },
+  {
+   "segment": [
+    13.15,
+    14.01
+   ],
+   "verb": "close",
+   "noun": "dishwasher",
+   "score": 0.2869
+  },
+  {
+   "segment": [
+    14.61,
+    21.85
+   ],
+   "verb": "put",
+   "noun": "ring:onion",
+   "score": 0.2823
+  },
+  {
+   "segment": [
+    23.13,
+    29.53
+   ],
+   "verb": "set",
+   "noun": "hob",
+   "score": 0.2743
+  },
+  {
+   "segment": [
+    14.61,
+    21.85
+   ],
+   "verb": "insert",
+   "noun": "apron",
+   "score": 0.2735
+  },
+  {
+   "segment": [
+    23.13,
+    29.53
+   ],
+   "verb": "slide",
+   "noun": "alarm",
+   "score": 0.2628
+  },
+  {
+   "segment": [
+    23.13,
+    29.53
+   ],
+   "verb": "insert",
+   "noun": "hob",
+   "score": 0.2592
+  },
+  {
+   "segment": [
+    13.66,
+    14.75
+   ],
+   "verb": "put",
+   "noun": "glove",
+   "score": 0.2528
+  },
+  {
+   "segment": [
+    1.72,
+    5.63
+   ],
+   "verb": "open",
+   "noun": "chair",
+   "score": 0.2511
+  },
+  {
+   "segment": [
+    1.72,
+    5.63
+   ],
+   "verb": "open",
+   "noun": "glove",
+   "score": 0.2418
+  },
+  {
+   "segment": [
+    1.72,
+    5.63
+   ],
+   "verb": "open",
+   "noun": "ladder",
+   "score": 0.2418
+  },
+  {
+   "segment": [
+    8.41,
+    15.34
+   ],
+   "verb": "put",
+   "noun": "tray",
+   "score": 0.2412
+  },
+  {
+   "segment": [
+    1.72,
+    5.63
+   ],
+   "verb": "open",
+   "noun": "tray",
+   "score": 0.2391
+  },
+  {
+   "segment": [
+    1.72,
+    5.63
+   ],
+   "verb": "remove",
+   "noun": "chair",
+   "score": 0.2375
+  },
+  {
+   "segment": [
+    13.66,
+    14.75
+   ],
+   "verb": "move",
+   "noun": "glove",
+   "score": 0.2289
+  },
+  {
+   "segment": [
+    13.66,
+    14.75
+   ],
+   "verb": "close",
+   "noun": "glove",
+   "score": 0.2261
+  },
+  {
+   "segment": [
+    13.66,
+    14.75
+   ],
+   "verb": "open",
+   "noun": "glove",
+   "score": 0.2214
+  },
+  {
+   "segment": [
+    13.66,
+    14.75
+   ],
+   "verb": "put",
+   "noun": "meat",
+   "score": 0.221
+  },
+  {
+   "segment": [
+    8.41,
+    15.34
+   ],
+   "verb": "slide",
+   "noun": "tray",
+   "score": 0.2172
+  },
+  {
+   "segment": [
+    8.41,
+    15.34
+   ],
+   "verb": "sort",
+   "noun": "tray",
+   "score": 0.2128
+  },
+  {
+   "segment": [
+    8.41,
+    15.34
+   ],
+   "verb": "wrap",
+   "noun": "tray",
+   "score": 0.212
+  },
+  {
+   "segment": [
+    0.0,
+    0.66
+   ],
+   "verb": "take",
+   "noun": "tray",
+   "score": 0.2098
+  },
+  {
+   "segment": [
+    0.0,
+    0.66
+   ],
+   "verb": "transition",
+   "noun": "tray",
+   "score": 0.2091
+  },
+  {
+   "segment": [
+    8.41,
+    15.34
+   ],
+   "verb": "hold",
+   "noun": "tray",
+   "score": 0.209
+  },
+  {
+   "segment": [
+    0.0,
+    0.66
+   ],
+   "verb": "wear",
+   "noun": "tray",
+   "score": 0.2047
+  },
+  {
+   "segment": [
+    0.0,
+    0.66
+   ],
+   "verb": "take",
+   "noun": "bag",
+   "score": 0.2038
+  },
+  {
+   "segment": [
+    0.0,
+    0.66
+   ],
+   "verb": "transition",
+   "noun": "bag",
+   "score": 0.2031
+  },
+  {
+   "segment": [
+    0.0,
+    4.05
+   ],
+   "verb": "put",
+   "noun": "bag",
+   "score": 0.2024
+  },
+  {
+   "segment": [
+    0.0,
+    4.05
+   ],
+   "verb": "put",
+   "noun": "glove",
+   "score": 0.2013
+  },
+  {
+   "segment": [
+    0.0,
+    4.05
+   ],
+   "verb": "insert",
+   "noun": "bag",
+   "score": 0.1916
+  },
+  {
+   "segment": [
+    0.0,
+    4.05
+   ],
+   "verb": "insert",
+   "noun": "glove",
+   "score": 0.1906
+  },
+  {
+   "segment": [
+    0.0,
+    4.05
+   ],
+   "verb": "put",
+   "noun": "alarm",
+   "score": 0.1881
+  },
+  {
+   "segment": [
+    18.48,
+    25.52
+   ],
+   "verb": "set",
+   "noun": "alarm",
+   "score": 0.172
+  },
+  {
+   "segment": [
+    18.48,
+    25.52
+   ],
+   "verb": "brush",
+   "noun": "alarm",
+   "score": 0.1666
+  },
+  {
+   "segment": [
+    18.48,
+    25.52
+   ],
+   "verb": "wait",
+   "noun": "alarm",
+   "score": 0.165
+  },
+  {
+   "segment": [
+    18.48,
+    25.52
+   ],
+   "verb": "press",
+   "noun": "alarm",
+   "score": 0.159
+  },
+  {
+   "segment": [
+    18.48,
+    25.52
+   ],
+   "verb": "set",
+   "noun": "dishwasher",
+   "score": 0.1588
+  },
+  {
+   "segment": [
+    9.08,
+    29.53
+   ],
+   "verb": "put",
+   "noun": "dishwasher",
+   "score": 0.1566
+  },
+  {
+   "segment": [
+    9.08,
+    29.53
+   ],
+   "verb": "insert",
+   "noun": "dishwasher",
+   "score": 0.1553
+  },
+  {
+   "segment": [
+    9.08,
+    29.53
+   ],
+   "verb": "put",
+   "noun": "apron",
+   "score": 0.155
+  },
+  {
+   "segment": [
+    9.08,
+    29.53
+   ],
+   "verb": "insert",
+   "noun": "apron",
+   "score": 0.1538
+  },
+  {
+   "segment": [
+    9.08,
+    29.53
+   ],
+   "verb": "empty",
+   "noun": "dishwasher",
+   "score": 0.1511
+  }
+ ],
+ "highlights": [
+  {
+   "segment": [
+    9.25,
+    13.3
+   ]
+  }
+ ]
+}
