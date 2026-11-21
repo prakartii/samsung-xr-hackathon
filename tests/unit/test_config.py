@@ -370,3 +370,15 @@ def test_config_detect_released_features_is_a_path_string(default_cfg_dict):
     msg = r"detect\.released_features: expected a non-empty string"
     with pytest.raises(ConfigError, match=msg):
         config_from_dict(default_cfg_dict)
+
+
+def test_config_reality_coefficients_must_match_the_feature_count(default_cfg_dict):
+    default_cfg_dict["select"]["reality_coef"] = [0.1, 0.2]
+    with pytest.raises(ConfigError, match="reality"):
+        config_from_dict(default_cfg_dict)
+
+
+def test_config_empty_reality_coefficients_mean_off(default_cfg_dict):
+    for k in ("reality_coef", "reality_mean", "reality_std"):
+        default_cfg_dict["select"][k] = []
+    assert config_from_dict(default_cfg_dict).select.reality_coef == ()

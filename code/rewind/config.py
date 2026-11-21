@@ -152,6 +152,9 @@ class SelectCfg:
     fraction_tau: float
     mode: Literal["expected", "dedup"]
     confidence_power: float  # cluster weight = confidence ** power in expected coverage (0 = off)
+    reality_coef: tuple[float, ...]  # Campaign #2 logistic [b, w...]; empty = use confidence
+    reality_mean: tuple[float, ...]  # feature means (rewind.select.reality.FEATURES order)
+    reality_std: tuple[float, ...]  # feature standard deviations
 
 
 @dataclass(frozen=True)
@@ -386,6 +389,15 @@ def _check_ranges(cfg: Config) -> None:
         "select.fraction_theta": s.fraction_theta,
         "eval.capture_theta": cfg.eval.capture_theta,
     }
+    r = cfg.select
+    if r.reality_coef:
+        from rewind.select.reality import FEATURES
+
+        nf = len(FEATURES)
+        if (len(r.reality_coef), len(r.reality_mean), len(r.reality_std)) != (nf + 1, nf, nf):
+            raise ConfigError(
+                f"select.reality_*: expected {nf + 1} coefficients and {nf} means/stds"
+            )
     for key, v in unit_interval.items():
         if not 0.0 <= v <= 1.0:
             raise ConfigError(f"{key}: {v} must be in [0, 1]")
