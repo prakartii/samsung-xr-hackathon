@@ -12,9 +12,9 @@
 tolerance: 0.005
 
 tune_epic:          # 20 EPIC train videos
-  coverage_any: 0.4883   # uniform 0.3583
-  coverage_frac: 0.2883  # uniform 0.1776
-  pct_oracle: 0.4820     # official rule: coverage_frac / fraction-rule oracle (was 0.6760 any-overlap, 2026-11-21); uniform 0.2969
+  coverage_any: 0.4429   # not the official rule; lowered 2026-11-21 when the selector moved to it (E1); uniform 0.3583
+  coverage_frac: 0.3302  # official rule; E1 config 2026-11-21 (was 0.2883); uniform 0.1776
+  pct_oracle: 0.5269     # official rule: coverage_frac / fraction-rule oracle on the config's window grid (stride 0.25 since E1); was 0.4820
   map: 0.6532              # output actions without the verb-noun prior (actions.prior_alpha 0)
 
 tune_fpvsum_cv:     # mean over the 5 FPVSum CV folds (49 videos, 46 with usable GT timing)

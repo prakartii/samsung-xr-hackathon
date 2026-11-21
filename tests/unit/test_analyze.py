@@ -118,14 +118,15 @@ def test_summarize_uncertain_route_always_emits_actions():
 
 def test_summarize_uses_actionformer_detections_when_available():
     # One verb and one noun detection on the same span (tIoU 1):
-    # output score, no prior (actions.prior_alpha 0) = (0.9 * 0.8) ** 0.5 = 0.72 ** 0.5
+    # output score, no prior (actions.prior_alpha 0), pairing.score_power 0.25:
+    # (0.9 * 0.8) ** 0.25 = 0.72 ** 0.25 = 0.92113
     dets = ([((3.0, 7.0), "put", 0.9)], [((3.0, 7.0), "plate", 0.8)])
     r = summarize("v", T, signals(COOKING_TAKE_KNIFE), TEXT, PRIOR, CFG, lambda: dets)
 
     assert len(r.actions) == 1
     seg, verb, noun, score = r.actions[0]
     assert (seg, verb, noun) == ((3.0, 7.0), "put", "plate")
-    assert score == pytest.approx(0.72**0.5, abs=1e-12)
+    assert score == pytest.approx(0.72**0.25, abs=1e-12)
 
 
 def test_summarize_falls_back_to_zero_shot_when_no_features_are_cached():
@@ -268,20 +269,20 @@ KNIFE_OR_PLATE = (
 
 
 def test_summarize_output_actions_scored_without_the_prior_by_default():
-    # actions.prior_alpha 0: score = (p_v * p_n) ** 0.5
-    #   take knife (0.9 * 0.8) ** 0.5 = 0.72 ** 0.5 = 0.84853; take plate 0.27 ** 0.5 = 0.51962
+    # actions.prior_alpha 0, score_power 0.25: score = (p_v * p_n) ** 0.25
+    #   take knife (0.9 * 0.8) ** 0.25 = 0.72 ** 0.25 = 0.92113; take plate 0.27 ** 0.25 = 0.72084
     r = summarize(
         "v", T, signals(COOKING_TAKE_KNIFE), TEXT, PLATE_PRIOR, CFG, lambda: KNIFE_OR_PLATE
     )
 
     (_, v0, n0, s0), (_, v1, n1, s1) = r.actions
     assert (v0, n0, v1, n1) == ("take", "knife", "take", "plate")
-    assert (s0, s1) == (pytest.approx(0.72**0.5, abs=1e-12), pytest.approx(0.27**0.5, abs=1e-12))
+    assert (s0, s1) == (pytest.approx(0.72**0.25, abs=1e-12), pytest.approx(0.27**0.25, abs=1e-12))
 
 
 def test_summarize_output_actions_with_prior_alpha_one_follow_the_prior():
-    # actions.prior_alpha 1: take knife (0.72 * 0.1) ** 0.5 = 0.26833,
-    # take plate (0.27 * 0.9) ** 0.5 = 0.243 ** 0.5 = 0.49295 -> plate first
+    # actions.prior_alpha 1, score_power 0.25: take knife (0.72 * 0.1) ** 0.25 = 0.51800,
+    # take plate (0.27 * 0.9) ** 0.25 = 0.243 ** 0.25 = 0.70210 -> plate first
     cfg = replace(CFG, actions=replace(CFG.actions, prior_alpha=1.0))
     r = summarize(
         "v", T, signals(COOKING_TAKE_KNIFE), TEXT, PLATE_PRIOR, cfg, lambda: KNIFE_OR_PLATE
@@ -289,4 +290,7 @@ def test_summarize_output_actions_with_prior_alpha_one_follow_the_prior():
 
     (_, _, n0, s0), (_, _, n1, s1) = r.actions
     assert (n0, n1) == ("plate", "knife")
-    assert (s0, s1) == (pytest.approx(0.243**0.5, abs=1e-12), pytest.approx(0.072**0.5, abs=1e-12))
+    assert (s0, s1) == (
+        pytest.approx(0.243**0.25, abs=1e-12),
+        pytest.approx(0.072**0.25, abs=1e-12),
+    )
