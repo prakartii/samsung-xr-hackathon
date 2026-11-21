@@ -10,7 +10,7 @@ captioned live, then the JSON we wrote → sports videos the same way, with the 
 category → how it works → results vs baselines and the three deck numbers → end.
 
 Everything shown is read from our output JSONs, `results/ablation_report.md`,
-`results/latency.csv` and the original MP4s; nothing is typed in by hand except the
+`results/latency_2026-11-21.csv` and the original MP4s; nothing is typed in by hand except the
 narration text. Video only (no audio). PyAV + Pillow, no ffmpeg CLI.
 """
 
@@ -349,7 +349,7 @@ def example(w: Writer, f: Fonts, path: Path, doc: dict, args, kind: str) -> None
 
 def how_card(f: Fonts) -> np.ndarray:
     return card(f, "How it works", [
-        "1  Signals: motion, hands, CLIP frame embeddings, audio",
+        "1  Signals: optical flow, hands, CLIP frame embeddings",
         "2  Route: kitchen (EPIC) or outdoor activity (FPVSum)",
         "3  Actions: ActionFormer verb + noun detections, paired",
         "4  Cluster actions into distinct steps",
@@ -405,7 +405,7 @@ def main() -> None:
 
     abl = parse_ablation((REPO / "results" / "ablation_report.md").read_text(encoding="utf-8"))
     docs = [json.loads(p.read_text(encoding="utf-8")) for p in sorted(args.pred.glob("*.json"))]
-    with (REPO / "results" / "latency.csv").open(newline="", encoding="utf-8") as fh:
+    with (REPO / "results" / "latency_2026-11-21.csv").open(newline="", encoding="utf-8") as fh:
         latency = sec_per_video_minute(list(csv.DictReader(fh)))
     tokens = tokens_pruned(docs)
 
