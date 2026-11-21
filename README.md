@@ -26,7 +26,7 @@ of it lies inside the highlights (`rewind_eval`, `results/leaderboard.csv`):
 
 | | Weighted | Action coverage (40%) | Action mAP (25%) | Highlight F1 (25%) | Label acc. (10%) |
 |---|---|---|---|---|---|
-| **REWIND** | **0.289** | 0.281 (46.2% of oracle) | 0.149 | 0.226 | 0.830 |
+| **REWIND** | **0.299** | 0.305 (50.0% of oracle) | 0.149 | 0.226 | 0.830 |
 | Uniform windows | 0.112 | 0.177 (29.0%) | 0 | 0.167 | 0 |
 | Oracle (GT-aware) | 0.773 | 0.609 | 1 | 0.717 | 1 |
 
@@ -34,7 +34,7 @@ of it lies inside the highlights (`rewind_eval`, `results/leaderboard.csv`):
 and picks windows under the same rule and budget. FPVSum settings are untuned defaults
 (see the tuning-split statement). Highlight F1 is over the 44 FPVSum videos with usable
 ground-truth timing: `rewind_eval` leaves out three videos whose annotation timing doesn't
-match any standard frame rate. Over all 47, F1 is 0.222 and the weighted total about 0.288.
+match any standard frame rate. Over all 47, F1 is 0.222 and the weighted total about 0.298.
 
 - **85.7% of visual tokens pruned** (highlight seconds vs video seconds, all 187 outputs).
 - **41 s of CPU time per minute of video** (measured 2026-11-21): `run.sh`'s full
