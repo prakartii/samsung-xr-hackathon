@@ -24,6 +24,14 @@ def cl(cid, span, dist, conf=1.0):
 # --- hedge ---------------------------------------------------------------
 
 
+def _confidence_cfg():
+    """Default config with the learned scorers (Campaigns #2/#3) off: these tests hand-compute
+    the confidence-weighted selector; select/reality.py has its own tests."""
+    cfg = load_config(DEFAULT_CONFIG)
+    sel = dataclasses.replace(cfg.select, pair_coef=(), reality_coef=())
+    return dataclasses.replace(cfg, select=sel)
+
+
 def test_hedge_without_signals_or_selection_spreads_from_the_middle():
     # Farthest-point from the video ends {0, 100}: first the centre nearest 50 on the grid
     # 2.025 + 0.5k with the largest distance (50.025, 49.975 from 100) → (48.0, 52.05);
@@ -105,7 +113,7 @@ def test_top1_clusters_collapse_to_most_likely_pair():
 
 def test_select_epic_with_hedge_share_spends_reserve_on_hedges():
     # No clusters: everything left goes to hedges. B = 0.145 · 100 = 14.5 → 3 windows.
-    cfg = load_config(DEFAULT_CONFIG)
+    cfg = _confidence_cfg()
     cfg = dataclasses.replace(cfg, hedge=dataclasses.replace(cfg.hedge, share=0.125))
 
     segs, values = select_epic([], 100.0, cfg)
@@ -121,7 +129,7 @@ def test_select_epic_dedup_mode_ignores_second_choices():
     # then goes to a hedge, value 0).
     # Windows below were worked out under any-overlap capture; this tests the mode, so
     # the capture rule is pinned rather than taken from the shipped config.
-    cfg = load_config(DEFAULT_CONFIG)
+    cfg = _confidence_cfg()
     cfg = dataclasses.replace(
         cfg, select=dataclasses.replace(cfg.select, budget_frac=0.09, capture_rule="any_overlap")
     )
@@ -144,7 +152,7 @@ def test_select_epic_short_video_picks_the_best_single_window():
     # the clusters are: two distinct pairs at (14, 15) and (15.5, 16) → one window over both.
     # Value 2.0 = two clusters each captured with probability exactly 1 (any-overlap;
     # the fraction rule's smooth step gives 0.99995 each), so the rule is pinned.
-    cfg = load_config(DEFAULT_CONFIG)
+    cfg = _confidence_cfg()
     cfg = dataclasses.replace(
         cfg, select=dataclasses.replace(cfg.select, capture_rule="any_overlap")
     )
@@ -232,7 +240,7 @@ def test_simulate_scores_are_a_confidence_split_over_the_top_k():
 def test_select_epic_capture_rule_decides_whether_a_grazing_window_counts(rule, expected):
     # One action at (5, 6) in 100 s; budget 0.045 * 100 = 4.5 s holds one 4.05 s window
     # (5 and 6 s windows don't fit). No hedge.
-    cfg = load_config(DEFAULT_CONFIG)
+    cfg = _confidence_cfg()
     cfg = dataclasses.replace(
         cfg,
         select=dataclasses.replace(cfg.select, budget_frac=0.045, capture_rule=rule),
@@ -256,7 +264,7 @@ def test_select_epic_capture_rule_decides_whether_a_grazing_window_counts(rule, 
     ],
 )
 def test_select_epic_uses_the_epic_merge_gap(gap, expected):
-    cfg = load_config(DEFAULT_CONFIG)
+    cfg = _confidence_cfg()
     cfg = dataclasses.replace(
         cfg,
         select=dataclasses.replace(
@@ -287,7 +295,7 @@ def test_select_epic_uses_the_epic_merge_gap(gap, expected):
     ],
 )
 def test_select_epic_confidence_power_prefers_likely_real_clusters(power, expected):
-    cfg = load_config(DEFAULT_CONFIG)
+    cfg = _confidence_cfg()
     cfg = dataclasses.replace(
         cfg,
         select=dataclasses.replace(
@@ -311,7 +319,7 @@ def test_select_epic_confidence_power_prefers_likely_real_clusters(power, expect
 
 def test_select_epic_dedup_mode_ignores_confidence_power():
     # The label-dedup baseline stays the historical comparator: same windows at any power.
-    cfg = load_config(DEFAULT_CONFIG)
+    cfg = _confidence_cfg()
     sel = dataclasses.replace(cfg.select, budget_frac=0.045, window_lengths=(4.05,))
     cs = [
         cl(0, (5.0, 6.0), {("a", "x"): 1.0}, conf=0.2),

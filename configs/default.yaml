@@ -71,7 +71,7 @@ zeroshot:                  # detect/fallback_zeroshot.py: kill-rule + uncertain-
 
 cluster:
   tiou: 0.2                # min tIoU to link two proposals; tune 2026-11-21 (official rule) 0.3 -> 0.2
-  sim: 0.85                # min CLIP cosine similarity to link two proposals; initial, P5
+  sim: 1.0                 # CLIP-similarity linking off (Campaign #3): the learned pair scorer is trained on label-linked clusters, so production clusters the same way (was 0.85)
   k: 5                     # top pairs kept per cluster distribution
 
 calibration:
@@ -90,6 +90,12 @@ select:
   reality_coef: [0.596161, 2.21744, 0.114748, 0.679992, -0.316709, -0.225111, -0.270198, -0.0377114, 0.268162, -0.898097]
   reality_mean: [0.259161, 0.793516, 0.779124, 0.843859, 0.433927, 0.211366, 0.489595, 2.76317, 0.5]
   reality_std: [0.130352, 0.245163, 0.788694, 0.300582, 0.24138, 0.307934, 0.295463, 0.424474, 0.289708]
+  # Campaign #3 (2026-11-22): learned P(pair) per (cluster, pair) replaces the distribution
+  # (tools/train_pairs.py, fit on dev + extra train videos; val AUC 0.795 vs 0.737). Order: PAIR_FEATURES.
+  pair_coef: [-2.51049, 0.741573, 0.314283, 0.1798, 0.269027, -0.126972, 0.127197, -0.0294875, 0.0706061, 0.0820776, 0.513492, -0.0968663, 0.886607]
+  pair_mean: [0.266889, 0.80439, 0.804802, 0.923154, 0.357552, 0.127913, 0.488272, 2.80508, 0.534379, 0.246835, 0.870885, 0.715048]
+  pair_std: [0.127025, 0.25473, 0.790663, 0.169071, 0.166745, 0.19806, 0.296003, 0.3974, 0.276561, 0.170635, 0.582299, 0.268926]
+  pair_power: 1.0          # pair weight = P(pair) ** pair_power
   confidence_power: 2.0    # power on the cluster weight (learned P(real) since Campaign #2; was confidence ** 1.0, X1)
 
 hedge:

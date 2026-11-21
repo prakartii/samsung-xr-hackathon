@@ -17,7 +17,7 @@ from rewind.config import Config
 from rewind.constants import MIN_SEG_EMIT
 from rewind.select.coverage import select_windows
 from rewind.select.hedge import hedge_windows
-from rewind.select.reality import reality_scores
+from rewind.select.reality import pair_scores, reality_scores
 from rewind.types import Cluster, Segment
 
 Mode = Literal["expected", "dedup"]
@@ -53,6 +53,16 @@ def confidence_weighted(clusters: Sequence[Cluster], power: float) -> list[Clust
     return out
 
 
+def pair_weighted(clusters: Sequence[Cluster], duration: float, cfg: Config) -> list[Cluster]:
+    """Replace each cluster's pair distribution by learned P(pair) ** pair_power (Campaign #3)."""
+    s = cfg.select
+    ps = pair_scores(clusters, duration, s.pair_coef, s.pair_mean, s.pair_std)
+    return [
+        replace(c, pair_dist=MappingProxyType({k: v**s.pair_power for k, v in p.items()}))
+        for c, p in zip(clusters, ps, strict=True)
+    ]
+
+
 def reality_weighted(clusters: Sequence[Cluster], duration: float, cfg: Config) -> list[Cluster]:
     """Scale each cluster's pairs by its learned P(real) ** confidence_power (Campaign #2)."""
     s = cfg.select
@@ -79,6 +89,8 @@ def select_epic(
     budget = s.budget_frac * duration
     if mode == "dedup":
         cl = top1_clusters(clusters)
+    elif s.pair_coef:
+        cl = pair_weighted(clusters, duration, cfg)
     elif s.reality_coef:
         cl = reality_weighted(clusters, duration, cfg)
     else:

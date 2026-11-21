@@ -155,6 +155,10 @@ class SelectCfg:
     reality_coef: tuple[float, ...]  # Campaign #2 logistic [b, w...]; empty = use confidence
     reality_mean: tuple[float, ...]  # feature means (rewind.select.reality.FEATURES order)
     reality_std: tuple[float, ...]  # feature standard deviations
+    pair_coef: tuple[float, ...]  # Campaign #3 pair-level logistic; empty = off
+    pair_mean: tuple[float, ...]
+    pair_std: tuple[float, ...]
+    pair_power: float  # pair weight = P(pair) ** pair_power when pair_coef is set
 
 
 @dataclass(frozen=True)
@@ -397,6 +401,14 @@ def _check_ranges(cfg: Config) -> None:
         if (len(r.reality_coef), len(r.reality_mean), len(r.reality_std)) != (nf + 1, nf, nf):
             raise ConfigError(
                 f"select.reality_*: expected {nf + 1} coefficients and {nf} means/stds"
+            )
+    if r.pair_coef:
+        from rewind.select.reality import PAIR_FEATURES
+
+        np_ = len(PAIR_FEATURES)
+        if (len(r.pair_coef), len(r.pair_mean), len(r.pair_std)) != (np_ + 1, np_, np_):
+            raise ConfigError(
+                f"select.pair_*: expected {np_ + 1} coefficients and {np_} means/stds"
             )
     for key, v in unit_interval.items():
         if not 0.0 <= v <= 1.0:

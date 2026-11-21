@@ -160,3 +160,25 @@ add +0.24 dev mAP), not by pairing; output pairing offers only this small gain.
 | tune, full pipeline with CLIP | 0.3492 | - | **0.3783** | 10 / 1 |
 
 FPVSum outputs and all EPIC actions identical on tune (selector-only change). **ADOPTED.**
+
+## Campaign #3: pair-level scorer + consistent clustering (2026-11-22)
+
+- Model: L2 logistic regression per (cluster, pair) on the 9 cluster features + pair probability,
+  log rank, ratio to top-1 (`select/reality.py: pair_features`); label = a GT instance of exactly
+  that pair has >= 50% inside the cluster span. Fit on dev + 175 extra train videos
+  (`tools/train_pairs.py`); val never fit. Val AUC 0.795 vs raw pair probability 0.737.
+- Selector: each cluster's distribution := P(pair) ** pair_power (1.0).
+
+| Check | main (Campaign #2) | pair scorer | better / worse |
+|---|---|---|---|
+| dev (in training data) | 0.4326 | 0.4388 | 70 / 49 |
+| val (unseen) | 0.4142 | **0.4295** | 73 / 38 |
+| tune full pipeline, CLIP linking (cluster.sim 0.85) | 0.3783 | 0.3703 | 5 / 7 |
+| tune full pipeline, **cluster.sim 1.0** | 0.3783 | **0.3954** | **12 / 6** |
+
+The model was trained on clusters linked by top-1 pair only (no CLIP for train videos); with
+CLIP linking in production the features shift and the gain disappears. With `cluster.sim: 1.0`
+production clusters exactly as in training and validation, and the gain holds (cluster scorer
+alone with sim 1.0: 0.3748, 6/8, so the pair model is what helps). **ADOPTED** as the pair: pair
+scorer + cluster.sim 1.0. The Campaign #2 coefficients stay in the config as the fallback when
+`pair_coef` is emptied.
