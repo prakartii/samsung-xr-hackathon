@@ -85,7 +85,12 @@ select:
   fraction_theta: 0.55     # fraction rule: overlap/span midpoint of the sigmoid; tune 2026-11-21 0.5 -> 0.55
   fraction_tau: 0.05       # fraction rule: sigmoid temperature
   mode: expected           # expected | dedup: expected coverage (§5.4), or the label-dedup baseline (P5 kill rule)
-  confidence_power: 1.0    # X1: weight each cluster by confidence ** power in expected coverage; 150 EPIC train videos: +0.066 coverage (112 better, 22 worse); tune +0.010, 2026-11-21
+  # Campaign #2 (2026-11-22): learned P(real) per cluster replaces confidence (tools/train_reality.py,
+  # fit on the C2 dev train videos; val AUC 0.801 vs confidence 0.747). Order: rewind.select.reality.FEATURES.
+  reality_coef: [0.596161, 2.21744, 0.114748, 0.679992, -0.316709, -0.225111, -0.270198, -0.0377114, 0.268162, -0.898097]
+  reality_mean: [0.259161, 0.793516, 0.779124, 0.843859, 0.433927, 0.211366, 0.489595, 2.76317, 0.5]
+  reality_std: [0.130352, 0.245163, 0.788694, 0.300582, 0.24138, 0.307934, 0.295463, 0.424474, 0.289708]
+  confidence_power: 2.0    # power on the cluster weight (learned P(real) since Campaign #2; was confidence ** 1.0, X1)
 
 hedge:
   share: 0.0               # budget fraction for hedge windows; off: lost coverage on tune at 0.1 and 0.2 (2026-11-21)

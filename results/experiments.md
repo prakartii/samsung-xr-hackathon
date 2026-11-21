@@ -143,3 +143,20 @@ videos (inflated absolute values: ActionFormer's training data; compare variants
 
 Reading: mAP is limited by the detector's verb/noun classification (fixing labels with GT would
 add +0.24 dev mAP), not by pairing; output pairing offers only this small gain.
+
+## Campaign #2: learned cluster-reality scorer (2026-11-22)
+
+- Model: L2 logistic regression on 9 inference-time cluster features (confidence, member count,
+  duration, pair entropy, top-1 prob, top-1/2 margin, position, local density, confidence rank;
+  `code/rewind/select/reality.py`), label = cluster span holds >= 50% of a GT action instance.
+  Fit on the C2 **dev** train videos only (`tools/train_reality.py`); val never used to fit.
+- Ranking: AUC dev 5-fold (by video) 0.8025 vs confidence 0.7577; **val 0.8013 vs 0.7467**.
+- Selector: cluster weight = P(real) ** confidence_power (replaces confidence ** 1.0).
+
+| Split | confidence ** 1 (main) | P(real) ** 1 | **P(real) ** 2** | better / worse |
+|---|---|---|---|---|
+| dev (fit here) | 0.4223 | 0.4158 | **0.4326** | 67 / 52 |
+| val (unseen) | 0.4050 | - | **0.4142** | 68 / 44 |
+| tune, full pipeline with CLIP | 0.3492 | - | **0.3783** | 10 / 1 |
+
+FPVSum outputs and all EPIC actions identical on tune (selector-only change). **ADOPTED.**
