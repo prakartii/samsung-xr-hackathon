@@ -33,6 +33,25 @@ def top1_clusters(clusters: Sequence[Cluster]) -> list[Cluster]:
     return out
 
 
+def confidence_weighted(clusters: Sequence[Cluster], power: float) -> list[Cluster]:
+    """Scale each cluster's pair distribution by ``confidence ** power``.
+
+    Expected coverage treats every cluster as one certain action whose pair is drawn
+    from ``pair_dist`` (which sums to 1). With power > 0 a cluster counts as an action
+    only with probability ``confidence ** power`` (confidence = its best member's pair
+    score, in [0, 1]), so likely-false detections are worth less. Power 0 = unchanged.
+    """
+    if power <= 0:
+        return list(clusters)
+    out = []
+    for c in clusters:
+        w = max(0.0, min(1.0, c.confidence)) ** power
+        out.append(
+            replace(c, pair_dist=MappingProxyType({k: p * w for k, p in c.pair_dist.items()}))
+        )
+    return out
+
+
 def select_epic(
     clusters: Sequence[Cluster],
     duration: float,
@@ -44,7 +63,11 @@ def select_epic(
     """Highlight segments and a value per segment (hedges get 0)."""
     s, h = cfg.select, cfg.hedge
     budget = s.budget_frac * duration
-    cl = top1_clusters(clusters) if mode == "dedup" else list(clusters)
+    cl = (
+        top1_clusters(clusters)
+        if mode == "dedup"
+        else confidence_weighted(clusters, s.confidence_power)
+    )
     lengths: Sequence[float] = s.window_lengths
     share = h.share
     if budget < MIN_SEG_EMIT:

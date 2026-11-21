@@ -73,3 +73,33 @@ FPVSum annotations are hidden test labels: nothing that changes FPVSum output is
 | Report | not run (per instruction: no report-based selection; final outputs regenerated later) |
 | Decision | **ADOPTED** (adopt rule: mean gain >= 0.005 and more videos better than worse) |
 | Revert | `git revert` the X0 merge commit, or set `merge_gap_epic: 0.5` (reproduces the old behaviour exactly) |
+
+## X1 / X2 / X3 on tune, and the train benchmark (2026-11-21)
+
+- **X1 (tune, 20 videos):** `select.confidence_power` 1.0: coverage 0.3388 -> 0.3492 but 5 better /
+  5 worse; 0.5: +0.0070, also fails the rule. Rejected on tune alone (branch exp/X1-confidence-weighting).
+- **X2 (tune):** `cluster.span_mode: median`: 0.3388 -> 0.3061. **Rejected** (branch exp/X2-core-span).
+- **X3 (tune):** `select.budget_frac` 0.147 / 0.148 / 0.149: 0.3310 / 0.3260 / 0.3267, all below
+  0.3388 at 0.145. **Rejected** (branch exp/X3-budget-headroom). Budget safety was checked first:
+  at 0.149 every output stays <= 14.95% even of the manifest duration.
+- **Diagnostics (tune):** ours 0.330 vs an oracle restricted to our own candidate windows 0.629
+  (unrestricted 0.627): the gap is selection, not candidates. Cluster confidence separates real
+  from false clusters with AUROC 0.767, and the selector ignored it.
+- **Train benchmark** (`tools/eval_selector_train.py`, 150 EPIC-100 train videos, fixed seed,
+  tune and report videos excluded, released features + official train annotations, no CLIP):
+  - stride 1.0 vs 0.25: -0.0124 (36 better, 72 worse): confirms E1's stride.
+  - X0 off (EPIC gap 0.5) vs on: +0.0010 (34 better, 19 worse): X0 is **not confirmed**; neutral
+    within noise, left in place.
+  - **X1:** power 0.5: 0.3563 -> 0.3966 (+0.0404, 102 better, 20 worse); **power 1.0: 0.4223
+    (+0.0660, 112 better, 22 worse)**. Power 1.0 is also best on tune (+0.0104).
+
+## X1b: confidence-weighted expected coverage, adopted (2026-11-21)
+
+| Field | Value |
+|---|---|
+| Change | `select.confidence_power: 1.0` (new key; 0 = previous behaviour). Files: `code/rewind/config.py`, `code/rewind/select/epic.py`, `configs/default.yaml`, `ARCHITECTURE.md` §5.4, `tools/tune_epic_selector.py` (GRID), tests |
+| Evidence | 150 train videos: coverage +0.0660, 112 better / 22 worse (adopt rule passes); tune full pipeline +0.0104 (5 / 5) |
+| Isolation | Only the EPIC selector's cluster weights; actions, labels, FPVSum unchanged (tune check: FPVSum 49/49 identical) |
+| Caveat | Train/tune detections come from ActionFormer's own training videos, so confidence there is optimistic; held-out transfer is measured once at the final report run |
+| Decision | **ADOPTED** |
+| Revert | `select.confidence_power: 0.0` reproduces the previous selector exactly |
