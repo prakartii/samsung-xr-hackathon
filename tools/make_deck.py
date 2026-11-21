@@ -678,8 +678,8 @@ text(
     0.85,
     [
         [
-            ("Demo video, 2 min 27 s  ", {"bold": True}),
-            ("(link in the repo README)", {"color": MUTED}),
+            ("Demo video, under 3 min  ", {"bold": True}),
+            ("(link in the submission form)", {"color": MUTED}),
         ],
         [
             (

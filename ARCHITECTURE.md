@@ -342,6 +342,9 @@ video (the actions cap; `slow` test), 0.6 s on GT-derived clusters; must stay un
 
 ### 5.5 Hedge windows (`select/hedge.py`)
 
+Hedges are implemented but ship off (`hedge.share: 0`): on 2026-11-21 they lost
+coverage on the tune split in every setting tried (`results/experiments.md`, E1).
+
 Activity score `a(t) = z(flow)·w_f + hands·w_h` on the dense grid. Mask out times
 inside selected windows (± `cfg.hedge.gap`) and inside clusters with
 `confidence ≥ cfg.hedge.strong`. Take peaks of the smoothed `a(t)` spaced
