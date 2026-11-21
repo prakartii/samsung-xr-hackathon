@@ -135,14 +135,18 @@ def pair_proposals(
     verb_vocab: Collection[str],
     noun_vocab: Collection[str],
     params: PairingParams,
+    keep: int | None = None,
+    noun_tiou: float | None = None,
 ) -> list[Proposal]:
-    """One proposal per verb group that has at least one matching noun; sorted by start."""
+    """One proposal per verb group that has at least one matching noun; sorted by start.
+
+    ``keep``: pairs kept per proposal (default ``params.top_k``)."""
     if not verb_dets or not noun_dets:
         return []
     vsegs = np.array([d[0] for d in verb_dets], dtype=np.float64)
     nsegs = np.array([d[0] for d in noun_dets], dtype=np.float64)
     vv = match_lists(vsegs, vsegs, params.match_tiou)  # neighbours, not dense rows
-    vn = match_lists(vsegs, nsegs, params.match_tiou)
+    vn = match_lists(vsegs, nsegs, params.match_tiou if noun_tiou is None else noun_tiou)
 
     proposals = []
     anchor_set: set[int] = set()
@@ -170,9 +174,41 @@ def pair_proposals(
             continue  # nothing in the kit vocabulary: not an anchor either
         anchor_set.add(i)
         pairs.sort(key=lambda x: (-x[2], x[0], x[1]))
-        proposals.append(Proposal(seg, verbs, nouns, tuple(pairs[: params.top_k])))
+        proposals.append(Proposal(seg, verbs, nouns, tuple(pairs[: keep or params.top_k])))
     proposals.sort(key=lambda pr: (pr.segment[0], pr.segment[1]))
     return proposals
+
+
+def class_soft_nms(actions: Sequence[Action], sigma: float) -> list[Action]:
+    """Gaussian soft-NMS within each (verb, noun) class: a lower-scored action is decayed
+    by exp(-tIoU^2 / sigma) for every higher-scored kept action of the same class it
+    overlaps. sigma <= 0 returns the actions unchanged. Output re-sorted by score."""
+    if sigma <= 0:
+        return list(actions)
+    by_cls: dict[tuple[str, str], list[list]] = {}
+    for seg, v, n, s in actions:
+        by_cls.setdefault((v, n), []).append([seg, s])
+    out = []
+    for (v, n), items in by_cls.items():
+        pool = sorted(items, key=lambda x: (-x[1], x[0]))
+        kept = []
+        while pool:
+            best = pool.pop(0)
+            kept.append(best)
+            for it in pool:
+                t = _tiou(best[0], it[0])
+                if t > 0:
+                    it[1] *= float(np.exp(-(t * t) / sigma))
+            pool.sort(key=lambda x: (-x[1], x[0]))
+        out += [(seg, v, n, s) for seg, s in kept]
+    out.sort(key=lambda a: (-a[3], a[0][0], a[0][1], a[1], a[2]))
+    return out
+
+
+def _tiou(a: Segment, b: Segment) -> float:
+    inter = max(0.0, min(a[1], b[1]) - max(a[0], b[0]))
+    union = max(a[1], b[1]) - min(a[0], b[0])
+    return inter / union if union > 0 else 0.0
 
 
 def proposals_to_actions(

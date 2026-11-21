@@ -1,5 +1,7 @@
 """Verb-noun pairing (PROGRESS.md P4 tests; ARCHITECTURE.md §5.1)."""
 
+import math
+
 import numpy as np
 import pytest
 
@@ -230,3 +232,49 @@ def test_pairing_long_zero_shot_video_stays_small_in_memory():
 
     assert props  # the work was actually done
     assert peak < 100 * 2**20  # dense matrices alone would be ~860 MB
+
+
+def test_class_soft_nms_off_returns_actions_unchanged():
+    from rewind.detect.pairing import class_soft_nms
+
+    acts = [((0.0, 2.0), "take", "cup", 0.9), ((0.5, 2.5), "take", "cup", 0.8)]
+    assert class_soft_nms(acts, 0.0) == acts
+
+
+def test_class_soft_nms_decays_same_class_overlaps_only():
+    from rewind.detect.pairing import class_soft_nms
+
+    # take/cup (0, 2) 0.9 and (1, 3) 0.8: tIoU 1/3 -> 0.8 * exp(-(1/9) / 0.5) = 0.8 * 0.80074
+    # = 0.64059. put/cup (1, 3) 0.7 is another class: untouched.
+    acts = [((0.0, 2.0), "take", "cup", 0.9), ((1.0, 3.0), "take", "cup", 0.8),
+            ((1.0, 3.0), "put", "cup", 0.7)]  # fmt: skip
+    out = class_soft_nms(acts, 0.5)
+    scores = {(a[0], a[1]): a[3] for a in out}
+    assert scores[((0.0, 2.0), "take")] == pytest.approx(0.9)
+    assert scores[((1.0, 3.0), "take")] == pytest.approx(0.8 * math.exp(-(1 / 9) / 0.5))
+    assert scores[((1.0, 3.0), "put")] == pytest.approx(0.7)
+    assert [a[3] for a in out] == sorted((a[3] for a in out), reverse=True)
+
+
+def test_pair_proposals_keep_widens_the_pairs_per_proposal():
+    # one verb segment with 2 verbs x 2 nouns = 4 pairs; top_k 2 caps at 2 unless keep=4
+    verbs = [((0.0, 4.0), "take", 0.9), ((0.0, 4.0), "put", 0.5)]
+    nouns = [((0.0, 4.0), "cup", 0.8), ((0.0, 4.0), "plate", 0.4)]
+    params = PairingParams(match_tiou=0.5, top_k=2, alpha=0.0, eps=1.0, score_power=1.0)
+    prior = VNPrior.from_counts(("take", "put"), ("cup", "plate"), np.ones((2, 2)), eps=1.0)
+    voc_v, voc_n = {"take", "put"}, {"cup", "plate"}
+    (p2,) = pair_proposals(verbs, nouns, prior, voc_v, voc_n, params)
+    (p4,) = pair_proposals(verbs, nouns, prior, voc_v, voc_n, params, keep=4)
+    assert len(p2.pairs) == 2 and len(p4.pairs) == 4
+
+
+def test_pair_proposals_noun_tiou_relaxes_only_the_verb_noun_gate():
+    # verb (0, 4) and noun (2, 6): tIoU 2 / 6 = 0.33. Gate 0.5 -> no proposal;
+    # noun_tiou 0.3 -> one proposal on the verb's segment.
+    verbs = [((0.0, 4.0), "take", 0.9)]
+    nouns = [((2.0, 6.0), "cup", 0.8)]
+    params = PairingParams(match_tiou=0.5, top_k=5, alpha=0.0, eps=1.0, score_power=1.0)
+    prior = VNPrior.from_counts(("take",), ("cup",), np.ones((1, 1)), eps=1.0)
+    assert pair_proposals(verbs, nouns, prior, {"take"}, {"cup"}, params) == []
+    (p,) = pair_proposals(verbs, nouns, prior, {"take"}, {"cup"}, params, noun_tiou=0.3)
+    assert p.segment == (0.0, 4.0)
