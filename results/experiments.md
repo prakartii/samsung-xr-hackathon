@@ -53,3 +53,23 @@ FPVSum annotations are hidden test labels: nothing that changes FPVSum output is
   value in the config-hash test) and were updated with new arithmetic.
 - **Decision: KEEP** (adopted on tune; report confirms the direction).
 - **Revert.** Restore the four values in `configs/default.yaml` (git revert of the PR).
+
+## X0: EPIC-only merge gap (2026-11-21)
+
+| Field | Value |
+|---|---|
+| Hypothesis | The E1 search found `post.merge_gap` 0.5 -> 2.0 (+0.0086 tune coverage) but it also moved FPVSum highlights. A separate EPIC-only gap keeps the gain with FPVSum unchanged |
+| Change | New `post.merge_gap_epic` (2.0) used by the EPIC selector's union model, its hedge clearance and EPIC post-processing; `post.merge_gap` (0.5) stays for FPVSum and the fallback. Files: `code/rewind/config.py`, `code/rewind/select/epic.py`, `code/rewind/analyze.py`, `configs/default.yaml`, `ARCHITECTURE.md` |
+| Split | `tune` (20 EPIC train videos; decision). FPVSum checked for identity only, no GT used |
+| Backward compatibility | With `merge_gap_epic: 0.5` the new code reproduces main's tune outputs for 69/69 videos |
+| Isolation | FPVSum-route outputs identical 49/49; EPIC actions and all labels identical |
+| tune coverage_frac | baseline 0.3302 -> **0.3388** (+0.0086); better 2, worse 1, same 17; distinct pairs +8 / -4 |
+| Neighbouring values (tune) | 0.5: 0.3302, 1.0: 0.3299, 1.5: 0.3351, **2.0: 0.3388**, 3.0: 0.3372 (a plateau, not a spike) |
+| mAP / F1 / label | mAP unchanged (actions identical; tune mAP contaminated anyway). F1 and label not evaluable without hidden FPVSum GT; FPVSum outputs identical, so unchanged by construction |
+| Weighted (tune-evaluable part) | coverage term +0.4 x 0.0086 = **+0.0034** (estimate of the effect, tune only) |
+| Budget / validity | max budget use 14.50%; 0 strict-validation errors on 69 tune outputs |
+| Runtime | tune split 205 s -> 214 s wall (same order; one run each) |
+| Tests | 716 passed, 26 skipped (fast suite, Windows); new tests fail on main's code |
+| Report | not run (per instruction: no report-based selection; final outputs regenerated later) |
+| Decision | **ADOPTED** (adopt rule: mean gain >= 0.005 and more videos better than worse) |
+| Revert | `git revert` the X0 merge commit, or set `merge_gap_epic: 0.5` (reproduces the old behaviour exactly) |

@@ -92,7 +92,8 @@ hedge:
   w_hands: 1.0             # activity weight on hand presence
 
 post:
-  merge_gap: 0.5           # merge highlights closer than this many s
+  merge_gap: 0.5           # merge highlights closer than this many s (FPVSum route, fallback)
+  merge_gap_epic: 2.0      # same, EPIC route (selector union + post-processing); tune 2026-11-21 (X0) 0.5 -> 2.0
   short_video_mode: min_seg  # min_seg | within_budget (ARCHITECTURE.md §5.6); ship min_seg
 
 importance:
