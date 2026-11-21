@@ -103,3 +103,25 @@ FPVSum annotations are hidden test labels: nothing that changes FPVSum output is
 | Caveat | Train/tune detections come from ActionFormer's own training videos, so confidence there is optimistic; held-out transfer is measured once at the final report run |
 | Decision | **ADOPTED** |
 | Revert | `select.confidence_power: 0.0` reproduces the previous selector exactly |
+
+## C campaign: held-out selector protocol, C1, C4 (2026-11-22)
+
+Protocol (C2, PR #71): `tools/eval_selector_train.py --part dev|val`. Dev = 150 EPIC-100 train
+videos (seed 0), val = 150 different train videos (seed 1); both exclude tune and report; ids in
+`results/selector_splits.json`. Settings are chosen on dev; val is used once to confirm. Caveat:
+all EPIC train videos are ActionFormer's training data, so detections are optimistic (fine for
+selector decisions, never used for detector decisions). No report data, no FPVSum labels.
+
+Baseline (main, confidence_power 1.0): **dev 0.4223, val 0.4050** (official coverage rule).
+
+| ID | Change | Dev coverage vs main | Better / worse | Val | Decision |
+|---|---|---|---|---|---|
+| C1 | Per-step verb/noun classifier evidence on cluster pairs (`select.step_evidence_power`) 0.5 / 1 / 2 | -0.0091 / -0.0310 / -0.0659 | 37/72, 34/91, 25/102 | not run (failed dev) | **REJECTED** (branch exp/C1-step-evidence) |
+| C4 | Cluster confidence from all members: noisy-OR | +0.0043 | 55 / 58 | not run | **REJECTED** (below 0.005, more worse than better) |
+| C4 | Damped noisy-OR (product ** 1/sqrt(n)) | +0.0022 | 41 / 39 | not run | **REJECTED** (noise) |
+| C1+C4 | Combination | n/a | n/a | n/a | not applicable (neither passed alone) |
+
+Reading: the per-step classifier disagrees with the detector's spans often enough to suppress
+real actions; combining member scores adds nothing beyond the best member's score. The selector
+gain available from confidence is already captured by X1 (confidence_power 1.0). The submission
+(outputs, README, deck) is unchanged: report weighted 0.2985.
