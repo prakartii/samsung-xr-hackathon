@@ -79,8 +79,11 @@ def main() -> None:
     from rewind.analyze import load_models, proposals_from
     from rewind.cluster import cluster_proposals
     from rewind.config import config_from_dict
+    from rewind.detect.actionformer import feature_times
     from rewind.postprocess import postprocess
     from rewind.select.epic import select_epic
+    from rewind.select.evidence import with_step_evidence
+    from rewind.vocab import class_lists
     from rewind_eval.coverage import coverage
     from rewind_eval.gt_epic import load_epic_actions, load_video_durations
     from rewind_eval.splits import load_splits
@@ -146,6 +149,12 @@ def main() -> None:
         f.write_bytes(pickle.dumps(d))
         dets[vid] = d
     print(f"{len(ids)} train videos, detections in {time.perf_counter() - t0:.0f} s", flush=True)
+    verbs, nouns = class_lists()
+    probs = {}
+    if any("step_evidence_power" in json.dumps(o) for _, o in variants):
+        for vid in ids:
+            with np.load(args.af_dir / "features" / f"{vid}.npz") as z:
+                probs[vid] = (feature_times(len(z["v_prob"])), z["v_prob"], z["n_prob"])
 
     results: dict[str, dict[str, float | None]] = {}
     for name, overrides in variants:
@@ -160,6 +169,9 @@ def main() -> None:
             clusters = cluster_proposals(props, tiou_thr=cfg.cluster.tiou, sim_thr=cfg.cluster.sim,
                                          k=cfg.cluster.k, temperature=cfg.calibration.temperature,
                                          embeddings=None, **kw)  # fmt: skip
+            if getattr(cfg.select, "step_evidence_power", 0.0) > 0:
+                clusters = with_step_evidence(clusters, *probs[vid], verbs, nouns,
+                                              cfg.select.step_evidence_power)  # fmt: skip
             segs, values = select_epic(clusters, T, cfg, mode=cfg.select.mode, profile=None)
             hl = postprocess(segs, values, T, budget_frac=cfg.select.budget_frac,
                              merge_gap=cfg.post.merge_gap_epic,
