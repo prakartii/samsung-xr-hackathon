@@ -26,20 +26,25 @@ of it lies inside the highlights (`rewind_eval`, `results/leaderboard.csv`):
 
 | | Weighted | Action coverage (40%) | Action mAP (25%) | Highlight F1 (25%) | Label acc. (10%) |
 |---|---|---|---|---|---|
-| **REWIND** | **0.279** | 0.256 (43.1% of oracle) | 0.149 | 0.226 | 0.830 |
-| Uniform windows | 0.112 | 0.177 (29.8%) | 0 | 0.167 | 0 |
-| Oracle (GT-aware) | 0.762 | 0.593 | 1 | 0.700 | 1 |
+| **REWIND** | **0.289** | 0.281 (46.2% of oracle) | 0.149 | 0.226 | 0.830 |
+| Uniform windows | 0.112 | 0.177 (29.0%) | 0 | 0.167 | 0 |
+| Oracle (GT-aware) | 0.773 | 0.609 | 1 | 0.717 | 1 |
 
 "% of oracle" divides our coverage by that of a reference that sees the ground truth
 and picks windows under the same rule and budget. FPVSum settings are untuned defaults
 (see the tuning-split statement).
 
-- **85.8% of visual tokens pruned** (highlight seconds vs video seconds, all 187 outputs).
-- **39.4 s of CPU time per minute of video**, full pipeline from an empty cache on a
-  laptop CPU (`tools/latency.py`, `results/latency.csv`). No GPU needed.
-- Every component helps on `tune` except the verb-noun prior in the selector, which is
-  within noise; ablations in `results/ablation_report.md` and `results/ablation_tune.md`
-  (`tools/ablate.py`).
+- **85.7% of visual tokens pruned** (highlight seconds vs video seconds, all 187 outputs).
+- **41 s of CPU time per minute of video** (measured 2026-11-21): `run.sh`'s full
+  pipeline per video in a fresh process with an empty feature cache, model loading
+  included, on a laptop (Intel i7-13700H, 16 GB RAM, Windows, no GPU), 4 videos totalling
+  19.6 min (2 EPIC, 2 FPVSum). `tools/latency.py`, `results/latency_2026-11-21.csv`;
+  `results/latency.csv` keeps the earlier runs.
+- Every component helps on `report`: removing ActionFormer costs 0.048 weighted,
+  expected coverage (vs label dedup) 0.006, flow/camera motion 0.015, scene change 0.007,
+  hands 0.002, the verb-noun prior 0.0005. Ablations in `results/ablation_report.md` and
+  `results/ablation_tune.md` (`tools/ablate.py`); settings were chosen on `tune` only
+  (`results/experiments.md`).
 
 ## How it works
 
@@ -110,6 +115,11 @@ The image is built and smoke-tested in CI (`.github/workflows/docker.yml`).
   submission package, and inference never reads it: `run.sh` computes the MP4's
   fingerprint and looks that up, so it never uses a filename or video ID.
 - The verb-noun co-occurrence prior is counted from `EPIC_100_train.csv` only.
+- **Same video bytes, same JSON.** Output is deterministic for a given MP4, so a re-run
+  reproduces `outputs/` exactly only on byte-identical files. EPIC files from the official
+  downloader (MD5-checked) match ours. FPVSum videos come from YouTube: a different
+  `yt-dlp` format or re-encode changes the pixels, so highlights and labels can differ
+  slightly from `outputs/` even though the code is identical.
 
 ## Tuning-split statement
 

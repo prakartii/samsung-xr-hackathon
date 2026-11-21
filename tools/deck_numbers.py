@@ -6,7 +6,8 @@
    official capture rule since 2026-11-21).
 2. Visual tokens pruned: 1 - (highlight seconds / video seconds) pooled over every
    output in --pred (frames kept vs total at any fixed frame rate).
-3. CPU seconds per minute of video: pooled over results/latency.csv.
+3. CPU seconds per minute of video: pooled over results/latency_2026-11-21.csv
+   (current config, empty cache; results/latency.csv keeps the 2026-11-12 runs).
 """
 
 from __future__ import annotations
@@ -41,7 +42,7 @@ def main() -> None:
         rows = [r for r in csv.DictReader(f) if r["tag"] == args.tag]
     if not rows:
         raise SystemExit(f"no leaderboard row tagged {args.tag!r}")
-    with (REPO / "results" / "latency.csv").open(newline="", encoding="utf-8") as f:
+    with (REPO / "results" / "latency_2026-11-21.csv").open(newline="", encoding="utf-8") as f:
         lat = list(csv.DictReader(f))
     print(f"1. {100 * float(rows[-1]['pct_oracle']):.1f}% of oracle coverage (EPIC report)")
     print(f"2. {100 * tokens_pruned(docs):.1f}% of visual tokens pruned ({len(docs)} videos)")
