@@ -41,3 +41,13 @@ def test_parse_variant_reads_name_and_yaml_values():
 
 def test_parse_variant_without_overrides_is_the_base_config():
     assert tool.parse_variant("base=") == ("base", {})
+
+
+def test_dev_val_ids_are_disjoint_and_dev_matches_the_plain_sample():
+    ids = [f"P{i:02d}_{j:02d}" for i in range(20) for j in range(10)]  # 200 ids
+    excluded = set(ids[:20])
+    dev, val = tool.dev_val_ids(ids, excluded, n=50, seed=0)
+    assert len(dev) == 50 and len(val) == 50
+    assert not set(dev) & set(val)
+    assert not (set(dev) | set(val)) & excluded
+    assert dev == tool.sample_train_ids(ids, excluded, n=50, seed=0)
