@@ -70,6 +70,7 @@ cluster:
   tiou: 0.2                # min tIoU to link two proposals; tune 2026-11-21 (official rule) 0.3 -> 0.2
   sim: 0.85                # min CLIP cosine similarity to link two proposals; initial, P5
   k: 5                     # top pairs kept per cluster distribution
+  span_mode: union         # X2: union (earliest start to latest end) | median (median start to median end)
 
 calibration:
   temperature: 1.0         # temperature on cluster pair distributions (stretch S1)

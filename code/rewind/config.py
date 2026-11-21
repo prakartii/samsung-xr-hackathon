@@ -132,6 +132,7 @@ class ClusterCfg:
     tiou: float
     sim: float
     k: int
+    span_mode: Literal["union", "median"]  # extent the selector must cover (X2)
 
 
 @dataclass(frozen=True)

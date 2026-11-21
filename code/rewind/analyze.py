@@ -170,6 +170,7 @@ def epic_highlights(
         k=cfg.cluster.k,
         temperature=cfg.calibration.temperature,
         embeddings=emb,
+        span_mode=cfg.cluster.span_mode,
     )
     h = cfg.hedge
     activity = h.w_flow * np.asarray(flow["flow"]) + h.w_hands * np.asarray(hands["hands"])

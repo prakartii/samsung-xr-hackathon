@@ -43,10 +43,14 @@ def cluster_proposals(
     k: int,
     temperature: float,
     embeddings: np.ndarray | None = None,
+    span_mode: str = "union",
 ) -> tuple[Cluster, ...]:
     """Cluster proposals; clusters come out sorted by span start.
 
     embeddings: optional (n, D) L2-normalized mean CLIP embedding per proposal.
+    span_mode: ``union`` = earliest member start to latest member end; ``median`` = median
+    member start to median member end (a robust core: one long or offset member can't
+    stretch the span the selector must cover).
     """
     n = len(proposals)
     order = sorted(range(n), key=lambda i: proposals[i].segment)
@@ -69,13 +73,18 @@ def cluster_proposals(
         groups[_find(parent, i)].append(i)
     members = sorted(groups.values(), key=lambda m: (proposals[m[0]].segment, m))
     return tuple(
-        _make_cluster(cid, [proposals[i] for i in m], tuple(sorted(m)), k, temperature)
+        _make_cluster(cid, [proposals[i] for i in m], tuple(sorted(m)), k, temperature, span_mode)
         for cid, m in enumerate(members)
     )
 
 
 def _make_cluster(
-    cid: int, members: list[Proposal], idx: tuple[int, ...], k: int, temperature: float
+    cid: int,
+    members: list[Proposal],
+    idx: tuple[int, ...],
+    k: int,
+    temperature: float,
+    span_mode: str = "union",
 ) -> Cluster:
     mass: dict[Pair, float] = defaultdict(float)
     confidence = 0.0
@@ -90,6 +99,15 @@ def _make_cluster(
     top = sorted(mass.items(), key=lambda kv: (-kv[1], kv[0]))[:k]
     dist = calibrate({pair: m for pair, m in top}, temperature)
     span = (min(p.segment[0] for p in members), max(p.segment[1] for p in members))
+    if span_mode == "median":
+        core = (
+            float(np.median([p.segment[0] for p in members])),
+            float(np.median([p.segment[1] for p in members])),
+        )
+        if core[0] < core[1]:
+            span = core
+    elif span_mode != "union":
+        raise ValueError(f"unknown span_mode {span_mode!r}")
     return Cluster(
         cluster_id=cid,
         span=span,

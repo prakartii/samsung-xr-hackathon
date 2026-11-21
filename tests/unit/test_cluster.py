@@ -107,3 +107,27 @@ def test_cluster_confidence_is_the_max_member_score_in_any_order():
     (c,) = cluster_proposals([a, b], **KW)
 
     assert c.confidence == pytest.approx(0.9, abs=1e-12)
+
+
+CHAIN = [
+    # (0, 10)-(2, 12): tIoU 8/12 = .67; (2, 12)-(4, 14): .67; all top-1 cut/onion -> one cluster
+    prop(0, 10, ("cut", "onion", 0.9)),
+    prop(2, 12, ("cut", "onion", 0.8)),
+    prop(4, 14, ("cut", "onion", 0.7)),
+]
+
+
+def test_cluster_span_mode_union_is_the_full_extent():
+    (c,) = cluster_proposals(CHAIN, **KW)
+    assert c.span == (0, 14)
+
+
+def test_cluster_span_mode_median_is_median_start_to_median_end():
+    # starts 0, 2, 4 -> median 2; ends 10, 12, 14 -> median 12
+    (c,) = cluster_proposals(CHAIN, span_mode="median", **KW)
+    assert c.span == (2, 12)
+
+
+def test_cluster_span_mode_median_single_member_keeps_its_segment():
+    (c,) = cluster_proposals([prop(3, 7, ("cut", "onion", 0.9))], span_mode="median", **KW)
+    assert c.span == (3, 7)
