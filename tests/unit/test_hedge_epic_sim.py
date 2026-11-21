@@ -273,3 +273,60 @@ def test_select_epic_uses_the_epic_merge_gap(gap, expected):
     cs = [cl(0, (5.0, 6.0), {("a", "x"): 1.0}), cl(1, (10.5, 11.5), {("b", "y"): 1.0})]
     segs, values = select_epic(cs, 100.0, cfg)
     assert [seg for seg, v in zip(segs, values, strict=True) if v > 0] == expected
+
+
+@pytest.mark.parametrize(
+    ("power", "expected"),
+    [
+        # A (5, 6) confidence 0.2 and B (50, 51) confidence 0.9, distinct pairs; 100 s,
+        # budget 0.045 * 100 = 4.5 s -> one 4.05 s window. Power 0: both clusters are worth
+        # one expected pair -> earliest wins, A's window (2.0, 6.05).
+        (0.0, [(2.0, 6.05)]),
+        # Power 1: A is worth 0.2 * 1 and B 0.9 * 1 -> B's earliest full window (47.0, 51.05).
+        (1.0, [(47.0, 51.05)]),
+    ],
+)
+def test_select_epic_confidence_power_prefers_likely_real_clusters(power, expected):
+    cfg = load_config(DEFAULT_CONFIG)
+    cfg = dataclasses.replace(
+        cfg,
+        select=dataclasses.replace(
+            cfg.select,
+            budget_frac=0.045,
+            stride=0.25,
+            window_lengths=(4.05,),
+            capture_rule="fraction",
+            fraction_theta=0.55,
+            confidence_power=power,
+        ),
+        hedge=dataclasses.replace(cfg.hedge, share=0.0),
+    )
+    cs = [
+        cl(0, (5.0, 6.0), {("a", "x"): 1.0}, conf=0.2),
+        cl(1, (50.0, 51.0), {("b", "y"): 1.0}, conf=0.9),
+    ]
+    segs, values = select_epic(cs, 100.0, cfg)
+    assert [seg for seg, v in zip(segs, values, strict=True) if v > 0] == expected
+
+
+def test_select_epic_dedup_mode_ignores_confidence_power():
+    # The label-dedup baseline stays the historical comparator: same windows at any power.
+    cfg = load_config(DEFAULT_CONFIG)
+    sel = dataclasses.replace(cfg.select, budget_frac=0.045, window_lengths=(4.05,))
+    cs = [
+        cl(0, (5.0, 6.0), {("a", "x"): 1.0}, conf=0.2),
+        cl(1, (50.0, 51.0), {("b", "y"): 1.0}, conf=0.9),
+    ]
+    a = select_epic(
+        cs,
+        100.0,
+        dataclasses.replace(cfg, select=dataclasses.replace(sel, confidence_power=0.0)),
+        mode="dedup",
+    )
+    b = select_epic(
+        cs,
+        100.0,
+        dataclasses.replace(cfg, select=dataclasses.replace(sel, confidence_power=3.0)),
+        mode="dedup",
+    )
+    assert a == b

@@ -296,6 +296,12 @@ default stays (PROGRESS.md Decisions 2026-11-20).
 
 ### 5.4 Expected-coverage selection (`select/coverage.py`)
 
+**Confidence weighting (X1, 2026-11-21).** Before selection each cluster's pair
+distribution is scaled by `confidence ** select.confidence_power` (`select/epic.py`,
+`confidence_weighted`; confidence = the cluster's best member pair score), so a cluster
+counts as an action only with that probability. Shipped power 1.0. The label-dedup
+baseline is not weighted.
+
 State is the union `U` of selected windows, merged exactly as post-processing
 merges highlights (gaps < `max(merge_gap, 0.01 s)` filled), so the model scores what
 is emitted. Each cluster is one action whose pair is drawn from `p_c`; `cap_c(U)` is

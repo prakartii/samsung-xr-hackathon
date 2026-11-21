@@ -148,6 +148,7 @@ class SelectCfg:
     fraction_theta: float
     fraction_tau: float
     mode: Literal["expected", "dedup"]
+    confidence_power: float  # cluster weight = confidence ** power in expected coverage (0 = off)
 
 
 @dataclass(frozen=True)
@@ -424,6 +425,7 @@ def _check_ranges(cfg: Config) -> None:
         "hedge.min_spacing": cfg.hedge.min_spacing,
         "post.merge_gap": cfg.post.merge_gap,
         "post.merge_gap_epic": cfg.post.merge_gap_epic,
+        "select.confidence_power": cfg.select.confidence_power,
         "eval.coverage_lambda": cfg.eval.coverage_lambda,
         "importance.shot_thr": imp.shot_thr,
         "actions.prior_alpha": cfg.actions.prior_alpha,
