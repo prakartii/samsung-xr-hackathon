@@ -1,0 +1,1954 @@
+{
+ "team_id": "VITVellore_Nexus",
+ "video_id": "P26_33",
+ "duration_sec": 38.12,
+ "label": {
+  "name": "cooking",
+  "score": 1.0
+ },
+ "actions": [
+  {
+   "segment": [
+    9.02,
+    10.26
+   ],
+   "verb": "take",
+   "noun": "bread",
+   "score": 0.7217
+  },
+  {
+   "segment": [
+    8.14,
+    9.14
+   ],
+   "verb": "open",
+   "noun": "cupboard",
+   "score": 0.7096
+  },
+  {
+   "segment": [
+    9.02,
+    10.26
+   ],
+   "verb": "take",
+   "noun": "napkin",
+   "score": 0.676
+  },
+  {
+   "segment": [
+    10.11,
+    11.0
+   ],
+   "verb": "close",
+   "noun": "cupboard",
+   "score": 0.6422
+  },
+  {
+   "segment": [
+    9.02,
+    10.26
+   ],
+   "verb": "take",
+   "noun": "cupboard",
+   "score": 0.6348
+  },
+  {
+   "segment": [
+    9.02,
+    10.26
+   ],
+   "verb": "take",
+   "noun": "plate",
+   "score": 0.619
+  },
+  {
+   "segment": [
+    9.02,
+    10.26
+   ],
+   "verb": "take",
+   "noun": "pasta",
+   "score": 0.6046
+  },
+  {
+   "segment": [
+    14.2,
+    16.53
+   ],
+   "verb": "put",
+   "noun": "plate",
+   "score": 0.5872
+  },
+  {
+   "segment": [
+    20.12,
+    35.72
+   ],
+   "verb": "adjust",
+   "noun": "hob",
+   "score": 0.5738
+  },
+  {
+   "segment": [
+    20.12,
+    35.72
+   ],
+   "verb": "adjust",
+   "noun": "oven",
+   "score": 0.5564
+  },
+  {
+   "segment": [
+    13.64,
+    14.52
+   ],
+   "verb": "take",
+   "noun": "scissors",
+   "score": 0.5468
+  },
+  {
+   "segment": [
+    20.12,
+    35.72
+   ],
+   "verb": "turn-down",
+   "noun": "hob",
+   "score": 0.546
+  },
+  {
+   "segment": [
+    14.2,
+    16.53
+   ],
+   "verb": "put",
+   "noun": "box",
+   "score": 0.5448
+  },
+  {
+   "segment": [
+    13.64,
+    14.52
+   ],
+   "verb": "take",
+   "noun": "knife",
+   "score": 0.5363
+  },
+  {
+   "segment": [
+    14.2,
+    16.53
+   ],
+   "verb": "put",
+   "noun": "board:chopping",
+   "score": 0.5361
+  },
+  {
+   "segment": [
+    20.12,
+    35.72
+   ],
+   "verb": "turn-down",
+   "noun": "oven",
+   "score": 0.5294
+  },
+  {
+   "segment": [
+    19.37,
+    26.22
+   ],
+   "verb": "increase",
+   "noun": "hob",
+   "score": 0.5293
+  },
+  {
+   "segment": [
+    13.64,
+    14.52
+   ],
+   "verb": "put",
+   "noun": "scissors",
+   "score": 0.5194
+  },
+  {
+   "segment": [
+    8.14,
+    9.14
+   ],
+   "verb": "close",
+   "noun": "cupboard",
+   "score": 0.5114
+  },
+  {
+   "segment": [
+    13.64,
+    14.52
+   ],
+   "verb": "put",
+   "noun": "knife",
+   "score": 0.5094
+  },
+  {
+   "segment": [
+    14.2,
+    16.53
+   ],
+   "verb": "put",
+   "noun": "scale",
+   "score": 0.494
+  },
+  {
+   "segment": [
+    2.03,
+    5.19
+   ],
+   "verb": "put",
+   "noun": "chicken",
+   "score": 0.4929
+  },
+  {
+   "segment": [
+    19.37,
+    26.22
+   ],
+   "verb": "increase",
+   "noun": "oven",
+   "score": 0.4929
+  },
+  {
+   "segment": [
+    29.03,
+    36.57
+   ],
+   "verb": "increase",
+   "noun": "hob",
+   "score": 0.4907
+  },
+  {
+   "segment": [
+    14.2,
+    16.53
+   ],
+   "verb": "put",
+   "noun": "cutlery",
+   "score": 0.4833
+  },
+  {
+   "segment": [
+    8.14,
+    9.14
+   ],
+   "verb": "take",
+   "noun": "cupboard",
+   "score": 0.4826
+  },
+  {
+   "segment": [
+    20.12,
+    35.72
+   ],
+   "verb": "increase",
+   "noun": "hob",
+   "score": 0.482
+  },
+  {
+   "segment": [
+    29.03,
+    36.57
+   ],
+   "verb": "increase",
+   "noun": "oven",
+   "score": 0.474
+  },
+  {
+   "segment": [
+    8.14,
+    9.14
+   ],
+   "verb": "put",
+   "noun": "cupboard",
+   "score": 0.4703
+  },
+  {
+   "segment": [
+    8.14,
+    9.14
+   ],
+   "verb": "open",
+   "noun": "salt",
+   "score": 0.4698
+  },
+  {
+   "segment": [
+    10.11,
+    11.0
+   ],
+   "verb": "close",
+   "noun": "pasta",
+   "score": 0.466
+  },
+  {
+   "segment": [
+    19.37,
+    26.22
+   ],
+   "verb": "adjust",
+   "noun": "hob",
+   "score": 0.4603
+  },
+  {
+   "segment": [
+    2.03,
+    5.19
+   ],
+   "verb": "turn",
+   "noun": "chicken",
+   "score": 0.4589
+  },
+  {
+   "segment": [
+    2.03,
+    5.19
+   ],
+   "verb": "take",
+   "noun": "chicken",
+   "score": 0.4575
+  },
+  {
+   "segment": [
+    10.11,
+    11.0
+   ],
+   "verb": "put",
+   "noun": "cupboard",
+   "score": 0.4548
+  },
+  {
+   "segment": [
+    13.64,
+    14.52
+   ],
+   "verb": "move",
+   "noun": "scissors",
+   "score": 0.4511
+  },
+  {
+   "segment": [
+    19.37,
+    26.22
+   ],
+   "verb": "turn-down",
+   "noun": "hob",
+   "score": 0.4396
+  },
+  {
+   "segment": [
+    29.03,
+    36.57
+   ],
+   "verb": "adjust",
+   "noun": "hob",
+   "score": 0.432
+  },
+  {
+   "segment": [
+    15.23,
+    16.81
+   ],
+   "verb": "put",
+   "noun": "plate",
+   "score": 0.4315
+  },
+  {
+   "segment": [
+    2.03,
+    5.19
+   ],
+   "verb": "open",
+   "noun": "chicken",
+   "score": 0.4298
+  },
+  {
+   "segment": [
+    19.37,
+    26.22
+   ],
+   "verb": "adjust",
+   "noun": "oven",
+   "score": 0.4286
+  },
+  {
+   "segment": [
+    2.03,
+    5.19
+   ],
+   "verb": "check",
+   "noun": "chicken",
+   "score": 0.4264
+  },
+  {
+   "segment": [
+    8.48,
+    9.86
+   ],
+   "verb": "take",
+   "noun": "cupboard",
+   "score": 0.4251
+  },
+  {
+   "segment": [
+    8.48,
+    9.86
+   ],
+   "verb": "open",
+   "noun": "cupboard",
+   "score": 0.4229
+  },
+  {
+   "segment": [
+    17.72,
+    20.45
+   ],
+   "verb": "increase",
+   "noun": "hob",
+   "score": 0.4194
+  },
+  {
+   "segment": [
+    29.03,
+    36.57
+   ],
+   "verb": "adjust",
+   "noun": "oven",
+   "score": 0.4173
+  },
+  {
+   "segment": [
+    13.07,
+    14.32
+   ],
+   "verb": "take",
+   "noun": "scissors",
+   "score": 0.4167
+  },
+  {
+   "segment": [
+    0.51,
+    1.94
+   ],
+   "verb": "take",
+   "noun": "pan",
+   "score": 0.4145
+  },
+  {
+   "segment": [
+    0.51,
+    1.94
+   ],
+   "verb": "take",
+   "noun": "fork",
+   "score": 0.414
+  },
+  {
+   "segment": [
+    8.48,
+    9.86
+   ],
+   "verb": "take",
+   "noun": "bread",
+   "score": 0.4113
+  },
+  {
+   "segment": [
+    8.48,
+    9.86
+   ],
+   "verb": "open",
+   "noun": "bread",
+   "score": 0.4092
+  },
+  {
+   "segment": [
+    13.07,
+    14.32
+   ],
+   "verb": "take",
+   "noun": "knife",
+   "score": 0.4087
+  },
+  {
+   "segment": [
+    29.03,
+    36.57
+   ],
+   "verb": "turn-off",
+   "noun": "hob",
+   "score": 0.4086
+  },
+  {
+   "segment": [
+    10.11,
+    11.0
+   ],
+   "verb": "close",
+   "noun": "salt",
+   "score": 0.4014
+  },
+  {
+   "segment": [
+    15.23,
+    16.81
+   ],
+   "verb": "put",
+   "noun": "box",
+   "score": 0.4003
+  },
+  {
+   "segment": [
+    10.11,
+    11.0
+   ],
+   "verb": "close",
+   "noun": "bread",
+   "score": 0.3998
+  },
+  {
+   "segment": [
+    12.0,
+    14.59
+   ],
+   "verb": "take",
+   "noun": "cutlery",
+   "score": 0.3982
+  },
+  {
+   "segment": [
+    15.23,
+    16.81
+   ],
+   "verb": "put",
+   "noun": "board:chopping",
+   "score": 0.394
+  },
+  {
+   "segment": [
+    0.51,
+    1.94
+   ],
+   "verb": "take",
+   "noun": "oven",
+   "score": 0.3939
+  },
+  {
+   "segment": [
+    15.23,
+    16.81
+   ],
+   "verb": "take",
+   "noun": "plate",
+   "score": 0.3924
+  },
+  {
+   "segment": [
+    16.48,
+    23.3
+   ],
+   "verb": "increase",
+   "noun": "hob",
+   "score": 0.3923
+  },
+  {
+   "segment": [
+    0.51,
+    1.94
+   ],
+   "verb": "take",
+   "noun": "meat",
+   "score": 0.3888
+  },
+  {
+   "segment": [
+    17.72,
+    20.45
+   ],
+   "verb": "adjust",
+   "noun": "hob",
+   "score": 0.3886
+  },
+  {
+   "segment": [
+    8.48,
+    9.86
+   ],
+   "verb": "take",
+   "noun": "top",
+   "score": 0.3873
+  },
+  {
+   "segment": [
+    13.07,
+    14.32
+   ],
+   "verb": "close",
+   "noun": "scissors",
+   "score": 0.3869
+  },
+  {
+   "segment": [
+    16.48,
+    23.3
+   ],
+   "verb": "turn",
+   "noun": "hob",
+   "score": 0.3863
+  },
+  {
+   "segment": [
+    0.51,
+    1.94
+   ],
+   "verb": "take",
+   "noun": "chicken",
+   "score": 0.3807
+  },
+  {
+   "segment": [
+    13.07,
+    14.32
+   ],
+   "verb": "close",
+   "noun": "knife",
+   "score": 0.3795
+  },
+  {
+   "segment": [
+    16.48,
+    23.3
+   ],
+   "verb": "set",
+   "noun": "hob",
+   "score": 0.3707
+  },
+  {
+   "segment": [
+    10.75,
+    13.74
+   ],
+   "verb": "put",
+   "noun": "plate",
+   "score": 0.3701
+  },
+  {
+   "segment": [
+    10.75,
+    13.74
+   ],
+   "verb": "close",
+   "noun": "plate",
+   "score": 0.3662
+  },
+  {
+   "segment": [
+    10.75,
+    13.74
+   ],
+   "verb": "take",
+   "noun": "plate",
+   "score": 0.3662
+  },
+  {
+   "segment": [
+    16.48,
+    23.3
+   ],
+   "verb": "increase",
+   "noun": "oven",
+   "score": 0.3653
+  },
+  {
+   "segment": [
+    10.75,
+    13.74
+   ],
+   "verb": "put",
+   "noun": "cupboard",
+   "score": 0.3647
+  },
+  {
+   "segment": [
+    15.23,
+    16.81
+   ],
+   "verb": "take",
+   "noun": "box",
+   "score": 0.364
+  },
+  {
+   "segment": [
+    17.72,
+    20.45
+   ],
+   "verb": "increase",
+   "noun": "oven",
+   "score": 0.3633
+  },
+  {
+   "segment": [
+    10.75,
+    13.74
+   ],
+   "verb": "take",
+   "noun": "cupboard",
+   "score": 0.3609
+  },
+  {
+   "segment": [
+    16.48,
+    23.3
+   ],
+   "verb": "turn",
+   "noun": "oven",
+   "score": 0.3597
+  },
+  {
+   "segment": [
+    13.07,
+    14.32
+   ],
+   "verb": "take",
+   "noun": "cutlery",
+   "score": 0.3506
+  },
+  {
+   "segment": [
+    17.72,
+    20.45
+   ],
+   "verb": "turn-down",
+   "noun": "hob",
+   "score": 0.3506
+  },
+  {
+   "segment": [
+    17.72,
+    20.45
+   ],
+   "verb": "adjust",
+   "noun": "oven",
+   "score": 0.3367
+  },
+  {
+   "segment": [
+    12.0,
+    14.59
+   ],
+   "verb": "put",
+   "noun": "cutlery",
+   "score": 0.33
+  },
+  {
+   "segment": [
+    25.15,
+    28.84
+   ],
+   "verb": "adjust",
+   "noun": "oven",
+   "score": 0.3288
+  },
+  {
+   "segment": [
+    12.0,
+    14.59
+   ],
+   "verb": "move",
+   "noun": "cutlery",
+   "score": 0.3237
+  },
+  {
+   "segment": [
+    6.11,
+    8.97
+   ],
+   "verb": "open",
+   "noun": "cupboard",
+   "score": 0.3236
+  },
+  {
+   "segment": [
+    12.0,
+    14.59
+   ],
+   "verb": "take",
+   "noun": "spoon",
+   "score": 0.3234
+  },
+  {
+   "segment": [
+    17.23,
+    18.91
+   ],
+   "verb": "open",
+   "noun": "hob",
+   "score": 0.3166
+  },
+  {
+   "segment": [
+    3.85,
+    9.58
+   ],
+   "verb": "take",
+   "noun": "salt",
+   "score": 0.3122
+  },
+  {
+   "segment": [
+    3.85,
+    9.58
+   ],
+   "verb": "take",
+   "noun": "pasta",
+   "score": 0.3118
+  },
+  {
+   "segment": [
+    15.74,
+    19.55
+   ],
+   "verb": "put",
+   "noun": "plate",
+   "score": 0.3116
+  },
+  {
+   "segment": [
+    6.11,
+    8.97
+   ],
+   "verb": "close",
+   "noun": "cupboard",
+   "score": 0.3113
+  },
+  {
+   "segment": [
+    12.0,
+    14.59
+   ],
+   "verb": "take",
+   "noun": "drawer",
+   "score": 0.3111
+  },
+  {
+   "segment": [
+    16.31,
+    17.29
+   ],
+   "verb": "put",
+   "noun": "cupboard",
+   "score": 0.304
+  },
+  {
+   "segment": [
+    10.28,
+    12.16
+   ],
+   "verb": "put",
+   "noun": "cupboard",
+   "score": 0.3011
+  },
+  {
+   "segment": [
+    3.44,
+    6.91
+   ],
+   "verb": "open",
+   "noun": "cupboard",
+   "score": 0.2994
+  },
+  {
+   "segment": [
+    3.44,
+    6.91
+   ],
+   "verb": "close",
+   "noun": "cupboard",
+   "score": 0.2988
+  },
+  {
+   "segment": [
+    25.15,
+    28.84
+   ],
+   "verb": "adjust",
+   "noun": "hob",
+   "score": 0.2988
+  },
+  {
+   "segment": [
+    10.28,
+    12.16
+   ],
+   "verb": "put",
+   "noun": "plate",
+   "score": 0.2968
+  },
+  {
+   "segment": [
+    19.94,
+    21.96
+   ],
+   "verb": "increase",
+   "noun": "hob",
+   "score": 0.2959
+  },
+  {
+   "segment": [
+    6.11,
+    8.97
+   ],
+   "verb": "turn-off",
+   "noun": "cupboard",
+   "score": 0.294
+  },
+  {
+   "segment": [
+    17.23,
+    18.91
+   ],
+   "verb": "take",
+   "noun": "hob",
+   "score": 0.292
+  },
+  {
+   "segment": [
+    19.94,
+    21.96
+   ],
+   "verb": "adjust",
+   "noun": "hob",
+   "score": 0.2915
+  },
+  {
+   "segment": [
+    19.94,
+    21.96
+   ],
+   "verb": "turn",
+   "noun": "hob",
+   "score": 0.2914
+  },
+  {
+   "segment": [
+    15.74,
+    19.55
+   ],
+   "verb": "put",
+   "noun": "hob",
+   "score": 0.2906
+  },
+  {
+   "segment": [
+    23.08,
+    25.46
+   ],
+   "verb": "adjust",
+   "noun": "hob",
+   "score": 0.2899
+  },
+  {
+   "segment": [
+    10.28,
+    12.16
+   ],
+   "verb": "take",
+   "noun": "cupboard",
+   "score": 0.2883
+  },
+  {
+   "segment": [
+    15.74,
+    19.55
+   ],
+   "verb": "put",
+   "noun": "drawer",
+   "score": 0.2879
+  },
+  {
+   "segment": [
+    3.44,
+    6.91
+   ],
+   "verb": "put",
+   "noun": "cupboard",
+   "score": 0.2871
+  },
+  {
+   "segment": [
+    15.74,
+    19.55
+   ],
+   "verb": "turn-on",
+   "noun": "plate",
+   "score": 0.2861
+  },
+  {
+   "segment": [
+    3.44,
+    6.91
+   ],
+   "verb": "open",
+   "noun": "salt",
+   "score": 0.2855
+  },
+  {
+   "segment": [
+    3.44,
+    6.91
+   ],
+   "verb": "open",
+   "noun": "pasta",
+   "score": 0.2852
+  },
+  {
+   "segment": [
+    10.28,
+    12.16
+   ],
+   "verb": "take",
+   "noun": "plate",
+   "score": 0.2842
+  },
+  {
+   "segment": [
+    15.74,
+    19.55
+   ],
+   "verb": "put",
+   "noun": "pan",
+   "score": 0.2842
+  },
+  {
+   "segment": [
+    10.28,
+    12.16
+   ],
+   "verb": "close",
+   "noun": "cupboard",
+   "score": 0.2801
+  },
+  {
+   "segment": [
+    17.23,
+    18.91
+   ],
+   "verb": "close",
+   "noun": "hob",
+   "score": 0.2798
+  },
+  {
+   "segment": [
+    25.15,
+    28.84
+   ],
+   "verb": "adjust",
+   "noun": "pan",
+   "score": 0.2747
+  },
+  {
+   "segment": [
+    17.23,
+    18.91
+   ],
+   "verb": "open",
+   "noun": "oven",
+   "score": 0.2743
+  },
+  {
+   "segment": [
+    16.31,
+    17.29
+   ],
+   "verb": "put",
+   "noun": "drawer",
+   "score": 0.2733
+  },
+  {
+   "segment": [
+    6.11,
+    8.97
+   ],
+   "verb": "take",
+   "noun": "cupboard",
+   "score": 0.2711
+  },
+  {
+   "segment": [
+    19.94,
+    21.96
+   ],
+   "verb": "increase",
+   "noun": "oven",
+   "score": 0.2699
+  },
+  {
+   "segment": [
+    16.31,
+    17.29
+   ],
+   "verb": "put",
+   "noun": "fork",
+   "score": 0.2691
+  },
+  {
+   "segment": [
+    16.31,
+    17.29
+   ],
+   "verb": "open",
+   "noun": "cupboard",
+   "score": 0.2687
+  },
+  {
+   "segment": [
+    1.87,
+    3.01
+   ],
+   "verb": "take",
+   "noun": "fork",
+   "score": 0.2681
+  },
+  {
+   "segment": [
+    23.08,
+    25.46
+   ],
+   "verb": "adjust",
+   "noun": "oven",
+   "score": 0.268
+  },
+  {
+   "segment": [
+    25.15,
+    28.84
+   ],
+   "verb": "adjust",
+   "noun": "heat",
+   "score": 0.2678
+  },
+  {
+   "segment": [
+    34.64,
+    36.69
+   ],
+   "verb": "increase",
+   "noun": "hob",
+   "score": 0.2675
+  },
+  {
+   "segment": [
+    34.64,
+    36.69
+   ],
+   "verb": "turn",
+   "noun": "hob",
+   "score": 0.2674
+  },
+  {
+   "segment": [
+    16.31,
+    17.29
+   ],
+   "verb": "close",
+   "noun": "cupboard",
+   "score": 0.2666
+  },
+  {
+   "segment": [
+    3.85,
+    9.58
+   ],
+   "verb": "take",
+   "noun": "chicken",
+   "score": 0.2661
+  },
+  {
+   "segment": [
+    27.14,
+    30.53
+   ],
+   "verb": "increase",
+   "noun": "oven",
+   "score": 0.2661
+  },
+  {
+   "segment": [
+    5.32,
+    6.59
+   ],
+   "verb": "close",
+   "noun": "fork",
+   "score": 0.2658
+  },
+  {
+   "segment": [
+    19.94,
+    21.96
+   ],
+   "verb": "adjust",
+   "noun": "oven",
+   "score": 0.2658
+  },
+  {
+   "segment": [
+    34.64,
+    36.69
+   ],
+   "verb": "increase",
+   "noun": "oven",
+   "score": 0.2658
+  },
+  {
+   "segment": [
+    34.64,
+    36.69
+   ],
+   "verb": "turn",
+   "noun": "oven",
+   "score": 0.2657
+  },
+  {
+   "segment": [
+    17.23,
+    18.91
+   ],
+   "verb": "open",
+   "noun": "plate",
+   "score": 0.2644
+  },
+  {
+   "segment": [
+    3.85,
+    9.58
+   ],
+   "verb": "take",
+   "noun": "container",
+   "score": 0.2615
+  },
+  {
+   "segment": [
+    25.15,
+    28.84
+   ],
+   "verb": "take",
+   "noun": "oven",
+   "score": 0.2605
+  },
+  {
+   "segment": [
+    6.11,
+    8.97
+   ],
+   "verb": "put",
+   "noun": "cupboard",
+   "score": 0.2598
+  },
+  {
+   "segment": [
+    23.08,
+    25.46
+   ],
+   "verb": "increase",
+   "noun": "hob",
+   "score": 0.2598
+  },
+  {
+   "segment": [
+    34.64,
+    36.69
+   ],
+   "verb": "adjust",
+   "noun": "hob",
+   "score": 0.2597
+  },
+  {
+   "segment": [
+    29.23,
+    32.72
+   ],
+   "verb": "increase",
+   "noun": "hob",
+   "score": 0.2587
+  },
+  {
+   "segment": [
+    1.87,
+    3.01
+   ],
+   "verb": "take",
+   "noun": "pan",
+   "score": 0.2577
+  },
+  {
+   "segment": [
+    29.23,
+    32.72
+   ],
+   "verb": "adjust",
+   "noun": "hob",
+   "score": 0.2574
+  },
+  {
+   "segment": [
+    3.85,
+    9.58
+   ],
+   "verb": "take",
+   "noun": "lid",
+   "score": 0.2571
+  },
+  {
+   "segment": [
+    33.79,
+    35.67
+   ],
+   "verb": "turn-off",
+   "noun": "hob",
+   "score": 0.2566
+  },
+  {
+   "segment": [
+    1.87,
+    3.01
+   ],
+   "verb": "take",
+   "noun": "sausage",
+   "score": 0.254
+  },
+  {
+   "segment": [
+    1.87,
+    3.01
+   ],
+   "verb": "take",
+   "noun": "knife",
+   "score": 0.2533
+  },
+  {
+   "segment": [
+    33.79,
+    35.67
+   ],
+   "verb": "increase",
+   "noun": "hob",
+   "score": 0.2509
+  },
+  {
+   "segment": [
+    21.9,
+    23.92
+   ],
+   "verb": "adjust",
+   "noun": "hob",
+   "score": 0.2507
+  },
+  {
+   "segment": [
+    33.79,
+    35.67
+   ],
+   "verb": "adjust",
+   "noun": "hob",
+   "score": 0.249
+  },
+  {
+   "segment": [
+    1.87,
+    3.01
+   ],
+   "verb": "take",
+   "noun": "plate",
+   "score": 0.246
+  },
+  {
+   "segment": [
+    27.14,
+    30.53
+   ],
+   "verb": "adjust",
+   "noun": "oven",
+   "score": 0.2459
+  },
+  {
+   "segment": [
+    29.23,
+    32.72
+   ],
+   "verb": "turn-down",
+   "noun": "hob",
+   "score": 0.2444
+  },
+  {
+   "segment": [
+    27.14,
+    30.53
+   ],
+   "verb": "turn-down",
+   "noun": "oven",
+   "score": 0.2439
+  },
+  {
+   "segment": [
+    33.79,
+    35.67
+   ],
+   "verb": "turn-down",
+   "noun": "hob",
+   "score": 0.2416
+  },
+  {
+   "segment": [
+    25.23,
+    26.47
+   ],
+   "verb": "adjust",
+   "noun": "hob",
+   "score": 0.2406
+  },
+  {
+   "segment": [
+    27.14,
+    30.53
+   ],
+   "verb": "increase",
+   "noun": "hob",
+   "score": 0.2405
+  },
+  {
+   "segment": [
+    23.08,
+    25.46
+   ],
+   "verb": "increase",
+   "noun": "oven",
+   "score": 0.2402
+  },
+  {
+   "segment": [
+    23.08,
+    25.46
+   ],
+   "verb": "turn",
+   "noun": "hob",
+   "score": 0.2402
+  },
+  {
+   "segment": [
+    5.32,
+    6.59
+   ],
+   "verb": "close",
+   "noun": "lid",
+   "score": 0.2381
+  },
+  {
+   "segment": [
+    0.0,
+    1.43
+   ],
+   "verb": "turn",
+   "noun": "meat",
+   "score": 0.2348
+  },
+  {
+   "segment": [
+    33.79,
+    35.67
+   ],
+   "verb": "turn",
+   "noun": "hob",
+   "score": 0.2335
+  },
+  {
+   "segment": [
+    0.0,
+    1.43
+   ],
+   "verb": "turn",
+   "noun": "chicken",
+   "score": 0.2299
+  },
+  {
+   "segment": [
+    25.23,
+    26.47
+   ],
+   "verb": "adjust",
+   "noun": "oven",
+   "score": 0.2299
+  },
+  {
+   "segment": [
+    0.0,
+    1.43
+   ],
+   "verb": "insert",
+   "noun": "meat",
+   "score": 0.2297
+  },
+  {
+   "segment": [
+    5.32,
+    6.59
+   ],
+   "verb": "close",
+   "noun": "plate",
+   "score": 0.2274
+  },
+  {
+   "segment": [
+    21.9,
+    23.92
+   ],
+   "verb": "adjust",
+   "noun": "oven",
+   "score": 0.2259
+  },
+  {
+   "segment": [
+    5.32,
+    6.59
+   ],
+   "verb": "close",
+   "noun": "hob",
+   "score": 0.2256
+  },
+  {
+   "segment": [
+    0.0,
+    1.43
+   ],
+   "verb": "insert",
+   "noun": "chicken",
+   "score": 0.2249
+  },
+  {
+   "segment": [
+    0.0,
+    1.43
+   ],
+   "verb": "turn",
+   "noun": "lid",
+   "score": 0.2249
+  },
+  {
+   "segment": [
+    21.9,
+    23.92
+   ],
+   "verb": "increase",
+   "noun": "hob",
+   "score": 0.2238
+  },
+  {
+   "segment": [
+    27.14,
+    30.53
+   ],
+   "verb": "increase",
+   "noun": "heat",
+   "score": 0.2224
+  },
+  {
+   "segment": [
+    6.86,
+    10.63
+   ],
+   "verb": "close",
+   "noun": "cupboard",
+   "score": 0.2208
+  },
+  {
+   "segment": [
+    21.9,
+    23.92
+   ],
+   "verb": "turn",
+   "noun": "hob",
+   "score": 0.2202
+  },
+  {
+   "segment": [
+    5.32,
+    6.59
+   ],
+   "verb": "close",
+   "noun": "container",
+   "score": 0.2187
+  },
+  {
+   "segment": [
+    29.23,
+    32.72
+   ],
+   "verb": "turn",
+   "noun": "hob",
+   "score": 0.2176
+  },
+  {
+   "segment": [
+    25.23,
+    26.47
+   ],
+   "verb": "increase",
+   "noun": "hob",
+   "score": 0.2167
+  },
+  {
+   "segment": [
+    36.56,
+    38.12
+   ],
+   "verb": "take",
+   "noun": "hob",
+   "score": 0.2163
+  },
+  {
+   "segment": [
+    29.23,
+    32.72
+   ],
+   "verb": "take",
+   "noun": "hob",
+   "score": 0.2155
+  },
+  {
+   "segment": [
+    21.9,
+    23.92
+   ],
+   "verb": "turn-off",
+   "noun": "hob",
+   "score": 0.2124
+  },
+  {
+   "segment": [
+    6.86,
+    10.63
+   ],
+   "verb": "take",
+   "noun": "cupboard",
+   "score": 0.2118
+  },
+  {
+   "segment": [
+    25.23,
+    26.47
+   ],
+   "verb": "turn-off",
+   "noun": "hob",
+   "score": 0.2112
+  },
+  {
+   "segment": [
+    6.86,
+    10.63
+   ],
+   "verb": "close",
+   "noun": "fridge",
+   "score": 0.2101
+  },
+  {
+   "segment": [
+    35.71,
+    37.68
+   ],
+   "verb": "take",
+   "noun": "hand",
+   "score": 0.2085
+  },
+  {
+   "segment": [
+    25.23,
+    26.47
+   ],
+   "verb": "increase",
+   "noun": "oven",
+   "score": 0.207
+  },
+  {
+   "segment": [
+    29.38,
+    30.52
+   ],
+   "verb": "turn-off",
+   "noun": "hob",
+   "score": 0.2016
+  },
+  {
+   "segment": [
+    6.86,
+    10.63
+   ],
+   "verb": "take",
+   "noun": "fridge",
+   "score": 0.2015
+  },
+  {
+   "segment": [
+    36.56,
+    38.12
+   ],
+   "verb": "take",
+   "noun": "towel",
+   "score": 0.2015
+  },
+  {
+   "segment": [
+    29.38,
+    30.52
+   ],
+   "verb": "adjust",
+   "noun": "hob",
+   "score": 0.2009
+  },
+  {
+   "segment": [
+    36.56,
+    38.12
+   ],
+   "verb": "take",
+   "noun": "cloth",
+   "score": 0.2001
+  },
+  {
+   "segment": [
+    31.82,
+    34.36
+   ],
+   "verb": "adjust",
+   "noun": "hob",
+   "score": 0.1998
+  },
+  {
+   "segment": [
+    35.71,
+    37.68
+   ],
+   "verb": "take",
+   "noun": "heat",
+   "score": 0.1992
+  },
+  {
+   "segment": [
+    36.56,
+    38.12
+   ],
+   "verb": "take",
+   "noun": "fork",
+   "score": 0.1982
+  },
+  {
+   "segment": [
+    35.71,
+    37.68
+   ],
+   "verb": "take",
+   "noun": "pan",
+   "score": 0.1976
+  },
+  {
+   "segment": [
+    6.86,
+    10.63
+   ],
+   "verb": "close",
+   "noun": "lid",
+   "score": 0.1974
+  },
+  {
+   "segment": [
+    29.38,
+    30.52
+   ],
+   "verb": "turn-off",
+   "noun": "oven",
+   "score": 0.1969
+  },
+  {
+   "segment": [
+    36.56,
+    38.12
+   ],
+   "verb": "take",
+   "noun": "oven",
+   "score": 0.1965
+  },
+  {
+   "segment": [
+    29.38,
+    30.52
+   ],
+   "verb": "adjust",
+   "noun": "oven",
+   "score": 0.1962
+  },
+  {
+   "segment": [
+    35.71,
+    37.68
+   ],
+   "verb": "take",
+   "noun": "drawer",
+   "score": 0.1926
+  },
+  {
+   "segment": [
+    31.82,
+    34.36
+   ],
+   "verb": "increase",
+   "noun": "hob",
+   "score": 0.1878
+  },
+  {
+   "segment": [
+    29.38,
+    30.52
+   ],
+   "verb": "increase",
+   "noun": "hob",
+   "score": 0.1877
+  },
+  {
+   "segment": [
+    35.71,
+    37.68
+   ],
+   "verb": "adjust",
+   "noun": "hand",
+   "score": 0.1867
+  },
+  {
+   "segment": [
+    31.82,
+    34.36
+   ],
+   "verb": "adjust",
+   "noun": "oven",
+   "score": 0.1802
+  },
+  {
+   "segment": [
+    0.0,
+    14.98
+   ],
+   "verb": "flip",
+   "noun": "plate",
+   "score": 0.1744
+  },
+  {
+   "segment": [
+    0.0,
+    14.98
+   ],
+   "verb": "wait",
+   "noun": "plate",
+   "score": 0.1722
+  },
+  {
+   "segment": [
+    0.0,
+    14.98
+   ],
+   "verb": "put",
+   "noun": "plate",
+   "score": 0.1709
+  },
+  {
+   "segment": [
+    31.82,
+    34.36
+   ],
+   "verb": "turn-down",
+   "noun": "hob",
+   "score": 0.1699
+  },
+  {
+   "segment": [
+    31.82,
+    34.36
+   ],
+   "verb": "increase",
+   "noun": "oven",
+   "score": 0.1694
+  },
+  {
+   "segment": [
+    0.0,
+    14.98
+   ],
+   "verb": "flip",
+   "noun": "oven",
+   "score": 0.167
+  },
+  {
+   "segment": [
+    0.0,
+    14.98
+   ],
+   "verb": "wait",
+   "noun": "oven",
+   "score": 0.1649
+  },
+  {
+   "segment": [
+    9.66,
+    17.46
+   ],
+   "verb": "put",
+   "noun": "oven",
+   "score": 0.1582
+  },
+  {
+   "segment": [
+    9.66,
+    17.46
+   ],
+   "verb": "put",
+   "noun": "heat",
+   "score": 0.1541
+  },
+  {
+   "segment": [
+    9.66,
+    17.46
+   ],
+   "verb": "cook",
+   "noun": "oven",
+   "score": 0.1509
+  },
+  {
+   "segment": [
+    9.66,
+    17.46
+   ],
+   "verb": "cook",
+   "noun": "heat",
+   "score": 0.147
+  },
+  {
+   "segment": [
+    9.66,
+    17.46
+   ],
+   "verb": "put",
+   "noun": "chicken",
+   "score": 0.1449
+  }
+ ],
+ "highlights": [
+  {
+   "segment": [
+    0.0,
+    5.5
+   ]
+  }
+ ]
+}
