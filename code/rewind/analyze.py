@@ -31,6 +31,7 @@ import numpy as np
 
 from rewind.cluster import cluster_proposals
 from rewind.config import Config
+from rewind.constants import MAX_ACTIONS
 from rewind.detect.fallback_zeroshot import (
     ZeroShotParams,
     detect_zeroshot,
@@ -40,6 +41,7 @@ from rewind.detect.pairing import (
     Detection,
     PairingParams,
     VNPrior,
+    class_soft_nms,
     pair_proposals,
     proposals_to_actions,
 )
@@ -129,14 +131,31 @@ def video_label(clip_emb: np.ndarray, text: Text, decision: RouteDecision, cfg: 
 
 
 def proposals_from(
-    dets: Detections, prior: VNPrior, cfg: Config, alpha: float | None = None
+    dets: Detections,
+    prior: VNPrior,
+    cfg: Config,
+    alpha: float | None = None,
+    *,
+    match_tiou: float | None = None,
+    keep: int | None = None,
 ) -> list[Proposal]:
-    """Paired proposals; ``alpha`` overrides `pairing.alpha` (the prior's exponent)."""
+    """Paired proposals; ``alpha`` / ``match_tiou`` override `pairing.*`, ``keep`` = pairs
+    kept per proposal (default `pairing.top_k`)."""
     verbs, nouns = class_lists()
     params = PairingParams(**asdict(cfg.pairing))
     if alpha is not None:
         params = replace(params, alpha=alpha)
-    return pair_proposals(dets[0], dets[1], prior, set(verbs), set(nouns), params)
+    return pair_proposals(dets[0], dets[1], prior, set(verbs), set(nouns), params, keep, match_tiou)
+
+
+def output_actions(dets: Detections, prior: VNPrior, cfg: Config) -> list:
+    """``actions[]`` from detections with the output-only settings (`actions.*`): prior
+    exponent, verb-noun gate, pairs kept per segment, per-class soft-NMS, cap."""
+    a = cfg.actions
+    scored = proposals_from(dets, prior, cfg, alpha=a.prior_alpha, match_tiou=a.match_tiou,
+                            keep=a.pair_keep)  # fmt: skip
+    acts = class_soft_nms(proposals_to_actions(scored, MAX_ACTIONS, a.min_score), a.soft_nms_sigma)
+    return acts[: a.max_per_video]
 
 
 def zeroshot_detections(clip: Arrays, duration: float, text: Text, cfg: Config) -> Detections:
@@ -241,12 +260,7 @@ def summarize(
         proposals = proposals_from(dets, prior, cfg)  # for the selector: prior on
         # Output actions use their own prior exponent (Decisions 2026-11-13: the prior
         # helps coverage but hurts mAP); re-pair only when it differs.
-        scored = (
-            proposals
-            if cfg.actions.prior_alpha == cfg.pairing.alpha
-            else proposals_from(dets, prior, cfg, alpha=cfg.actions.prior_alpha)
-        )
-        actions = proposals_to_actions(scored, cfg.actions.max_per_video, cfg.actions.min_score)
+        actions = output_actions(dets, prior, cfg)
 
     if label[0] == COOKING:
         segs, values, profile = epic_highlights(proposals, flow, hands, clip, duration, cfg)

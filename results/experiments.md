@@ -125,3 +125,21 @@ Reading: the per-step classifier disagrees with the detector's spans often enoug
 real actions; combining member scores adds nothing beyond the best member's score. The selector
 gain available from confidence is already captured by X1 (confidence_power 1.0). The submission
 (outputs, README, deck) is unchanged: report weighted 0.2985.
+
+## Campaign #1: output action pairing (2026-11-22)
+
+Output-only settings (`actions.*`); the selector's proposals are untouched, so coverage, F1 and
+labels can't change. `tools/eval_actions_train.py` scores action mAP on the C2 dev/val train
+videos (inflated absolute values: ActionFormer's training data; compare variants only).
+
+| Variant (alone) | dev mAP | val mAP | Decision |
+|---|---|---|---|
+| baseline | 0.5105 | 0.5426 | |
+| keep 10 / 25 pairs per segment | 0.5095 / 0.5107 | not run | rejected (no gain: the right label is usually not in the detector's top 5) |
+| verb+noun gate 0.3 / 0.1 (also merges verb groups) | 0.5079 / 0.4800 | not run | rejected |
+| per-class soft-NMS sigma 0.5 | 0.5086 | not run | rejected (no duplicates exist: dup rate 0.000) |
+| **noun-only gate 0.3** | **0.5144 (+0.0039)** | **0.5447 (+0.0021)** | **ADOPTED** (better at tIoU .1, .3 and .5 on both) |
+| noun-only gate 0.1 | 0.5064 | not run | rejected |
+
+Reading: mAP is limited by the detector's verb/noun classification (fixing labels with GT would
+add +0.24 dev mAP), not by pairing; output pairing offers only this small gain.

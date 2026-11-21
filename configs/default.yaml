@@ -43,6 +43,9 @@ actions:
   max_per_video: 2000      # cap on actions[] per video (kit max 2000); initial, tuned in P4
   min_score: 0.0           # drop actions below this score; initial, tuned in P4
   prior_alpha: 0.0         # verb-noun prior exponent for output action scores (pairing.alpha is for the selector's proposals); P7 ablation
+  pair_keep: 5             # output (verb, noun) pairs kept per verb segment, of top_k x top_k (selector unaffected)
+  match_tiou: 0.3          # output-only verb-noun gate (nouns only; selector keeps pairing.match_tiou); P#1 2026-11-22: train dev mAP +0.0039, val +0.0021
+  soft_nms_sigma: 0.0      # per-class Gaussian soft-NMS on output actions; 0 = off
 
 pairing:
   match_tiou: 0.5          # min tIoU to pair a verb proposal with a noun proposal; initial, P4

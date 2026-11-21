@@ -93,6 +93,9 @@ class ActionsCfg:
     max_per_video: int
     min_score: float
     prior_alpha: float
+    pair_keep: int  # output pairs kept per verb segment (selector keeps pairing.top_k)
+    match_tiou: float  # output-only verb-noun tIoU gate (selector uses pairing.match_tiou)
+    soft_nms_sigma: float  # per-(verb, noun) Gaussian soft-NMS on output actions; 0 = off
 
 
 @dataclass(frozen=True)
@@ -369,6 +372,7 @@ def _check_ranges(cfg: Config) -> None:
         raise ConfigError(f"label.prompts: {no_slot} have no '{{}}' slot for the category name")
     unit_interval = {
         "actions.min_score": cfg.actions.min_score,
+        "actions.match_tiou": cfg.actions.match_tiou,
         "pairing.match_tiou": cfg.pairing.match_tiou,
         "cluster.tiou": cfg.cluster.tiou,
         "cluster.sim": cfg.cluster.sim,
@@ -408,6 +412,7 @@ def _check_ranges(cfg: Config) -> None:
         "features.audio.sample_rate": cfg.features.audio.sample_rate,
         "features.audio.window": cfg.features.audio.window,
         "pairing.top_k": cfg.pairing.top_k,
+        "actions.pair_keep": cfg.actions.pair_keep,
         "pairing.eps": cfg.pairing.eps,
         "pairing.score_power": cfg.pairing.score_power,
         "zeroshot.window_sec": cfg.zeroshot.window_sec,
@@ -429,6 +434,7 @@ def _check_ranges(cfg: Config) -> None:
         "eval.coverage_lambda": cfg.eval.coverage_lambda,
         "importance.shot_thr": imp.shot_thr,
         "actions.prior_alpha": cfg.actions.prior_alpha,
+        "actions.soft_nms_sigma": cfg.actions.soft_nms_sigma,
         "importance.w_audio_rms": imp.w_audio_rms,
         "importance.w_audio_flux": imp.w_audio_flux,
     }
