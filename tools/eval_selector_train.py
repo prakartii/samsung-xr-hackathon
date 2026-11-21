@@ -16,6 +16,10 @@ verb-noun pairs). Approximation: no MP4s here, so no CLIP embeddings; clusters l
 proposals by matching top-1 pair only (`cluster.sim` inert) and hedges get no activity
 profile. Use it for RELATIVE comparisons between selector variants.
 
+Dev/val: ``--part dev`` (default) is the 150 videos settings are chosen on; ``--part val``
+is 150 different train videos used once per experiment to confirm, never to choose. The ids
+go to results/selector_splits.json.
+
 Data rules: train videos only (ActionFormer's own training data, so detections are
 optimistic, as on `tune`); never a validation/report video; the 20 `tune` videos are
 left out so the two checks stay independent. Detections are cached per video under
@@ -43,6 +47,16 @@ def sample_train_ids(train_ids: list[str], exclude: set[str], n: int, seed: int)
     """``n`` ids from ``train_ids`` minus ``exclude``, fixed by ``seed``, sorted."""
     pool = sorted(set(train_ids) - exclude)
     return sorted(random.Random(seed).sample(pool, min(n, len(pool))))
+
+
+def dev_val_ids(
+    train_ids: list[str], exclude: set[str], n: int, seed: int
+) -> tuple[list[str], list[str]]:
+    """Video-level dev/val split: dev = ``n`` ids (seed), val = ``n`` more ids drawn
+    (seed + 1) from what is left, so the two never share a video."""
+    dev = sample_train_ids(train_ids, exclude, n, seed)
+    val = sample_train_ids(train_ids, exclude | set(dev), n, seed + 1)
+    return dev, val
 
 
 def parse_variant(spec: str) -> tuple[str, dict[str, object]]:
@@ -78,6 +92,18 @@ def main() -> None:
     ap.add_argument("--af-dir", type=Path, default=AF_DIR)
     ap.add_argument("--variant", action="append", required=True, help="name=key=value;...")
     ap.add_argument("--min-gain", type=float, default=0.005)
+    ap.add_argument(
+        "--part",
+        choices=["dev", "val"],
+        default="dev",
+        help="dev: choose settings here; val: confirm once, never tune",
+    )
+    ap.add_argument(
+        "--manifest",
+        type=Path,
+        default=REPO / "results" / "selector_splits.json",
+        help="writes the dev/val ids used",
+    )
     args = ap.parse_args()
 
     ann = REPO / "data" / "annotations" / "epic"
@@ -88,7 +114,14 @@ def main() -> None:
     train = [v for v, x in db["database"].items() if x["subset"] == "training"]
     s = load_splits()
     exclude = set(s.tune_epic) | set(s.report_epic)
-    ids = [v for v in sample_train_ids(train, exclude, args.n, args.seed) if v in gt and v in dur]
+    dev, val = dev_val_ids(train, exclude, args.n, args.seed)
+    args.manifest.write_text(json.dumps({
+        "method": "EPIC-100 train videos (ActionFormer 'training' subset) minus tune and report; "
+                  "dev = random.Random(seed).sample(n), val = random.Random(seed + 1).sample(n) "
+                  "from the rest; video-level, disjoint",
+        "seed": args.seed, "n": args.n, "dev": dev, "val": val,
+    }, indent=1) + chr(10), encoding="utf-8")  # fmt: skip
+    ids = [v for v in (dev if args.part == "dev" else val) if v in gt and v in dur]
 
     base = yaml.safe_load(args.config.read_text(encoding="utf-8"))
     variants = [parse_variant(v) for v in args.variant]
