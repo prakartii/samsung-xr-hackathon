@@ -162,7 +162,8 @@ class HedgeCfg:
 
 @dataclass(frozen=True)
 class PostCfg:
-    merge_gap: float
+    merge_gap: float  # FPVSum route and the fallback
+    merge_gap_epic: float  # EPIC route: the selector's union model and post-processing
     short_video_mode: Literal["min_seg", "within_budget"]
 
 
@@ -422,6 +423,7 @@ def _check_ranges(cfg: Config) -> None:
         "hedge.gap": cfg.hedge.gap,
         "hedge.min_spacing": cfg.hedge.min_spacing,
         "post.merge_gap": cfg.post.merge_gap,
+        "post.merge_gap_epic": cfg.post.merge_gap_epic,
         "eval.coverage_lambda": cfg.eval.coverage_lambda,
         "importance.shot_thr": imp.shot_thr,
         "actions.prior_alpha": cfg.actions.prior_alpha,

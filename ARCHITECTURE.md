@@ -361,7 +361,9 @@ in §7:
 
 1. Clamp to `[0, T]`; drop empty and non-finite segments.
 2. Sort by start; merge segments that overlap, touch, or have a gap <
-   `max(cfg.post.merge_gap, 0.01 s)` (a smaller gap could round to touching). A merged
+   `max(gap, 0.01 s)` (a smaller gap could round to touching), where gap is
+   `cfg.post.merge_gap_epic` on the EPIC route (the selector's union model uses the same
+   value) and `cfg.post.merge_gap` on the FPVSum route and for the fallback. A merged
    segment's value is the max of its parts.
 3. Drop segments shorter than `MIN_SEG_EMIT` (not just `MIN_SEG`: 4.01 s could round
    to 3.99 s). Selectors should not produce them; this is a safety net.

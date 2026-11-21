@@ -240,3 +240,36 @@ def test_select_epic_capture_rule_decides_whether_a_grazing_window_counts(rule, 
     )
     segs, values = select_epic([cl(0, (5.0, 6.0), {("a", "x"): 1.0})], 100.0, cfg)
     assert [seg for seg, v in zip(segs, values, strict=True) if v > 0] == expected
+
+
+@pytest.mark.parametrize(
+    ("gap", "expected"),
+    [
+        # A (5, 6) and B (10.5, 11.5), distinct pairs; 100 s, budget 0.09 * 100 = 9 s, only
+        # 4.05 s windows (a longer one could hold both), stride 0.25, official rule. Earliest
+        # window holding all of A: (2.0, 6.05). Gap 0.5: the
+        # earliest holding all of B, (7.5, 11.55), sits 1.45 s after A's window -> kept apart.
+        (0.5, [(2.0, 6.05), (7.5, 11.55)]),
+        # Gap 2.0: (7.5, 11.55) would merge with A's window (cost 11.55 - 6.05 = 5.5 s, total
+        # 9.55 > 9) -> the earliest window 2 s clear of 6.05 that holds all of B: (8.25, 12.3).
+        (2.0, [(2.0, 6.05), (8.25, 12.3)]),
+    ],
+)
+def test_select_epic_uses_the_epic_merge_gap(gap, expected):
+    cfg = load_config(DEFAULT_CONFIG)
+    cfg = dataclasses.replace(
+        cfg,
+        select=dataclasses.replace(
+            cfg.select,
+            budget_frac=0.09,
+            stride=0.25,
+            window_lengths=(4.05,),
+            capture_rule="fraction",
+            fraction_theta=0.55,
+        ),
+        hedge=dataclasses.replace(cfg.hedge, share=0.0),
+        post=dataclasses.replace(cfg.post, merge_gap=0.5, merge_gap_epic=gap),
+    )
+    cs = [cl(0, (5.0, 6.0), {("a", "x"): 1.0}), cl(1, (10.5, 11.5), {("b", "y"): 1.0})]
+    segs, values = select_epic(cs, 100.0, cfg)
+    assert [seg for seg, v in zip(segs, values, strict=True) if v > 0] == expected

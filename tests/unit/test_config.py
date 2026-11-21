@@ -232,6 +232,7 @@ def test_config_importance_min_window_below_min_emit_is_rejected(default_cfg_dic
         ("pairing", "eps", 0.0, r"pairing\.eps: 0\.0 must be > 0"),
         ("cluster", "k", 0, r"cluster\.k: 0 must be > 0"),
         ("post", "merge_gap", -5.0, r"post\.merge_gap: -5\.0 must be >= 0"),
+        ("post", "merge_gap_epic", -1.0, r"post\.merge_gap_epic: -1\.0 must be >= 0"),
         ("hedge", "min_spacing", -1.0, r"hedge\.min_spacing: -1\.0 must be >= 0"),
         ("pairing", "alpha", -0.5, r"pairing\.alpha: -0\.5 must be >= 0"),
         ("hedge", "share", 1.0, r"hedge\.share: 1\.0 must be in \[0, 1\)"),

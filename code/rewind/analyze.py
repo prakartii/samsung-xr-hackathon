@@ -264,7 +264,7 @@ def summarize(
         values,
         duration,
         budget_frac=cfg.select.budget_frac,
-        merge_gap=cfg.post.merge_gap,
+        merge_gap=cfg.post.merge_gap_epic if label[0] == COOKING else cfg.post.merge_gap,
         short_video_mode=cfg.post.short_video_mode,
         profile=profile,
     )

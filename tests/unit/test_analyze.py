@@ -294,3 +294,25 @@ def test_summarize_output_actions_with_prior_alpha_one_follow_the_prior():
         pytest.approx(0.243**0.25, abs=1e-12),
         pytest.approx(0.072**0.25, abs=1e-12),
     )
+
+
+def test_summarize_fpvsum_output_ignores_the_epic_merge_gap():
+    # X0: only the EPIC route reads post.merge_gap_epic; FPVSum keeps post.merge_gap.
+    lo = replace(CFG, post=replace(CFG.post, merge_gap_epic=0.0))
+    hi = replace(CFG, post=replace(CFG.post, merge_gap_epic=10.0))
+    a = summarize("v", T, signals(BIKE), TEXT, PRIOR, lo)
+    b = summarize("v", T, signals(BIKE), TEXT, PRIOR, hi)
+    assert a.label[0] != "cooking"
+    assert a.highlights == b.highlights
+
+
+def test_summarize_epic_output_ignores_the_fpvsum_merge_gap():
+    # ...and the EPIC route no longer reads post.merge_gap.
+    dets = ([((3.0, 7.0), "take", 0.9), ((12.0, 16.0), "put", 0.8)],
+            [((3.0, 7.0), "knife", 0.8), ((12.0, 16.0), "plate", 0.7)])  # fmt: skip
+    lo = replace(CFG, post=replace(CFG.post, merge_gap=0.0))
+    hi = replace(CFG, post=replace(CFG.post, merge_gap=10.0))
+    a = summarize("v", T, signals(COOKING_TAKE_KNIFE), TEXT, PRIOR, lo, lambda: dets)
+    b = summarize("v", T, signals(COOKING_TAKE_KNIFE), TEXT, PRIOR, hi, lambda: dets)
+    assert a.label[0] == "cooking"
+    assert a.highlights == b.highlights

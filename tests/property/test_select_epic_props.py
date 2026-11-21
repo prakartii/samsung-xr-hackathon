@@ -47,6 +47,6 @@ def test_select_epic_output_obeys_the_window_rules(c):
     assert len(values) == len(segs)
     assert all(0.0 <= s < e <= T for s, e in segs)
     assert all(e - s >= min(4.05, T) - 1e-9 for s, e in segs)
-    assert all(s1 - e0 >= cfg.post.merge_gap - 1e-9 for (_, e0), (s1, _) in pairwise(segs))
+    assert all(s1 - e0 >= cfg.post.merge_gap_epic - 1e-9 for (_, e0), (s1, _) in pairwise(segs))
     total = sum(e - s for s, e in segs)
     assert total <= max(cfg.select.budget_frac * T, min(4.05, T)) + 1e-9
