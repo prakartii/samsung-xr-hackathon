@@ -639,7 +639,8 @@ pts = [
     (
         "Expected coverage, not label dedup",
         "Top-1 labels are often wrong. We keep top-k label distributions per cluster and "
-        "greedily maximize expected distinct steps per second of highlight.",
+        "greedily maximize expected distinct steps per second, weighted by detection "
+        "confidence.",
     ),
     (
         "Optimizes the official rule",

@@ -26,7 +26,7 @@ of it lies inside the highlights (`rewind_eval`, `results/leaderboard.csv`):
 
 | | Weighted | Action coverage (40%) | Action mAP (25%) | Highlight F1 (25%) | Label acc. (10%) |
 |---|---|---|---|---|---|
-| **REWIND** | **0.299** | 0.305 (50.0% of oracle) | 0.149 | 0.226 | 0.830 |
+| **REWIND** | **0.298** | 0.304 (50.0% of oracle) | 0.149 | 0.226 | 0.830 |
 | Uniform windows | 0.112 | 0.177 (29.0%) | 0 | 0.167 | 0 |
 | Oracle (GT-aware) | 0.773 | 0.609 | 1 | 0.717 | 1 |
 
@@ -42,9 +42,10 @@ match any standard frame rate. Over all 47, F1 is 0.222 and the weighted total a
   included, on a laptop (Intel i7-13700H, 16 GB RAM, Windows, no GPU), 4 videos totalling
   19.6 min (2 EPIC, 2 FPVSum). `tools/latency.py`, `results/latency_2026-11-21.csv`;
   `results/latency.csv` keeps the earlier runs.
-- Every component helps on `report`: removing ActionFormer costs 0.048 weighted,
-  expected coverage (vs label dedup) 0.006, flow/camera motion 0.015, scene change 0.007,
-  hands 0.002, the verb-noun prior 0.0005. Ablations in `results/ablation_report.md` and
+- Removing a component on `report` costs: ActionFormer 0.057 weighted, expected coverage
+  (vs label dedup) 0.015, flow/camera motion 0.015, scene change 0.007, hands 0.002. The
+  selector's verb-noun prior does not help there (removing it scores 0.002 higher); it was
+  kept because the decision is made on `tune`, not `report`. Ablations in `results/ablation_report.md` and
   `results/ablation_tune.md` (`tools/ablate.py`); settings were chosen on `tune` only
   (`results/experiments.md`).
 
