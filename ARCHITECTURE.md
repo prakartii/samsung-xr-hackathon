@@ -144,7 +144,7 @@ to keys once, in `rewind/vocab.py`.
 | `select/candidates.py` | Candidate windows (§5.3) | yes |
 | `select/coverage.py` | Expected-coverage gain + lazy greedy (§5.4) | yes |
 | `select/hedge.py` | Hedge windows (§5.5) | yes |
-| `select/epic.py` | `select_epic(clusters, T, cfg, mode, profile)`: expected coverage on `(1 − h)·B`, hedges on whatever budget is left; `mode="dedup"` = label-dedup baseline (top-1 pair per cluster) | yes |
+| `select/epic.py` | `select_epic(clusters, T, cfg, mode, profile)`: clusters weighted by `confidence ** select.confidence_power` (§5.4), expected coverage on `(1 − h)·B`, hedges on whatever budget is left (shipped `h = 0`: no hedges); `mode="dedup"` = label-dedup baseline (top-1 pair per cluster) | yes |
 | `select/importance.py` | FPVSum importance proxy + segment selection (§6.2) | yes |
 | `postprocess.py` | Sort, merge, enforce ≥ 4 s, budget trim, clamp (§5.6) | yes |
 | `label/` | EPIC → `cooking`; FPVSum → CLIP zero-shot (§6.3) | scoring pure |
@@ -200,7 +200,8 @@ HTML page over output JSONs, template in `timeline_template.html`; demo only), `
    Prompt text embeddings are cached too (`cache/text/`, versioned by the CLIP
    weights): `run.sh` is one process per video and encoding them costs ~30 s on CPU.
    (On a clean machine nothing is cached; everything is computed from the MP4.)
-4. EPIC route: detect → pairing → `actions[]`; cluster → coverage windows + hedge
+4. EPIC route: detect → pairing → `actions[]`; cluster → confidence-weighted coverage windows
+   (hedges exist but ship off)
    → postprocess → `highlights[]`; label = `cooking`.
    FPVSum route: importance proxy → segments → postprocess → `highlights[]`;
    `actions[]` = `[]` (the kit allows it; mAP is scored on EPIC only); label = CLIP zero-shot.
@@ -436,9 +437,8 @@ score each by mean `imp`. If no shot is long enough for a `min_window` window, w
 may span shots. Greedily pick the best non-overlapping windows until budget `B` (or the
 single best window when `B < min_window`), then postprocess (§5.6).
 
-Ablation candidate (P6): add audio terms (RMS loudness, spectral flux; extracted
-with ffmpeg at 16 kHz) to `imp(t)`. Keep only if it wins on CV. Many FPVSum videos are
-YouTube uploads with music overlays, which may make audio misleading.
+Audio terms (RMS loudness, spectral flux) were tried as a P6 ablation; they ship off
+(w5 = w6 = 0, see above).
 
 Learned option (only if it beats the proxy on CV): ridge regression from CLIP
 embeddings to per-second importance, 5-fold CV over videos.
