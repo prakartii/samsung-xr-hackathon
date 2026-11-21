@@ -107,3 +107,13 @@ def test_cluster_confidence_is_the_max_member_score_in_any_order():
     (c,) = cluster_proposals([a, b], **KW)
 
     assert c.confidence == pytest.approx(0.9, abs=1e-12)
+
+
+def test_cluster_records_each_member_score():
+    # (0, 10) score .9 and (2, 12) score .5, same top-1 -> one cluster; members in
+    # segment order, each with its best pair score.
+    (c,) = cluster_proposals(
+        [prop(0, 10, ("cut", "onion", 0.9)), prop(2, 12, ("cut", "onion", 0.5))], **KW
+    )
+    assert c.member_scores == (0.9, 0.5)
+    assert c.confidence == 0.9

@@ -6,6 +6,7 @@ kill rule (PROGRESS.md P5): each cluster collapses to its top-1 pair, everything
 the same. Output still goes through ``postprocess`` (rounding, short videos).
 """
 
+import math
 from collections.abc import Sequence
 from dataclasses import replace
 from types import MappingProxyType
@@ -33,7 +34,27 @@ def top1_clusters(clusters: Sequence[Cluster]) -> list[Cluster]:
     return out
 
 
-def confidence_weighted(clusters: Sequence[Cluster], power: float) -> list[Cluster]:
+def cluster_confidence(c: Cluster, mode: str) -> float:
+    """How a cluster's member scores combine into one confidence in [0, 1].
+
+    ``max``: the best member (as built). ``noisy_or``: 1 - prod(1 - s_i), members as
+    independent evidence. ``noisy_or_damped``: 1 - prod(1 - s_i) ** (1 / sqrt(n)), so n
+    near-duplicate proposals (strongly correlated, not independent) can't push it to 1.
+    """
+    s = [min(1.0, max(0.0, x)) for x in c.member_scores]
+    if mode == "max" or not s:
+        return c.confidence
+    miss = math.prod(1.0 - x for x in s)
+    if mode == "noisy_or":
+        return 1.0 - miss
+    if mode == "noisy_or_damped":
+        return 1.0 - miss ** (1.0 / math.sqrt(len(s)))
+    raise ValueError(f"unknown confidence mode {mode!r}")
+
+
+def confidence_weighted(
+    clusters: Sequence[Cluster], power: float, mode: str = "max"
+) -> list[Cluster]:
     """Scale each cluster's pair distribution by ``confidence ** power``.
 
     Expected coverage treats every cluster as one certain action whose pair is drawn
@@ -45,7 +66,7 @@ def confidence_weighted(clusters: Sequence[Cluster], power: float) -> list[Clust
         return list(clusters)
     out = []
     for c in clusters:
-        w = max(0.0, min(1.0, c.confidence)) ** power
+        w = max(0.0, min(1.0, cluster_confidence(c, mode))) ** power
         out.append(
             replace(c, pair_dist=MappingProxyType({k: p * w for k, p in c.pair_dist.items()}))
         )
@@ -66,7 +87,7 @@ def select_epic(
     cl = (
         top1_clusters(clusters)
         if mode == "dedup"
-        else confidence_weighted(clusters, s.confidence_power)
+        else confidence_weighted(clusters, s.confidence_power, s.confidence_mode)
     )
     lengths: Sequence[float] = s.window_lengths
     share = h.share

@@ -330,3 +330,35 @@ def test_select_epic_dedup_mode_ignores_confidence_power():
         mode="dedup",
     )
     assert a == b
+
+
+def test_cluster_confidence_modes_hand_computed():
+    from rewind.select.epic import cluster_confidence
+
+    # members 0.5 and 0.5: max 0.5; noisy-OR 1 - 0.25 = 0.75;
+    # damped: 1 - 0.25 ** (1 / sqrt 2) = 1 - 0.25 ** 0.70711 = 1 - 0.37500 = 0.62500
+    c = dataclasses.replace(
+        cl(0, (0.0, 1.0), {("a", "x"): 1.0}, conf=0.5), member_scores=(0.5, 0.5)
+    )
+    assert cluster_confidence(c, "max") == pytest.approx(0.5)
+    assert cluster_confidence(c, "noisy_or") == pytest.approx(0.75)
+    assert cluster_confidence(c, "noisy_or_damped") == pytest.approx(1 - 0.25 ** (2**-0.5))
+
+
+def test_cluster_confidence_damped_limits_duplicate_inflation():
+    # 10 identical 0.3 members: noisy-OR 1 - 0.7**10 = 0.9718; damped 1 - 0.7**(10/sqrt10)
+    # = 1 - 0.7**3.1623 = 0.6758, much closer to one member's 0.3 than to certainty.
+    c = dataclasses.replace(
+        cl(0, (0.0, 1.0), {("a", "x"): 1.0}, conf=0.3), member_scores=(0.3,) * 10
+    )
+    from rewind.select.epic import cluster_confidence
+
+    assert cluster_confidence(c, "noisy_or") == pytest.approx(1 - 0.7**10)
+    assert cluster_confidence(c, "noisy_or_damped") == pytest.approx(1 - 0.7 ** (10**0.5))
+
+
+def test_cluster_confidence_without_member_scores_falls_back_to_max():
+    from rewind.select.epic import cluster_confidence
+
+    c = cl(0, (0.0, 1.0), {("a", "x"): 1.0}, conf=0.4)
+    assert cluster_confidence(c, "noisy_or") == pytest.approx(0.4)

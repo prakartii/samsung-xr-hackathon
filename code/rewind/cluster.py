@@ -79,12 +79,14 @@ def _make_cluster(
 ) -> Cluster:
     mass: dict[Pair, float] = defaultdict(float)
     confidence = 0.0
+    scores: list[float] = []
     for p in members:
         total = sum(s for _, _, s in p.pairs)
         if total <= 0:
             continue
         weight = max(s for _, _, s in p.pairs)  # the member's confidence
         confidence = max(confidence, weight)
+        scores.append(weight)
         for v, n, s in p.pairs:
             mass[(v, n)] += weight * s / total
     top = sorted(mass.items(), key=lambda kv: (-kv[1], kv[0]))[:k]
@@ -96,6 +98,7 @@ def _make_cluster(
         member_idx=idx,
         pair_dist=MappingProxyType(dist),
         confidence=confidence,
+        member_scores=tuple(scores),
     )
 
 

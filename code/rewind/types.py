@@ -53,6 +53,7 @@ class Cluster:
     member_idx: tuple[int, ...]
     pair_dist: Mapping[tuple[str, str], float]  # top-k pairs, renormalized to sum 1
     confidence: float  # max member pair score
+    member_scores: tuple[float, ...] = ()  # each member's best pair score (C4)
 
 
 @dataclass(frozen=True)

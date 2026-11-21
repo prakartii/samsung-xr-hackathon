@@ -149,6 +149,7 @@ class SelectCfg:
     fraction_tau: float
     mode: Literal["expected", "dedup"]
     confidence_power: float  # cluster weight = confidence ** power in expected coverage (0 = off)
+    confidence_mode: Literal["max", "noisy_or", "noisy_or_damped"]  # C4: how member scores combine
 
 
 @dataclass(frozen=True)
