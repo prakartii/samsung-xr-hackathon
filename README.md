@@ -157,7 +157,7 @@ tables and numbers above.
 
 - **Deck:** [`docs/VITVellore_Nexus.pdf`](docs/VITVellore_Nexus.pdf) (PowerPoint: `docs/VITVellore_Nexus.pptx`,
   rebuilt by `tools/make_deck.py`, which needs `pip install python-pptx`).
-- **Demo video** (about 2 min, link in the submission form): real REWIND predictions on a
+- **Demo video** (about 2 min, [youtu.be/5ucBnjGJGBQ](https://youtu.be/5ucBnjGJGBQ)): real REWIND predictions on a
   9-minute kitchen video and six outdoor first-person videos, every label, timestamp and
   highlight read from `outputs/`.
 - **Reproducibility video** (about 2.5 min, [youtu.be/CNwIyQcuipY](https://youtu.be/CNwIyQcuipY)): an anonymous

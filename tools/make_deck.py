@@ -679,8 +679,8 @@ text(
     0.85,
     [
         [
-            ("Demo video, under 3 min  ", {"bold": True}),
-            ("(link in the submission form)", {"color": MUTED}),
+            ("Demo video  ", {"bold": True}),
+            ("youtu.be/5ucBnjGJGBQ", {"color": MUTED}),
         ],
         [
             ("Reproducibility video  ", {"bold": True}),
