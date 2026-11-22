@@ -158,6 +158,21 @@ tables and numbers above.
 Submission deck: [`docs/VITVellore_Nexus.pdf`](docs/VITVellore_Nexus.pdf) (PowerPoint: `docs/VITVellore_Nexus.pptx`,
 rebuilt by `tools/make_deck.py`, which needs `pip install python-pptx`).
 
+After a new scored run, the numbers are refreshed and the deck and demo rebuilt from
+them (the deck takes its images from the demo video, so the demo goes first):
+
+```bash
+python tools/update_numbers.py --weighted <w> --coverage-frac <c> --pct-oracle <p> \
+    --map <m> --f1 <f> --label-acc <l> [--f1-all <f1 over 47>] [--tokens-pruned <t>]
+python tools/make_demo.py --epic <epic_id> --fpvsum <fpvsum_id> <fpvsum_id> \
+    --out demo/rewind_demo.mp4      # the same three videos as before: PROGRESS.md P8
+python tools/make_deck.py --demo demo/rewind_demo.mp4 --out docs/VITVellore_Nexus.pptx
+```
+
+The PDF is exported from PowerPoint (`File → Save As → PDF`, or on Windows
+`$pres.SaveAs("<abs path>\docs\VITVellore_Nexus.pdf", 32)` through the
+`PowerPoint.Application` COM object).
+
 ## Demo tools
 
 Not part of the submission path; both read our output JSON and the original MP4.

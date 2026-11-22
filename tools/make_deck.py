@@ -798,7 +798,7 @@ for i, (n, d) in enumerate(drops):
 box(s, 6.75, 1.7, 2.85, 3.5, name="Limits card")
 text(s, 6.95, 1.85, 2.5, 0.4, "Limitations", size=14, bold=True, color=AMBER, name="Limits title")
 lims = [
-    "Action mAP is 0.149: ActionFormer can't be tuned on its own training videos.",
+    f"Action mAP is {FULL['map']:.3f}: ActionFormer can't be tuned on its own training videos.",
     "Labels confuse look-alikes: jumping vs plane, bike vs motorbike.",
     "Videos under 27 s keep one 4 s window, over 15% by design.",
     "EPIC files not from the official set fall back to zero-shot actions.",
