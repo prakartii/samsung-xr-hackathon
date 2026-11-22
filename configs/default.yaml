@@ -135,6 +135,23 @@ importance:
                            # adjacent time until the budget is used (greedy stops with < min_window left)
   w_audio_flux: 0.0        # importance weight: z(spectral flux); 0 = off (was 0.25, same reason)
 
+learned_importance:        # learned FPVSum importance (select/learned_importance.py; tools/train_importance.py)
+  prompts:                 # generic CLIP prompts, fixed a priori (not tuned on any eval set); order = txt0..txt9
+    - "an exciting moment"
+    - "a boring moment"
+    - "a person performing an impressive action"
+    - "a close-up of hands doing something"
+    - "an empty scene with nothing happening"
+    - "a blurry, shaky frame"
+    - "a person jumping"
+    - "a crowd of people"
+    - "a view of the sky or the ground"
+    - "the highlight of the video"
+  sigma: 3.0               # Gaussian smoothing of the learned logit in s
+  coef: []                 # logistic [b, w...] in feature_names order; empty = hand-weighted importance above
+  mean: []                 # feature means (train set)
+  std: []                  # feature standard deviations (train set)
+
 label:
   prompts:                 # CLIP prompt templates; {} is the category name
     - "a first-person video of {}"

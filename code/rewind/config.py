@@ -200,6 +200,15 @@ class ImportanceCfg:
 
 
 @dataclass(frozen=True)
+class LearnedImportanceCfg:
+    prompts: tuple[str, ...]  # CLIP text prompts whose frame similarity is a feature
+    sigma: float  # Gaussian smoothing of the learned logit, s
+    coef: tuple[float, ...]  # logistic [b, w...] (feature_names order); empty = hand weights
+    mean: tuple[float, ...]  # feature means
+    std: tuple[float, ...]  # feature standard deviations
+
+
+@dataclass(frozen=True)
 class LabelCfg:
     prompts: tuple[str, ...]
     classes: dict[str, str]  # kit label -> CLIP phrase (routing + FPVSum label)
@@ -235,6 +244,7 @@ class Config:
     hedge: HedgeCfg
     post: PostCfg
     importance: ImportanceCfg
+    learned_importance: LearnedImportanceCfg
     label: LabelCfg
     routing: RoutingCfg
     eval: EvalCfg
@@ -415,6 +425,18 @@ def _check_ranges(cfg: Config) -> None:
             raise ConfigError(
                 f"select.pair_*: expected {np_ + 1} coefficients and {np_} means/stds"
             )
+    li = cfg.learned_importance
+    if li.coef:
+        from rewind.select.learned_importance import feature_names
+
+        nf = len(feature_names(len(li.prompts)))
+        if (len(li.coef), len(li.mean), len(li.std)) != (nf + 1, nf, nf):
+            raise ConfigError(
+                f"learned_importance: expected {nf + 1} coefficients and {nf} means/stds "
+                f"for {len(li.prompts)} prompts"
+            )
+    if li.sigma < 0:
+        raise ConfigError(f"learned_importance.sigma: {li.sigma} must be >= 0")
     ac = cfg.actions
     if ac.rescore_coef:
         from rewind.detect.rescore import FEATURES as RESCORE_FEATURES

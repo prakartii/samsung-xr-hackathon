@@ -430,6 +430,14 @@ route, cached by fingerprint, and left out when the video has no audio stream.
 (1.0, 0.25) came from FPVSum GT, which the organizers asked to treat as hidden test
 labels (PROGRESS.md Q13). No FPVSum weight is tuned on that GT; w1–w4 are defaults.
 
+Learned alternative (`select/learned_importance.py`): when `learned_importance.coef` is
+non-empty, `imp` is instead a logistic logit over per-step features (each motion signal
+raw, smoothed at 1/3/6/12 s, 3 s local max, derivative, 3 s − 12 s; position in the
+video; per-video z of the CLIP similarity to `learned_importance.prompts`), smoothed
+with `learned_importance.sigma` s. Coefficients come from `tools/train_importance.py`
+on YouTube Highlights labels only. The prompt embeddings join the cached text
+embeddings only when it is on.
+
 Segments: find shots from CLIP change points (change > `cfg.importance.shot_thr`).
 Within each shot, slide windows of `min_window`…`max_window` s (lengths every
 `importance.len_step` plus `max_window` itself; starts every `importance.stride`) and

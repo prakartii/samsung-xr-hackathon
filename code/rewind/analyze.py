@@ -60,6 +60,7 @@ from rewind.select.importance import (
     select_segments,
     shots,
 )
+from rewind.select.learned_importance import learned_importance, step_features
 from rewind.types import Proposal, Segment, VideoResult
 from rewind.utils import get_logger
 from rewind.video_io import ProbeInfo
@@ -91,12 +92,21 @@ class Text:
     verbs: np.ndarray
     noun_keys: tuple[str, ...]
     nouns: np.ndarray
+    importance: np.ndarray | None = None  # (P, D) learned_importance.prompts, in order
+
+
+def importance_prompts(cfg: Config) -> list[str]:
+    """learned_importance.prompts when the learned importance is on, else none."""
+    li = cfg.learned_importance
+    return list(li.prompts) if li.coef else []
 
 
 def text_embeddings(encoder: Encoder, cfg: Config) -> Text:
     verbs, nouns = class_lists()
     z = cfg.zeroshot
+    prompts = importance_prompts(cfg)
     return Text(
+        importance=encoder.encode_texts(prompts) if prompts else None,
         logit_scale=encoder.logit_scale,
         label_keys=tuple(cfg.label.classes),
         label=class_embeddings(encoder, cfg.label.classes, cfg.label.prompts),
@@ -210,15 +220,28 @@ def fpvsum_highlights(
     duration: float,
     cfg: Config,
     audio: Arrays | None = None,
+    prompt_emb: np.ndarray | None = None,
 ) -> tuple[list[Segment], list[float], tuple[np.ndarray, np.ndarray]]:
     """§6.2: importance proxy → best windows per shot. Value = mean importance.
-    ``audio``: {"rms", "flux"} on the dense grid, or None (no audio terms)."""
+    ``audio``: {"rms", "flux"} on the dense grid, or None (no audio terms).
+    ``prompt_emb``: (P, D) learned_importance prompt embeddings; with a non-empty
+    ``learned_importance.coef`` the learned importance replaces the hand-weighted one."""
     p = ImportanceParams(**asdict(cfg.importance))
     t = np.asarray(flow["t"])
-    imp = importance_signal(
-        t, flow["flow"], hands["hands"], flow["global_motion"], clip["t"], clip["clip_emb"], p,
-        audio,
-    )  # fmt: skip
+    li = cfg.learned_importance
+    if li.coef and prompt_emb is not None:
+        sims = np.asarray(clip["clip_emb"], dtype=np.float64) @ np.asarray(prompt_emb).T
+        x = step_features(
+            t, flow["flow"], hands["hands"], flow["global_motion"], clip["t"], clip["clip_emb"],
+            sims, duration,
+        )  # fmt: skip
+        rate = 1.0 / float(np.median(np.diff(t))) if len(t) > 1 else 1.0
+        imp = learned_importance(x, li.coef, li.mean, li.std, li.sigma * rate)
+    else:
+        imp = importance_signal(
+            t, flow["flow"], hands["hands"], flow["global_motion"], clip["t"], clip["clip_emb"],
+            p, audio,
+        )  # fmt: skip
     spans = shots(clip["t"], clip["clip_emb"], duration, p.shot_thr)
     segs = select_segments(t, imp, spans, duration, cfg.select.budget_frac * duration, p)
     values = [float(imp[(t >= s) & (t <= e)].mean()) if np.any((t >= s) & (t <= e)) else 0.0
@@ -278,7 +301,9 @@ def summarize(
                 aud = audio(np.asarray(flow["t"]))
             except Exception as exc:  # audio only refines importance; never lose highlights
                 log.error("audio failed, importance without audio terms: %s", exc)
-        segs, values, profile = fpvsum_highlights(flow, hands, clip, duration, cfg, aud)
+        segs, values, profile = fpvsum_highlights(
+            flow, hands, clip, duration, cfg, aud, text.importance
+        )
     highlights = postprocess(
         segs,
         values,
@@ -330,6 +355,9 @@ class Models:
         verbs, nouns = class_lists()
         # No sort_keys: the label.classes order is the row order of the cached arrays.
         inputs = [TEXT_VERSION, asdict(cfg.label), asdict(cfg.zeroshot), verbs, nouns]
+        prompts = importance_prompts(cfg)
+        if prompts:  # appended only when on, so existing cache entries stay valid when off
+            inputs.append(prompts)
         key = hashlib.sha1(json.dumps(inputs).encode()).hexdigest()
         if key in self._text:
             return self._text[key]
@@ -343,12 +371,15 @@ class Models:
             hit = None  # can't happen with the ordered key; never trust misaligned rows
         if hit is not None:
             text = Text(float(hit["logit_scale"]), tuple(cfg.label.classes), hit["label"],
-                        verbs, hit["verbs"], nouns, hit["nouns"])  # fmt: skip
+                        verbs, hit["verbs"], nouns, hit["nouns"],
+                        hit["importance"] if prompts else None)  # fmt: skip
         else:
             text = text_embeddings(self.signals.clip, cfg)
             if cache is not None:
                 arrays = {"label": text.label, "verbs": text.verbs, "nouns": text.nouns}
                 arrays["label_keys"] = np.asarray(text.label_keys)
+                if text.importance is not None:
+                    arrays["importance"] = text.importance
                 try:
                     cache.put(key, {**arrays, "logit_scale": np.asarray(text.logit_scale)})
                 except OSError as exc:  # read-only mount, full disk
