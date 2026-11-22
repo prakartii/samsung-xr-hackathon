@@ -16,6 +16,11 @@ def test_keyframe_indices_evenly_spaced():
     assert keyframe_indices(2, 8).tolist() == [0, 1]
 
 
+def test_keyframe_indices_zero_means_every_frame():
+    # n = 0 -> all 5 frames, in order
+    assert keyframe_indices(5, 0).tolist() == [0, 1, 2, 3, 4]
+
+
 def test_fpvsum_label_picks_argmax_with_mean_probability():
     # 2 keyframes, both exactly "ski" (axis 0). logit scale 1: softmax(1, 0) per frame
     # = (e / (e + 1), 1 / (e + 1)) = (0.731059, 0.268941) -> mean is the same.

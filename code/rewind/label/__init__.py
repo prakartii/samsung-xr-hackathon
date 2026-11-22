@@ -3,8 +3,8 @@
 - EPIC route -> ("cooking", 1.0).
 - FPVSum route -> CLIP zero-shot over the 14 FPVSum categories (kit keys, so `ski`,
   not `skiing`): softmax per keyframe over prompt-ensembled class embeddings, averaged
-  over `n_keyframes` evenly spaced 1 fps embeddings; score = that mean probability of
-  the argmax class.
+  over `n_keyframes` evenly spaced 1 fps embeddings (0 = every frame); score = that
+  mean probability of the argmax class.
 - Uncertain route -> `cooking` if mean CLIP P(cooking) >= `cooking_thr`, else the
   FPVSum zero-shot label, replaced by `other` when its score < `other_thr`.
 
@@ -25,10 +25,10 @@ OTHER = "other"
 
 
 def keyframe_indices(m: int, n: int) -> np.ndarray:
-    """n evenly spaced indices into m frames (all of them if m <= n)."""
+    """n evenly spaced indices into m frames (all of them if m <= n or n <= 0)."""
     if m <= 0:
         raise ValueError("no frames")
-    if m <= n:
+    if n <= 0 or m <= n:
         return np.arange(m)
     return np.round(np.linspace(0, m - 1, n)).astype(int)
 

@@ -156,7 +156,10 @@ label:
     skate: "skateboarding"
     ski: "skiing"
     surfing: "surfing a wave"
-  n_keyframes: 8           # evenly spaced frames averaged for the label
+  n_keyframes: 0           # evenly spaced 1 fps frames averaged for route and label; 0 = all.
+                           # 2026-11-22 8 -> 0 on legit sets: YTH label 42/44 -> 43/44 (expected
+                           # acc over random keyframe phases .968 -> .977); EPIC tune 20/20 routed,
+                           # min P(cooking) .82 -> .89
   other_thr: 0.2           # below this top probability on the uncertain route, label "other"
 
 routing:
