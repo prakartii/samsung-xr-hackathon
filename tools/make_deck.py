@@ -128,6 +128,10 @@ def text(
             f.bold = o.get("bold", bold)
             f.italic = o.get("italic", False)
             f.color.rgb = o.get("color", color)
+            if o.get("link"):  # clickable in PowerPoint and in the exported PDF
+                r.hyperlink.address = o["link"]
+                f.underline = True
+                f.color.rgb = o.get("color", color)
     return tb
 
 
@@ -680,11 +684,11 @@ text(
     [
         [
             ("Demo video  ", {"bold": True}),
-            ("youtu.be/5ucBnjGJGBQ", {"color": MUTED}),
+            ("youtu.be/5ucBnjGJGBQ", {"color": CYAN, "link": "https://youtu.be/5ucBnjGJGBQ"}),
         ],
         [
             ("Reproducibility video  ", {"bold": True}),
-            ("youtu.be/CNwIyQcuipY", {"color": MUTED}),
+            ("youtu.be/CNwIyQcuipY", {"color": CYAN, "link": "https://youtu.be/CNwIyQcuipY"}),
         ],
         [
             (
@@ -830,6 +834,7 @@ for sh in s.shapes:
         p.alignment = PP_ALIGN.CENTER
         for r in p.runs:
             r.font.size = Pt(11)
+            r.hyperlink.address = "https://github.com/prakartii/samsung-xr-hackathon"
             r.font.color.rgb = WHITE
             r.font.name = "Calibri"
 
