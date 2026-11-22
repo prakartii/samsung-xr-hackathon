@@ -224,3 +224,22 @@ Adopted the last row. Caveats: small sample, the variant was picked after seeing
 and YouTube Highlights labels (edited-video matches) differ from FPVSum's (frame importance).
 The changes match hypotheses from the pre-data code audit (scene-cut reward, under-smoothing,
 unused budget: highlights used 12.4% of the 14.5% budget on average).
+
+## Highlight config chosen on SumMe (FPVSum protocol), 2026-11-22
+
+SumMe (Gygli et al. 2014) is annotated like FPVSum: per-frame score = annotator agreement, GT =
+top 15% frames (`tools/eval_summ_f1.py`, #81). It is independent of FPVSum and of the scored
+data. First 9 videos with cached features (md5 halves 5/4):
+
+| Config | SumMe F1 all | dev | val |
+|---|---|---|---|
+| B0 = sigma 6, scene -0.5, fill 0.5 (YouTube Highlights pick, #79) | 0.146 | 0.108 | 0.194 |
+| B-old = sigma 2, scene +0.5, fill 0 | 0.258 | 0.174 | 0.364 |
+| **sigma 2, scene +0.5, fill 0.5** | **0.269** | **0.188** | **0.370** |
+| sigma 6, scene +0.5, fill 0 | 0.183 | 0.132 | 0.247 |
+| sigma 2, scene -0.5, fill 0 | 0.214 | 0.156 | 0.286 |
+| uniform | 0.235 | 0.219 | 0.256 |
+
+YouTube Highlights labels (segments matched to a user's edit) rewarded heavy smoothing and a
+negative scene-cut weight; the FPVSum-like protocol rewards neither. The fill-budget pass helps
+on both. **ADOPTED:** sigma 2.0, w_scene_change +0.5, fill_step 0.5.

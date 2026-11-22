@@ -119,12 +119,12 @@ post:
   short_video_mode: min_seg  # min_seg | within_budget (ARCHITECTURE.md §5.6); ship min_seg
 
 importance:
-  sigma: 6.0               # Gaussian smoothing of importance in s; 2026-11-22 YouTube Highlights F1 (was 2.0)
+  sigma: 2.0               # Gaussian smoothing of importance in s; SumMe (FPVSum protocol, 2026-11-22): 2.0 F1 .258 vs 6.0 .146
   shot_thr: 0.2            # CLIP change-point threshold for shot boundaries; initial, P6
   w_flow: 1.0              # importance weight: residual flow
   w_hands: 1.0             # importance weight: hand presence
   w_global_motion: 0.5     # importance weight: camera motion
-  w_scene_change: -0.5     # importance weight: scene change; 2026-11-22 YouTube Highlights F1: cuts are not highlights (was 0.5)
+  w_scene_change: 0.5      # importance weight: scene change; SumMe (FPVSum protocol): +0.5 beats -0.5 (YouTube Highlights pick reverted)
   min_window: 4.05         # shortest FPVSum window in s (>= 4.05)
   max_window: 10.0         # longest FPVSum window in s
   len_step: 1.0            # window-length grid step in s between min_window and max_window; P6
