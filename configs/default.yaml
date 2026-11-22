@@ -46,6 +46,13 @@ actions:
   pair_keep: 5             # output (verb, noun) pairs kept per verb segment, of top_k x top_k (selector unaffected)
   match_tiou: 0.3          # output-only verb-noun gate (nouns only; selector keeps pairing.match_tiou); P#1 2026-11-22: train dev mAP +0.0039, val +0.0021
   soft_nms_sigma: 0.0      # per-class Gaussian soft-NMS on output actions; 0 = off
+  # Campaign #4: learned P(true positive) per output action (tools/train_rescore.py); empty = off.
+  # Order: rewind.detect.rescore.FEATURES.
+  # fit 2026-11-22 on dev + 175 extra train videos; dev OOF mAP 0.5144 -> 0.5450, val 0.5447 -> 0.5753
+  rescore_coef: [-5.15503, 5.07428, -1.75518, -1.87369, -0.15095, -0.222303, -0.699566, 0.306352, -0.0808221, -0.020351, 0.0362134, 0.0315185, 0.231964, -0.145381, -0.0940619, -0.0661327, -0.343636]
+  rescore_mean: [0.487136, 0.269356, 0.294532, 0.324885, 0.412697, 0.863668, 0.719571, 0.781949, 0.491151, 1.4824, 1.53839, 2.51277, 5.02491, 4.25641, 0.574258, 0.100608]
+  rescore_std: [0.126404, 0.195421, 0.171681, 0.463494, 0.51112, 0.58449, 0.19032, 0.775345, 0.294661, 0.527765, 1.16688, 1.06228, 1.24063, 1.12337, 0.144646, 0.15709]
+  rescore_old_power: 0.0   # output score = P(TP) * pairing score ** this (when rescore_coef is set)
 
 pairing:
   match_tiou: 0.5          # min tIoU to pair a verb proposal with a noun proposal; initial, P4

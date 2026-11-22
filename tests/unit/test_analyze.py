@@ -5,6 +5,7 @@ and every softmax is near one-hot (logit scale 100). Expected values are worked 
 in each test's comment.
 """
 
+import dataclasses
 from dataclasses import replace
 
 import numpy as np
@@ -18,7 +19,10 @@ from rewind.schema import validate
 from rewind.vocab import load_vocab
 from tests.conftest import DEFAULT_CONFIG
 
-CFG = load_config(DEFAULT_CONFIG)
+# The learned output-action rescorer (Campaign #4) is off here: these tests hand-compute
+# pairing-based action scores; rewind.detect.rescore has its own tests (test_rescore.py).
+_DEFAULT = load_config(DEFAULT_CONFIG)
+CFG = dataclasses.replace(_DEFAULT, actions=dataclasses.replace(_DEFAULT.actions, rescore_coef=()))
 D = 32
 T = 60.0
 LABELS = tuple(CFG.label.classes)  # 15 classes: 14 FPVSum + cooking
