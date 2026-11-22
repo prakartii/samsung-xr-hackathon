@@ -160,9 +160,13 @@ tables and numbers above.
 - **Demo video** (about 2 min, link in the submission form): real REWIND predictions on a
   9-minute kitchen video and six outdoor first-person videos, every label, timestamp and
   highlight read from `outputs/`.
-- **Reproducibility video** (about 2.5 min, link in the submission form): an anonymous
+- **Reproducibility video** (about 2.5 min, [youtu.be/CNwIyQcuipY](https://youtu.be/CNwIyQcuipY)): an anonymous
   clone of this repository, the documented setup, `./run.sh` on three videos with outputs
   matching `outputs/`, and the validator, all captured from a real run.
+- **Complete kit package** (kit §7 layout: `run.sh`, `code/`, `weights/`, `requirements.txt`,
+  `outputs/`, `README.md`; weights included, 1.9 GB):
+  [`VITVellore_Nexus.zip`](https://github.com/prakartii/samsung-xr-hackathon/releases/download/submission-v2/VITVellore_Nexus.zip)
+  on release [`submission-v2`](https://github.com/prakartii/samsung-xr-hackathon/releases/tag/submission-v2).
 
 ## Demo tools
 
