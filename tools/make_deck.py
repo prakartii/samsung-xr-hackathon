@@ -683,6 +683,10 @@ text(
             ("(link in the submission form)", {"color": MUTED}),
         ],
         [
+            ("Reproducibility video  ", {"bold": True}),
+            ("youtu.be/CNwIyQcuipY", {"color": MUTED}),
+        ],
+        [
             (
                 "A 9-minute kitchen video: our highlights play with the detected actions captioned "
                 "live, the timeline shows where each clip comes from.",
