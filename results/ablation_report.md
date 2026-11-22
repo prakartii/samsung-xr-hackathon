@@ -2,7 +2,7 @@ Ablation on `report` (tools/ablate.py, config 79d5cb9bc1).
 
 | variant | weighted | coverage_frac | pct_oracle | map | f1 | label_acc | coverage_any |
 |---|---|---|---|---|---|---|---|
-| full pipeline | 0.2985 | 0.3045 | 0.4999 | 0.1492 | 0.2256 | 0.8298 | 0.4163 |
+| full pipeline | 0.3268 | 0.3638 | 0.5973 | 0.1522 | 0.2325 | 0.8511 | 0.4680 |
 | zero-shot actions (no ActionFormer) | 0.2411 | 0.2532 | 0.4157 | 0.0015 | 0.2256 | 0.8298 | 0.2716 |
 | label-dedup selector (no expected coverage) | 0.2832 | 0.2662 | 0.4370 | 0.1492 | 0.2256 | 0.8298 | 0.3990 |
 | no verb-noun prior (selector too) | 0.3005 | 0.3094 | 0.5080 | 0.1492 | 0.2256 | 0.8298 | 0.4266 |
