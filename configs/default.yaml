@@ -131,6 +131,8 @@ importance:
   stride: 0.5              # window start grid step in s; P6
   w_audio_rms: 0.0         # importance weight: z(log loudness); 0 = off. Was 1.0, chosen on FPVSum GT (CV);
                            # off since the organizers asked to treat that GT as hidden test labels (PROGRESS.md Q13)
+  fill_step: 0.0           # P6 F1 campaign: > 0 grows chosen windows edge by edge (this many s) into the most important
+                           # adjacent time until the budget is used (greedy stops with < min_window left)
   w_audio_flux: 0.0        # importance weight: z(spectral flux); 0 = off (was 0.25, same reason)
 
 label:

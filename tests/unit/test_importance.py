@@ -9,6 +9,7 @@ import pytest
 from rewind.select.importance import (
     ImportanceParams,
     clip_change,
+    fill_budget,
     fpvsum_segments,
     gaussian_smooth,
     importance_signal,
@@ -205,3 +206,46 @@ def test_importance_signal_without_audio_ignores_audio_weights():
     zeros = np.zeros(4)
     imp = importance_signal(t, flow, zeros, zeros, np.arange(1.0), np.ones((1, 2)), p, None)
     np.testing.assert_allclose(imp, flow, atol=1e-12)
+
+
+# --- fill_budget (P6 F1 campaign) -------------------------------------------------------
+T20 = np.arange(0.0, 20.0, 0.5)  # 40 dense samples, 0.0 .. 19.5
+
+
+def test_fill_budget_grows_toward_the_important_side():
+    # imp = 1 at samples 8.0 and 8.5, else 0. Window (4, 8), leftover 1.0 s, step 0.5:
+    # step 1: left slice [3.5, 4) holds 3.5 (imp 0); right [8, 8.5) holds 8.0 (imp 1) -> (4, 8.5)
+    # step 2: left [3.5, 4) 0; right [8.5, 9) holds 8.5 (imp 1) -> (4, 9.0); leftover 0 -> stop
+    imp = ((T20 >= 8.0) & (T20 < 9.0)).astype(float)
+    out = fill_budget(T20, imp, [(4.0, 8.0)], 20.0, 1.0, 0.5)
+    assert out == [pytest.approx((4.0, 9.0))]
+
+
+def test_fill_budget_never_grows_into_a_neighbour_or_past_zero():
+    # windows (0, 4) and (4.5, 8.5), gap [4, 4.5) holds sample 4.0 with imp 5; leftover 1.0:
+    # step 1: w0 left [-0.5, 0) is before 0 -> skipped; w0 right [4, 4.5) gain 5;
+    #         w1 left [4, 4.5) gain 5 (tie, first found wins); w1 right [8.5, 9) gain 0
+    #         -> (0, 4.5), (4.5, 8.5)
+    # step 2: the gap is closed; only w1 right [8.5, 9) (gain 0) is left -> (4.5, 9.0)
+    imp = np.where(T20 == 4.0, 5.0, 0.0)
+    out = fill_budget(T20, imp, [(4.5, 8.5), (0.0, 4.0)], 20.0, 1.0, 0.5)
+    assert out == [pytest.approx((0.0, 4.5)), pytest.approx((4.5, 9.0))]
+
+
+def test_fill_budget_leftover_below_one_step_changes_nothing():
+    imp = np.ones_like(T20)
+    assert fill_budget(T20, imp, [(4.0, 8.05)], 20.0, 0.4, 0.5) == [(4.0, 8.05)]
+
+
+def test_select_segments_with_fill_step_spends_the_leftover():
+    # one shot (0, 40), imp = 1 on [10, 20), budget 6.0 s, windows 4.05..6.05 (step 1):
+    # greedy takes a 4.05 s window inside [10, 20) (mean 1; ties -> earliest start 10.0,
+    # shortest length) -> used 4.05, leftover 1.95 < min_window -> greedy stops.
+    # fill (step 0.5): left [9.5, 10) has imp 0, right [14.05, 14.55) has imp 1 -> grow right
+    # 3 times (1.5 s): (10.0, 15.55); leftover 0.45 < 0.5 -> stop. Total 5.55 <= 6.0.
+    t = np.arange(0.0, 40.0, 0.05)
+    imp = ((t >= 10.0) & (t < 20.0)).astype(float)
+    p = replace(P, fill_step=0.5)
+    out = select_segments(t, imp, [(0.0, 40.0)], 40.0, 6.0, p)
+    assert out == [pytest.approx((10.0, 15.55))]
+    assert select_segments(t, imp, [(0.0, 40.0)], 40.0, 6.0, P) == [pytest.approx((10.0, 14.05))]
