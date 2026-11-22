@@ -77,7 +77,7 @@ zeroshot:                  # detect/fallback_zeroshot.py: kill-rule + uncertain-
   noun_template: "a first-person photo of a {}."
 
 cluster:
-  tiou: 0.2                # min tIoU to link two proposals; tune 2026-11-21 (official rule) 0.3 -> 0.2
+  tiou: 0.4                # min tIoU to link two proposals; 2026-11-22: dev +0.020 (88/27), val +0.012 (57/39), tune +0.009 (11/4); was 0.2
   sim: 1.0                 # CLIP-similarity linking off (Campaign #3): the learned pair scorer is trained on label-linked clusters, so production clusters the same way (was 0.85)
   k: 5                     # top pairs kept per cluster distribution
 
@@ -119,19 +119,19 @@ post:
   short_video_mode: min_seg  # min_seg | within_budget (ARCHITECTURE.md §5.6); ship min_seg
 
 importance:
-  sigma: 2.0               # Gaussian smoothing of importance in s; initial, P6
+  sigma: 6.0               # Gaussian smoothing of importance in s; 2026-11-22 YouTube Highlights F1 (was 2.0)
   shot_thr: 0.2            # CLIP change-point threshold for shot boundaries; initial, P6
   w_flow: 1.0              # importance weight: residual flow
   w_hands: 1.0             # importance weight: hand presence
   w_global_motion: 0.5     # importance weight: camera motion
-  w_scene_change: 0.5      # importance weight: scene change
+  w_scene_change: -0.5     # importance weight: scene change; 2026-11-22 YouTube Highlights F1: cuts are not highlights (was 0.5)
   min_window: 4.05         # shortest FPVSum window in s (>= 4.05)
   max_window: 10.0         # longest FPVSum window in s
   len_step: 1.0            # window-length grid step in s between min_window and max_window; P6
   stride: 0.5              # window start grid step in s; P6
   w_audio_rms: 0.0         # importance weight: z(log loudness); 0 = off. Was 1.0, chosen on FPVSum GT (CV);
                            # off since the organizers asked to treat that GT as hidden test labels (PROGRESS.md Q13)
-  fill_step: 0.0           # P6 F1 campaign: > 0 grows chosen windows edge by edge (this many s) into the most important
+  fill_step: 0.5           # P6 F1 campaign: > 0 grows chosen windows edge by edge (this many s) into the most important
                            # adjacent time until the budget is used (greedy stops with < min_window left)
   w_audio_flux: 0.0        # importance weight: z(spectral flux); 0 = off (was 0.25, same reason)
 
