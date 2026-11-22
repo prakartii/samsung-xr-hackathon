@@ -158,14 +158,11 @@ tables and numbers above.
 - **Deck:** [`docs/VITVellore_Nexus.pdf`](docs/VITVellore_Nexus.pdf) (PowerPoint: `docs/VITVellore_Nexus.pptx`,
   rebuilt by `tools/make_deck.py`, which needs `pip install python-pptx`).
 - **Demo video** (about 2 min, link in the submission form): real REWIND predictions on a
-  9-minute kitchen video and six outdoor first-person videos, read from `outputs/`.
-  Built by `tools/video/make_final_demo.py` (+ `tools/video/add_voiceover.py`); storyboard,
-  narration and QC in `docs/demo_storyboard.md`, `docs/demo_voiceover.md`, `docs/demo_qc.md`.
+  9-minute kitchen video and six outdoor first-person videos, every label, timestamp and
+  highlight read from `outputs/`.
 - **Reproducibility video** (about 2.5 min, link in the submission form): an anonymous
   clone of this repository, the documented setup, `./run.sh` on three videos with outputs
-  matching `outputs/`, and the validator, all captured from a real run
-  (`tools/video/repro_capture.py`, `tools/video/repro_render.py`). Commands and limitations:
-  `docs/reproducibility_commands.md`, `docs/reproducibility_qc.md`.
+  matching `outputs/`, and the validator, all captured from a real run.
 
 ## Demo tools
 
