@@ -457,12 +457,12 @@ def _check_ranges(cfg: Config) -> None:
         "zeroshot.stride_sec": cfg.zeroshot.stride_sec,
         "zeroshot.top_k": cfg.zeroshot.top_k,
         "cluster.k": cfg.cluster.k,
-        "label.n_keyframes": cfg.label.n_keyframes,
     }
     for key, v in positive.items():
         if v <= 0:
             raise ConfigError(f"{key}: {v} must be > 0")
     non_negative = {
+        "label.n_keyframes": cfg.label.n_keyframes,  # 0 = every 1 fps frame
         "pairing.alpha": cfg.pairing.alpha,
         "hedge.gap": cfg.hedge.gap,
         "hedge.min_spacing": cfg.hedge.min_spacing,

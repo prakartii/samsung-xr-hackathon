@@ -449,8 +449,8 @@ embeddings to per-second importance, 5-fold CV over videos.
 - Names are exactly the keys in `kit/supported_classes.json` (`ski`, not `skiing`;
   confirmed by the organizers and the 2026-11-20 kit reissue, Q10).
 - FPVSum route → CLIP zero-shot over the 14 FPVSum categories with a prompt ensemble
-  (`cfg.label.prompts`), averaged over `cfg.label.n_keyframes` (8) evenly spaced
-  frames; the score is the softmax probability of the argmax. `other` only on the
+  (`cfg.label.prompts`), averaged over `cfg.label.n_keyframes` evenly spaced
+  frames (0, the default: every 1 fps frame); the score is the softmax probability of the argmax. `other` only on the
   unknown route below a confidence threshold.
 
 ---
