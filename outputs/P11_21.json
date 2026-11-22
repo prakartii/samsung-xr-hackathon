@@ -14,7 +14,7 @@
    ],
    "verb": "put",
    "noun": "lid",
-   "score": 0.7813
+   "score": 0.8655
   },
   {
    "segment": [
@@ -23,7 +23,7 @@
    ],
    "verb": "mix",
    "noun": "kale",
-   "score": 0.7555
+   "score": 0.8385
   },
   {
    "segment": [
@@ -32,34 +32,7 @@
    ],
    "verb": "pour",
    "noun": "kale",
-   "score": 0.7122
-  },
-  {
-   "segment": [
-    20.0,
-    25.94
-   ],
-   "verb": "mix",
-   "noun": "courgette",
-   "score": 0.6957
-  },
-  {
-   "segment": [
-    20.0,
-    25.94
-   ],
-   "verb": "mix",
-   "noun": "leek",
-   "score": 0.6722
-  },
-  {
-   "segment": [
-    3.19,
-    9.08
-   ],
-   "verb": "insert",
-   "noun": "kale",
-   "score": 0.6176
+   "score": 0.692
   },
   {
    "segment": [
@@ -68,7 +41,16 @@
    ],
    "verb": "pour",
    "noun": "kale",
-   "score": 0.6067
+   "score": 0.4308
+  },
+  {
+   "segment": [
+    19.17,
+    20.14
+   ],
+   "verb": "take",
+   "noun": "spoon",
+   "score": 0.4202
   },
   {
    "segment": [
@@ -76,26 +58,17 @@
     25.94
    ],
    "verb": "mix",
-   "noun": "vegetable",
-   "score": 0.5955
+   "noun": "courgette",
+   "score": 0.4135
   },
   {
    "segment": [
-    20.0,
-    25.94
+    0.64,
+    1.96
    ],
-   "verb": "pour",
+   "verb": "take",
    "noun": "kale",
-   "score": 0.5833
-  },
-  {
-   "segment": [
-    3.19,
-    9.08
-   ],
-   "verb": "pour",
-   "noun": "leek",
-   "score": 0.5766
+   "score": 0.3954
   },
   {
    "segment": [
@@ -104,7 +77,115 @@
    ],
    "verb": "turn-on",
    "noun": "alarm",
-   "score": 0.573
+   "score": 0.3297
+  },
+  {
+   "segment": [
+    6.89,
+    14.25
+   ],
+   "verb": "empty",
+   "noun": "kale",
+   "score": 0.2187
+  },
+  {
+   "segment": [
+    20.0,
+    25.94
+   ],
+   "verb": "mix",
+   "noun": "leek",
+   "score": 0.1859
+  },
+  {
+   "segment": [
+    12.16,
+    14.42
+   ],
+   "verb": "throw",
+   "noun": "bag",
+   "score": 0.1196
+  },
+  {
+   "segment": [
+    3.19,
+    9.08
+   ],
+   "verb": "insert",
+   "noun": "kale",
+   "score": 0.1063
+  },
+  {
+   "segment": [
+    14.24,
+    16.89
+   ],
+   "verb": "turn-on",
+   "noun": "cupboard",
+   "score": 0.0994
+  },
+  {
+   "segment": [
+    27.54,
+    29.14
+   ],
+   "verb": "put",
+   "noun": "lid",
+   "score": 0.089
+  },
+  {
+   "segment": [
+    3.19,
+    9.08
+   ],
+   "verb": "pour",
+   "noun": "leek",
+   "score": 0.0684
+  },
+  {
+   "segment": [
+    16.69,
+    18.87
+   ],
+   "verb": "turn-on",
+   "noun": "alarm",
+   "score": 0.0595
+  },
+  {
+   "segment": [
+    9.06,
+    12.43
+   ],
+   "verb": "pour",
+   "noun": "leek",
+   "score": 0.0542
+  },
+  {
+   "segment": [
+    17.46,
+    19.68
+   ],
+   "verb": "take",
+   "noun": "spoon",
+   "score": 0.0466
+  },
+  {
+   "segment": [
+    0.64,
+    1.96
+   ],
+   "verb": "take",
+   "noun": "leek",
+   "score": 0.0423
+  },
+  {
+   "segment": [
+    0.98,
+    2.67
+   ],
+   "verb": "take",
+   "noun": "kale",
+   "score": 0.0408
   },
   {
    "segment": [
@@ -113,43 +194,25 @@
    ],
    "verb": "wrap",
    "noun": "lid",
-   "score": 0.5689
+   "score": 0.0339
   },
   {
    "segment": [
-    3.19,
-    9.08
+    14.11,
+    15.53
    ],
-   "verb": "mix",
-   "noun": "kale",
-   "score": 0.5687
+   "verb": "insert",
+   "noun": "alarm",
+   "score": 0.0298
   },
   {
    "segment": [
-    26.55,
-    28.04
-   ],
-   "verb": "put",
-   "noun": "knife",
-   "score": 0.5607
-  },
-  {
-   "segment": [
-    14.24,
-    16.89
-   ],
-   "verb": "turn-on",
-   "noun": "cupboard",
-   "score": 0.5587
-  },
-  {
-   "segment": [
-    3.19,
-    9.08
+    20.0,
+    25.94
    ],
    "verb": "pour",
-   "noun": "courgette",
-   "score": 0.5364
+   "noun": "kale",
+   "score": 0.0297
   },
   {
    "segment": [
@@ -158,34 +221,52 @@
    ],
    "verb": "turn-on",
    "noun": "fridge",
-   "score": 0.5344
+   "score": 0.0288
   },
   {
    "segment": [
-    0.64,
-    1.96
+    19.17,
+    20.14
    ],
    "verb": "take",
+   "noun": "knife",
+   "score": 0.0279
+  },
+  {
+   "segment": [
+    20.0,
+    25.94
+   ],
+   "verb": "mix",
+   "noun": "vegetable",
+   "score": 0.0254
+  },
+  {
+   "segment": [
+    0.98,
+    2.67
+   ],
+   "verb": "open",
    "noun": "kale",
-   "score": 0.5312
+   "score": 0.0215
   },
   {
    "segment": [
-    0.64,
-    1.96
+    28.11,
+    29.77
    ],
-   "verb": "take",
-   "noun": "leek",
-   "score": 0.5306
+   "verb": "adjust",
+   "noun": "lid",
+   "score": 0.0197
   },
   {
    "segment": [
-    9.06,
-    12.43
+    6.89,
+    14.25
    ],
-   "verb": "pour",
-   "noun": "leek",
-   "score": 0.5297
+   "verb": "insert",
+   "noun": "kale",
+   "score": 0.0192
   },
   {
    "segment": [
@@ -193,26 +274,8 @@
     28.04
    ],
    "verb": "put",
-   "noun": "kale",
-   "score": 0.5281
-  },
-  {
-   "segment": [
-    6.89,
-    14.25
-   ],
-   "verb": "empty",
-   "noun": "kale",
-   "score": 0.5243
-  },
-  {
-   "segment": [
-    9.06,
-    12.43
-   ],
-   "verb": "empty",
-   "noun": "kale",
-   "score": 0.5243
+   "noun": "knife",
+   "score": 0.0186
   },
   {
    "segment": [
@@ -221,151 +284,7 @@
    ],
    "verb": "take",
    "noun": "cover",
-   "score": 0.5234
-  },
-  {
-   "segment": [
-    14.24,
-    16.89
-   ],
-   "verb": "turn-on",
-   "noun": "oven",
-   "score": 0.5143
-  },
-  {
-   "segment": [
-    0.98,
-    2.67
-   ],
-   "verb": "take",
-   "noun": "kale",
-   "score": 0.5142
-  },
-  {
-   "segment": [
-    26.55,
-    28.04
-   ],
-   "verb": "put",
-   "noun": "pan",
-   "score": 0.5126
-  },
-  {
-   "segment": [
-    27.54,
-    29.14
-   ],
-   "verb": "put",
-   "noun": "lid",
-   "score": 0.5121
-  },
-  {
-   "segment": [
-    12.16,
-    14.42
-   ],
-   "verb": "throw",
-   "noun": "bag",
-   "score": 0.4965
-  },
-  {
-   "segment": [
-    17.46,
-    19.68
-   ],
-   "verb": "take",
-   "noun": "spoon",
-   "score": 0.4928
-  },
-  {
-   "segment": [
-    0.98,
-    2.67
-   ],
-   "verb": "open",
-   "noun": "kale",
-   "score": 0.4905
-  },
-  {
-   "segment": [
-    14.24,
-    16.89
-   ],
-   "verb": "open",
-   "noun": "alarm",
-   "score": 0.4893
-  },
-  {
-   "segment": [
-    9.06,
-    12.43
-   ],
-   "verb": "shake",
-   "noun": "kale",
-   "score": 0.4892
-  },
-  {
-   "segment": [
-    16.69,
-    18.87
-   ],
-   "verb": "turn-on",
-   "noun": "alarm",
-   "score": 0.4856
-  },
-  {
-   "segment": [
-    6.89,
-    14.25
-   ],
-   "verb": "insert",
-   "noun": "kale",
-   "score": 0.4854
-  },
-  {
-   "segment": [
-    9.06,
-    12.43
-   ],
-   "verb": "insert",
-   "noun": "kale",
-   "score": 0.4854
-  },
-  {
-   "segment": [
-    12.16,
-    14.42
-   ],
-   "verb": "throw",
-   "noun": "kale",
-   "score": 0.4776
-  },
-  {
-   "segment": [
-    0.98,
-    2.67
-   ],
-   "verb": "take",
-   "noun": "lid",
-   "score": 0.4729
-  },
-  {
-   "segment": [
-    12.16,
-    14.42
-   ],
-   "verb": "insert",
-   "noun": "bag",
-   "score": 0.4718
-  },
-  {
-   "segment": [
-    12.16,
-    14.42
-   ],
-   "verb": "empty",
-   "noun": "bag",
-   "score": 0.4698
+   "score": 0.0179
   },
   {
    "segment": [
@@ -374,16 +293,187 @@
    ],
    "verb": "adjust",
    "noun": "lid",
-   "score": 0.4698
+   "score": 0.015
   },
   {
    "segment": [
-    0.64,
-    1.96
+    3.19,
+    9.08
+   ],
+   "verb": "mix",
+   "noun": "kale",
+   "score": 0.0148
+  },
+  {
+   "segment": [
+    14.24,
+    16.89
+   ],
+   "verb": "turn-on",
+   "noun": "oven",
+   "score": 0.013
+  },
+  {
+   "segment": [
+    3.19,
+    9.08
+   ],
+   "verb": "pour",
+   "noun": "courgette",
+   "score": 0.0121
+  },
+  {
+   "segment": [
+    27.54,
+    29.14
+   ],
+   "verb": "put",
+   "noun": "hob",
+   "score": 0.012
+  },
+  {
+   "segment": [
+    9.06,
+    12.43
+   ],
+   "verb": "empty",
+   "noun": "kale",
+   "score": 0.0119
+  },
+  {
+   "segment": [
+    12.16,
+    14.42
+   ],
+   "verb": "throw",
+   "noun": "kale",
+   "score": 0.0116
+  },
+  {
+   "segment": [
+    0.98,
+    2.67
    ],
    "verb": "take",
-   "noun": "lettuce",
-   "score": 0.4651
+   "noun": "lid",
+   "score": 0.0114
+  },
+  {
+   "segment": [
+    14.24,
+    16.89
+   ],
+   "verb": "open",
+   "noun": "alarm",
+   "score": 0.0114
+  },
+  {
+   "segment": [
+    12.16,
+    14.42
+   ],
+   "verb": "insert",
+   "noun": "bag",
+   "score": 0.011
+  },
+  {
+   "segment": [
+    19.17,
+    20.14
+   ],
+   "verb": "take",
+   "noun": "lid",
+   "score": 0.0109
+  },
+  {
+   "segment": [
+    12.16,
+    14.42
+   ],
+   "verb": "throw",
+   "noun": "leek",
+   "score": 0.0105
+  },
+  {
+   "segment": [
+    23.36,
+    26.35
+   ],
+   "verb": "mix",
+   "noun": "kale",
+   "score": 0.0104
+  },
+  {
+   "segment": [
+    9.06,
+    12.43
+   ],
+   "verb": "shake",
+   "noun": "kale",
+   "score": 0.0089
+  },
+  {
+   "segment": [
+    0.0,
+    6.56
+   ],
+   "verb": "pour",
+   "noun": "kale",
+   "score": 0.0087
+  },
+  {
+   "segment": [
+    14.11,
+    15.53
+   ],
+   "verb": "insert",
+   "noun": "cupboard",
+   "score": 0.0084
+  },
+  {
+   "segment": [
+    12.16,
+    14.42
+   ],
+   "verb": "empty",
+   "noun": "bag",
+   "score": 0.0083
+  },
+  {
+   "segment": [
+    28.11,
+    29.77
+   ],
+   "verb": "adjust",
+   "noun": "oven",
+   "score": 0.0083
+  },
+  {
+   "segment": [
+    16.69,
+    18.87
+   ],
+   "verb": "turn-on",
+   "noun": "spoon",
+   "score": 0.0072
+  },
+  {
+   "segment": [
+    17.46,
+    19.68
+   ],
+   "verb": "take",
+   "noun": "alarm",
+   "score": 0.0068
+  },
+  {
+   "segment": [
+    6.89,
+    14.25
+   ],
+   "verb": "empty",
+   "noun": "leek",
+   "score": 0.0062
   },
   {
    "segment": [
@@ -392,79 +482,25 @@
    ],
    "verb": "remove",
    "noun": "kale",
-   "score": 0.4628
+   "score": 0.0043
   },
   {
    "segment": [
-    12.16,
-    14.42
-   ],
-   "verb": "throw",
-   "noun": "package",
-   "score": 0.4591
-  },
-  {
-   "segment": [
-    0.98,
-    2.67
-   ],
-   "verb": "open",
-   "noun": "lid",
-   "score": 0.4512
-  },
-  {
-   "segment": [
-    27.54,
-    29.14
-   ],
-   "verb": "put",
-   "noun": "oven",
-   "score": 0.447
-  },
-  {
-   "segment": [
-    28.11,
-    29.77
-   ],
-   "verb": "adjust",
-   "noun": "oven",
-   "score": 0.4425
-  },
-  {
-   "segment": [
-    6.89,
-    14.25
-   ],
-   "verb": "throw",
-   "noun": "kale",
-   "score": 0.4338
-  },
-  {
-   "segment": [
-    0.64,
-    1.96
+    19.17,
+    20.14
    ],
    "verb": "take",
-   "noun": "lid",
-   "score": 0.4329
+   "noun": "spatula",
+   "score": 0.0043
   },
   {
    "segment": [
-    16.69,
-    18.87
+    26.55,
+    28.04
    ],
-   "verb": "turn-on",
-   "noun": "spoon",
-   "score": 0.4324
-  },
-  {
-   "segment": [
-    28.11,
-    29.77
-   ],
-   "verb": "adjust",
-   "noun": "hob",
-   "score": 0.4324
+   "verb": "put",
+   "noun": "kale",
+   "score": 0.004
   },
   {
    "segment": [
@@ -473,169 +509,34 @@
    ],
    "verb": "turn-on",
    "noun": "cover",
-   "score": 0.4315
+   "score": 0.0036
   },
   {
    "segment": [
-    17.46,
-    19.68
+    28.11,
+    29.77
    ],
-   "verb": "take",
-   "noun": "alarm",
-   "score": 0.4299
+   "verb": "adjust",
+   "noun": "hob",
+   "score": 0.0035
   },
   {
    "segment": [
-    17.46,
-    19.68
-   ],
-   "verb": "take",
-   "noun": "knife",
-   "score": 0.4252
-  },
-  {
-   "segment": [
-    6.89,
-    14.25
-   ],
-   "verb": "put",
-   "noun": "kale",
-   "score": 0.422
-  },
-  {
-   "segment": [
-    6.89,
-    14.25
-   ],
-   "verb": "empty",
-   "noun": "broccoli",
-   "score": 0.4195
-  },
-  {
-   "segment": [
-    0.0,
-    6.56
+    2.94,
+    4.68
    ],
    "verb": "pour",
    "noun": "kale",
-   "score": 0.4189
+   "score": 0.0033
   },
   {
    "segment": [
-    16.69,
-    18.87
-   ],
-   "verb": "turn-on",
-   "noun": "oven",
-   "score": 0.4153
-  },
-  {
-   "segment": [
-    17.46,
-    19.68
-   ],
-   "verb": "take",
-   "noun": "lid",
-   "score": 0.4129
-  },
-  {
-   "segment": [
-    28.11,
-    29.77
-   ],
-   "verb": "adjust",
-   "noun": "cupboard",
-   "score": 0.4121
-  },
-  {
-   "segment": [
-    27.54,
-    29.14
-   ],
-   "verb": "adjust",
-   "noun": "oven",
-   "score": 0.4101
-  },
-  {
-   "segment": [
-    17.46,
-    19.68
-   ],
-   "verb": "take",
-   "noun": "spatula",
-   "score": 0.4025
-  },
-  {
-   "segment": [
-    27.54,
-    29.14
-   ],
-   "verb": "put",
-   "noun": "hob",
-   "score": 0.398
-  },
-  {
-   "segment": [
-    28.11,
-    29.77
-   ],
-   "verb": "adjust",
-   "noun": "lid",
-   "score": 0.3893
-  },
-  {
-   "segment": [
-    16.69,
-    18.87
-   ],
-   "verb": "adjust",
-   "noun": "alarm",
-   "score": 0.3843
-  },
-  {
-   "segment": [
-    0.0,
-    6.56
-   ],
-   "verb": "take",
-   "noun": "kale",
-   "score": 0.383
-  },
-  {
-   "segment": [
-    28.11,
-    29.77
-   ],
-   "verb": "adjust",
-   "noun": "leek",
-   "score": 0.3803
-  },
-  {
-   "segment": [
-    19.17,
-    20.14
-   ],
-   "verb": "take",
-   "noun": "tap",
-   "score": 0.3767
-  },
-  {
-   "segment": [
-    19.17,
-    20.14
-   ],
-   "verb": "take",
-   "noun": "spoon",
-   "score": 0.3682
-  },
-  {
-   "segment": [
-    28.7,
-    30.63
+    26.55,
+    28.04
    ],
    "verb": "put",
    "noun": "oven",
-   "score": 0.3599
+   "score": 0.0033
   },
   {
    "segment": [
@@ -644,61 +545,34 @@
    ],
    "verb": "insert",
    "noun": "fridge",
-   "score": 0.351
+   "score": 0.0032
   },
   {
    "segment": [
-    14.11,
-    15.53
-   ],
-   "verb": "insert",
-   "noun": "package",
-   "score": 0.351
-  },
-  {
-   "segment": [
-    25.33,
-    27.05
-   ],
-   "verb": "put",
-   "noun": "kale",
-   "score": 0.3505
-  },
-  {
-   "segment": [
-    28.7,
-    30.63
-   ],
-   "verb": "open",
-   "noun": "oven",
-   "score": 0.3482
-  },
-  {
-   "segment": [
-    14.11,
-    15.53
-   ],
-   "verb": "insert",
-   "noun": "rack:drying",
-   "score": 0.3466
-  },
-  {
-   "segment": [
-    25.33,
-    27.05
+    23.36,
+    26.35
    ],
    "verb": "mix",
-   "noun": "kale",
-   "score": 0.341
+   "noun": "courgette",
+   "score": 0.0031
   },
   {
    "segment": [
-    0.0,
-    6.56
+    6.89,
+    14.25
    ],
-   "verb": "pour",
-   "noun": "leek",
-   "score": 0.3409
+   "verb": "throw",
+   "noun": "kale",
+   "score": 0.0028
+  },
+  {
+   "segment": [
+    17.46,
+    19.68
+   ],
+   "verb": "take",
+   "noun": "knife",
+   "score": 0.0027
   },
   {
    "segment": [
@@ -706,8 +580,17 @@
     30.63
    ],
    "verb": "put",
-   "noun": "cupboard",
-   "score": 0.3351
+   "noun": "oven",
+   "score": 0.0025
+  },
+  {
+   "segment": [
+    0.64,
+    1.96
+   ],
+   "verb": "take",
+   "noun": "lettuce",
+   "score": 0.0023
   },
   {
    "segment": [
@@ -715,89 +598,26 @@
     22.96
    ],
    "verb": "mix",
-   "noun": "courgette",
-   "score": 0.3343
-  },
-  {
-   "segment": [
-    14.11,
-    15.53
-   ],
-   "verb": "insert",
-   "noun": "bag",
-   "score": 0.3332
-  },
-  {
-   "segment": [
-    28.7,
-    30.63
-   ],
-   "verb": "take",
-   "noun": "oven",
-   "score": 0.3329
-  },
-  {
-   "segment": [
-    14.11,
-    15.53
-   ],
-   "verb": "insert",
-   "noun": "cupboard",
-   "score": 0.3326
-  },
-  {
-   "segment": [
-    28.7,
-    30.63
-   ],
-   "verb": "turn-on",
-   "noun": "oven",
-   "score": 0.331
-  },
-  {
-   "segment": [
-    25.33,
-    27.05
-   ],
-   "verb": "take",
    "noun": "kale",
-   "score": 0.3287
+   "score": 0.0022
   },
   {
    "segment": [
-    25.33,
-    27.05
+    27.54,
+    29.14
    ],
    "verb": "put",
-   "noun": "courgette",
-   "score": 0.322
+   "noun": "kale",
+   "score": 0.0022
   },
   {
    "segment": [
-    25.33,
-    27.05
+    9.06,
+    12.43
    ],
-   "verb": "put",
-   "noun": "leek",
-   "score": 0.3163
-  },
-  {
-   "segment": [
-    0.0,
-    6.56
-   ],
-   "verb": "take",
-   "noun": "leek",
-   "score": 0.3117
-  },
-  {
-   "segment": [
-    20.09,
-    22.96
-   ],
-   "verb": "take",
-   "noun": "courgette",
-   "score": 0.3113
+   "verb": "insert",
+   "noun": "kale",
+   "score": 0.002
   },
   {
    "segment": [
@@ -806,25 +626,70 @@
    ],
    "verb": "take",
    "noun": "chopstick",
-   "score": 0.3088
+   "score": 0.002
   },
   {
    "segment": [
-    20.09,
-    22.96
+    25.33,
+    27.05
    ],
-   "verb": "mix",
+   "verb": "put",
    "noun": "kale",
-   "score": 0.3071
+   "score": 0.002
+  },
+  {
+   "segment": [
+    2.94,
+    4.68
+   ],
+   "verb": "open",
+   "noun": "kale",
+   "score": 0.0015
+  },
+  {
+   "segment": [
+    27.54,
+    29.14
+   ],
+   "verb": "put",
+   "noun": "oven",
+   "score": 0.0015
+  },
+  {
+   "segment": [
+    14.11,
+    15.53
+   ],
+   "verb": "insert",
+   "noun": "oven",
+   "score": 0.0013
+  },
+  {
+   "segment": [
+    28.11,
+    29.77
+   ],
+   "verb": "adjust",
+   "noun": "cupboard",
+   "score": 0.0013
   },
   {
    "segment": [
     0.0,
     6.56
    ],
-   "verb": "insert",
+   "verb": "take",
    "noun": "kale",
-   "score": 0.3007
+   "score": 0.0012
+  },
+  {
+   "segment": [
+    0.98,
+    2.67
+   ],
+   "verb": "take",
+   "noun": "leek",
+   "score": 0.0012
   },
   {
    "segment": [
@@ -832,17 +697,98 @@
     26.35
    ],
    "verb": "mix",
-   "noun": "courgette",
-   "score": 0.2992
+   "noun": "leek",
+   "score": 0.0011
   },
   {
    "segment": [
-    2.94,
-    4.68
+    6.89,
+    14.25
    ],
-   "verb": "pour",
-   "noun": "courgette",
-   "score": 0.2921
+   "verb": "put",
+   "noun": "kale",
+   "score": 0.0009
+  },
+  {
+   "segment": [
+    11.83,
+    13.1
+   ],
+   "verb": "empty",
+   "noun": "bag",
+   "score": 0.0009
+  },
+  {
+   "segment": [
+    16.69,
+    18.87
+   ],
+   "verb": "turn-on",
+   "noun": "oven",
+   "score": 0.0009
+  },
+  {
+   "segment": [
+    14.11,
+    15.53
+   ],
+   "verb": "throw",
+   "noun": "alarm",
+   "score": 0.0008
+  },
+  {
+   "segment": [
+    17.46,
+    19.68
+   ],
+   "verb": "take",
+   "noun": "lid",
+   "score": 0.0008
+  },
+  {
+   "segment": [
+    16.69,
+    18.87
+   ],
+   "verb": "adjust",
+   "noun": "alarm",
+   "score": 0.0007
+  },
+  {
+   "segment": [
+    17.46,
+    19.68
+   ],
+   "verb": "take",
+   "noun": "spatula",
+   "score": 0.0007
+  },
+  {
+   "segment": [
+    20.09,
+    22.96
+   ],
+   "verb": "take",
+   "noun": "kale",
+   "score": 0.0007
+  },
+  {
+   "segment": [
+    11.83,
+    13.1
+   ],
+   "verb": "shake",
+   "noun": "bag",
+   "score": 0.0006
+  },
+  {
+   "segment": [
+    28.7,
+    30.63
+   ],
+   "verb": "put",
+   "noun": "hob",
+   "score": 0.0006
   },
   {
    "segment": [
@@ -851,7 +797,124 @@
    ],
    "verb": "close",
    "noun": "hob",
-   "score": 0.2879
+   "score": 0.0006
+  },
+  {
+   "segment": [
+    20.09,
+    22.96
+   ],
+   "verb": "mix",
+   "noun": "courgette",
+   "score": 0.0005
+  },
+  {
+   "segment": [
+    25.33,
+    27.05
+   ],
+   "verb": "mix",
+   "noun": "kale",
+   "score": 0.0005
+  },
+  {
+   "segment": [
+    28.11,
+    29.77
+   ],
+   "verb": "open",
+   "noun": "lid",
+   "score": 0.0005
+  },
+  {
+   "segment": [
+    28.7,
+    30.63
+   ],
+   "verb": "open",
+   "noun": "oven",
+   "score": 0.0005
+  },
+  {
+   "segment": [
+    0.0,
+    1.23
+   ],
+   "verb": "pour",
+   "noun": "kale",
+   "score": 0.0004
+  },
+  {
+   "segment": [
+    0.0,
+    6.56
+   ],
+   "verb": "pour",
+   "noun": "courgette",
+   "score": 0.0004
+  },
+  {
+   "segment": [
+    0.0,
+    6.56
+   ],
+   "verb": "pour",
+   "noun": "lettuce",
+   "score": 0.0004
+  },
+  {
+   "segment": [
+    8.51,
+    9.86
+   ],
+   "verb": "adjust",
+   "noun": "lid",
+   "score": 0.0004
+  },
+  {
+   "segment": [
+    10.11,
+    24.09
+   ],
+   "verb": "pour",
+   "noun": "kale",
+   "score": 0.0004
+  },
+  {
+   "segment": [
+    0.0,
+    6.56
+   ],
+   "verb": "pour",
+   "noun": "vegetable",
+   "score": 0.0003
+  },
+  {
+   "segment": [
+    2.94,
+    4.68
+   ],
+   "verb": "insert",
+   "noun": "kale",
+   "score": 0.0003
+  },
+  {
+   "segment": [
+    8.15,
+    8.95
+   ],
+   "verb": "put",
+   "noun": "lid",
+   "score": 0.0003
+  },
+  {
+   "segment": [
+    11.83,
+    13.1
+   ],
+   "verb": "empty",
+   "noun": "kale",
+   "score": 0.0003
   },
   {
    "segment": [
@@ -859,44 +922,53 @@
     26.35
    ],
    "verb": "mix",
-   "noun": "kale",
-   "score": 0.2877
+   "noun": "vegetable",
+   "score": 0.0003
   },
   {
    "segment": [
-    2.94,
-    4.68
+    25.33,
+    27.05
    ],
-   "verb": "open",
+   "verb": "take",
+   "noun": "kale",
+   "score": 0.0003
+  },
+  {
+   "segment": [
+    0.0,
+    1.23
+   ],
+   "verb": "pour",
+   "noun": "leek",
+   "score": 0.0002
+  },
+  {
+   "segment": [
+    0.64,
+    1.96
+   ],
+   "verb": "take",
+   "noun": "lid",
+   "score": 0.0002
+  },
+  {
+   "segment": [
+    6.51,
+    8.74
+   ],
+   "verb": "insert",
    "noun": "courgette",
-   "score": 0.2874
+   "score": 0.0002
   },
   {
    "segment": [
-    19.17,
-    20.14
+    11.83,
+    13.1
    ],
-   "verb": "take",
-   "noun": "stand",
-   "score": 0.287
-  },
-  {
-   "segment": [
-    20.09,
-    22.96
-   ],
-   "verb": "take",
-   "noun": "kale",
-   "score": 0.286
-  },
-  {
-   "segment": [
-    19.17,
-    20.14
-   ],
-   "verb": "take",
-   "noun": "bag",
-   "score": 0.2853
+   "verb": "empty",
+   "noun": "leek",
+   "score": 0.0002
   },
   {
    "segment": [
@@ -904,8 +976,134 @@
     22.96
    ],
    "verb": "mix",
-   "noun": "onion:spring",
-   "score": 0.2853
+   "noun": "leek",
+   "score": 0.0002
+  },
+  {
+   "segment": [
+    20.09,
+    22.96
+   ],
+   "verb": "take",
+   "noun": "courgette",
+   "score": 0.0002
+  },
+  {
+   "segment": [
+    25.33,
+    27.05
+   ],
+   "verb": "put",
+   "noun": "courgette",
+   "score": 0.0002
+  },
+  {
+   "segment": [
+    28.7,
+    30.63
+   ],
+   "verb": "open",
+   "noun": "hob",
+   "score": 0.0002
+  },
+  {
+   "segment": [
+    28.7,
+    30.63
+   ],
+   "verb": "put",
+   "noun": "cupboard",
+   "score": 0.0002
+  },
+  {
+   "segment": [
+    0.0,
+    1.23
+   ],
+   "verb": "take",
+   "noun": "kale",
+   "score": 0.0001
+  },
+  {
+   "segment": [
+    2.94,
+    4.68
+   ],
+   "verb": "mix",
+   "noun": "kale",
+   "score": 0.0001
+  },
+  {
+   "segment": [
+    2.94,
+    4.68
+   ],
+   "verb": "take",
+   "noun": "kale",
+   "score": 0.0001
+  },
+  {
+   "segment": [
+    8.15,
+    8.95
+   ],
+   "verb": "put",
+   "noun": "kale",
+   "score": 0.0001
+  },
+  {
+   "segment": [
+    8.51,
+    9.86
+   ],
+   "verb": "adjust",
+   "noun": "kale",
+   "score": 0.0001
+  },
+  {
+   "segment": [
+    8.51,
+    9.86
+   ],
+   "verb": "close",
+   "noun": "lid",
+   "score": 0.0001
+  },
+  {
+   "segment": [
+    10.11,
+    24.09
+   ],
+   "verb": "mix",
+   "noun": "kale",
+   "score": 0.0001
+  },
+  {
+   "segment": [
+    11.83,
+    13.1
+   ],
+   "verb": "shake",
+   "noun": "kale",
+   "score": 0.0001
+  },
+  {
+   "segment": [
+    23.36,
+    26.35
+   ],
+   "verb": "shake",
+   "noun": "kale",
+   "score": 0.0001
+  },
+  {
+   "segment": [
+    25.33,
+    27.05
+   ],
+   "verb": "put",
+   "noun": "leek",
+   "score": 0.0001
   },
   {
    "segment": [
@@ -914,7 +1112,7 @@
    ],
    "verb": "close",
    "noun": "lid",
-   "score": 0.2776
+   "score": 0.0001
   },
   {
    "segment": [
@@ -923,295 +1121,7 @@
    ],
    "verb": "close",
    "noun": "oven",
-   "score": 0.2763
-  },
-  {
-   "segment": [
-    23.36,
-    26.35
-   ],
-   "verb": "mix",
-   "noun": "vegetable",
-   "score": 0.275
-  },
-  {
-   "segment": [
-    2.94,
-    4.68
-   ],
-   "verb": "insert",
-   "noun": "courgette",
-   "score": 0.274
-  },
-  {
-   "segment": [
-    29.84,
-    30.63
-   ],
-   "verb": "open",
-   "noun": "hob",
-   "score": 0.2734
-  },
-  {
-   "segment": [
-    29.84,
-    30.63
-   ],
-   "verb": "close",
-   "noun": "cupboard",
-   "score": 0.2725
-  },
-  {
-   "segment": [
-    2.94,
-    4.68
-   ],
-   "verb": "pour",
-   "noun": "lettuce",
-   "score": 0.2718
-  },
-  {
-   "segment": [
-    23.36,
-    26.35
-   ],
-   "verb": "mix",
-   "noun": "onion:spring",
-   "score": 0.2713
-  },
-  {
-   "segment": [
-    8.15,
-    8.95
-   ],
-   "verb": "put",
-   "noun": "lid",
-   "score": 0.2689
-  },
-  {
-   "segment": [
-    2.94,
-    4.68
-   ],
-   "verb": "open",
-   "noun": "lettuce",
-   "score": 0.2674
-  },
-  {
-   "segment": [
-    23.36,
-    26.35
-   ],
-   "verb": "mix",
-   "noun": "tap",
-   "score": 0.265
-  },
-  {
-   "segment": [
-    8.51,
-    9.86
-   ],
-   "verb": "adjust",
-   "noun": "kale",
-   "score": 0.2627
-  },
-  {
-   "segment": [
-    10.11,
-    24.09
-   ],
-   "verb": "pour",
-   "noun": "leek",
-   "score": 0.2607
-  },
-  {
-   "segment": [
-    10.11,
-    24.09
-   ],
-   "verb": "mix",
-   "noun": "leek",
-   "score": 0.2606
-  },
-  {
-   "segment": [
-    10.11,
-    24.09
-   ],
-   "verb": "pour",
-   "noun": "vegetable",
-   "score": 0.253
-  },
-  {
-   "segment": [
-    10.11,
-    24.09
-   ],
-   "verb": "mix",
-   "noun": "vegetable",
-   "score": 0.2529
-  },
-  {
-   "segment": [
-    8.51,
-    9.86
-   ],
-   "verb": "close",
-   "noun": "kale",
-   "score": 0.2497
-  },
-  {
-   "segment": [
-    8.15,
-    8.95
-   ],
-   "verb": "put",
-   "noun": "cover",
-   "score": 0.2403
-  },
-  {
-   "segment": [
-    8.51,
-    9.86
-   ],
-   "verb": "put",
-   "noun": "kale",
-   "score": 0.2389
-  },
-  {
-   "segment": [
-    0.0,
-    1.23
-   ],
-   "verb": "pour",
-   "noun": "kale",
-   "score": 0.2385
-  },
-  {
-   "segment": [
-    10.11,
-    24.09
-   ],
-   "verb": "turn-on",
-   "noun": "leek",
-   "score": 0.2377
-  },
-  {
-   "segment": [
-    11.83,
-    13.1
-   ],
-   "verb": "empty",
-   "noun": "cover",
-   "score": 0.2375
-  },
-  {
-   "segment": [
-    8.51,
-    9.86
-   ],
-   "verb": "open",
-   "noun": "kale",
-   "score": 0.2361
-  },
-  {
-   "segment": [
-    11.83,
-    13.1
-   ],
-   "verb": "shake",
-   "noun": "cover",
-   "score": 0.2334
-  },
-  {
-   "segment": [
-    0.0,
-    1.23
-   ],
-   "verb": "take",
-   "noun": "kale",
-   "score": 0.2329
-  },
-  {
-   "segment": [
-    11.83,
-    13.1
-   ],
-   "verb": "empty",
-   "noun": "lid",
-   "score": 0.2324
-  },
-  {
-   "segment": [
-    8.15,
-    8.95
-   ],
-   "verb": "adjust",
-   "noun": "lid",
-   "score": 0.2308
-  },
-  {
-   "segment": [
-    11.83,
-    13.1
-   ],
-   "verb": "shake",
-   "noun": "lid",
-   "score": 0.2283
-  },
-  {
-   "segment": [
-    8.15,
-    8.95
-   ],
-   "verb": "insert",
-   "noun": "lid",
-   "score": 0.2271
-  },
-  {
-   "segment": [
-    8.15,
-    8.95
-   ],
-   "verb": "close",
-   "noun": "lid",
-   "score": 0.2259
-  },
-  {
-   "segment": [
-    11.83,
-    13.1
-   ],
-   "verb": "empty",
-   "noun": "leek",
-   "score": 0.2251
-  },
-  {
-   "segment": [
-    8.51,
-    9.86
-   ],
-   "verb": "adjust",
-   "noun": "pan",
-   "score": 0.224
-  },
-  {
-   "segment": [
-    6.51,
-    8.74
-   ],
-   "verb": "insert",
-   "noun": "kale",
-   "score": 0.2239
-  },
-  {
-   "segment": [
-    0.0,
-    1.23
-   ],
-   "verb": "pour",
-   "noun": "courgette",
-   "score": 0.2084
+   "score": 0.0001
   },
   {
    "segment": [
@@ -1220,16 +1130,7 @@
    ],
    "verb": "pull",
    "noun": "kale",
-   "score": 0.2075
-  },
-  {
-   "segment": [
-    6.51,
-    8.74
-   ],
-   "verb": "pour",
-   "noun": "kale",
-   "score": 0.2073
+   "score": 0.0
   },
   {
    "segment": [
@@ -1237,35 +1138,134 @@
     1.23
    ],
    "verb": "take",
-   "noun": "courgette",
-   "score": 0.2036
+   "noun": "leek",
+   "score": 0.0
   },
   {
    "segment": [
     6.51,
     8.74
+   ],
+   "verb": "insert",
+   "noun": "broccoli",
+   "score": 0.0
+  },
+  {
+   "segment": [
+    6.51,
+    8.74
+   ],
+   "verb": "insert",
+   "noun": "lettuce",
+   "score": 0.0
+  },
+  {
+   "segment": [
+    6.51,
+    8.74
+   ],
+   "verb": "insert",
+   "noun": "vegetable",
+   "score": 0.0
+  },
+  {
+   "segment": [
+    6.51,
+    8.74
+   ],
+   "verb": "pour",
+   "noun": "courgette",
+   "score": 0.0
+  },
+  {
+   "segment": [
+    8.15,
+    8.95
+   ],
+   "verb": "adjust",
+   "noun": "lid",
+   "score": 0.0
+  },
+  {
+   "segment": [
+    8.15,
+    8.95
+   ],
+   "verb": "insert",
+   "noun": "lid",
+   "score": 0.0
+  },
+  {
+   "segment": [
+    8.15,
+    8.95
+   ],
+   "verb": "put",
+   "noun": "cover",
+   "score": 0.0
+  },
+  {
+   "segment": [
+    8.51,
+    9.86
    ],
    "verb": "close",
    "noun": "kale",
-   "score": 0.1997
+   "score": 0.0
   },
   {
    "segment": [
-    6.51,
-    8.74
-   ],
-   "verb": "mix",
-   "noun": "kale",
-   "score": 0.198
-  },
-  {
-   "segment": [
-    6.51,
-    8.74
+    8.51,
+    9.86
    ],
    "verb": "put",
+   "noun": "lid",
+   "score": 0.0
+  },
+  {
+   "segment": [
+    10.11,
+    24.09
+   ],
+   "verb": "crush",
    "noun": "kale",
-   "score": 0.1913
+   "score": 0.0
+  },
+  {
+   "segment": [
+    10.11,
+    24.09
+   ],
+   "verb": "pour",
+   "noun": "leek",
+   "score": 0.0
+  },
+  {
+   "segment": [
+    10.11,
+    24.09
+   ],
+   "verb": "turn-on",
+   "noun": "kale",
+   "score": 0.0
+  },
+  {
+   "segment": [
+    29.84,
+    30.63
+   ],
+   "verb": "close",
+   "noun": "cupboard",
+   "score": 0.0
+  },
+  {
+   "segment": [
+    29.84,
+    30.63
+   ],
+   "verb": "open",
+   "noun": "hob",
+   "score": 0.0
   }
  ],
  "highlights": [
