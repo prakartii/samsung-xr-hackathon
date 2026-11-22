@@ -506,6 +506,7 @@ Newest first. Record anything that changes `ARCHITECTURE.md` or a kill-rule outc
 
 Newest first. Format: `YYYY-MM-DD · initials · phase · what changed · PR #`.
 
+- 2026-11-22 · PK · P6 · Highlight config chosen on SumMe (FPVSum protocol, #81): sigma 2.0, scene change +0.5, fill_step 0.5 kept; SumMe F1 0.146 (#79 config) -> 0.269 (better on both halves; uniform 0.235) · this PR
 - 2026-11-22 · PK · P7 · `label.n_keyframes` 8 → 0 (every 1 fps frame) for route and label; legit sets only (YouTube Highlights 44 videos, EPIC tune 20): label 42/44 → 43/44, expected accuracy over random keyframe phases .968 → .977, EPIC routing 20/20 with min P(cooking) .82 → .89; prompt ensembles / synonyms / other aggregations gave no gain · this PR
 - 2026-11-22 · PK · P6 · `tools/eval_summ_f1.py`: second legitimate highlight-F1 check on TVSum (50) / SumMe (25) with FPVSum semantics (mean annotator importance per frame → top-15% frames = GT, scored with `rewind_eval.f1.frame_f1`); unit tests · #81
 - 2026-11-20 · DA · P2/P7 · Official coverage rule in scoring: weighted total on `coverage_frac` (Q4), `report` leaves out the two unscored Scuba videos (Q14, `report.unscored_fpvsum` in splits.yaml, not in shipped code), `tune_epic_selector` optimizes the official rule; selector re-tuned against it, nothing adopted (Decisions). README notes the official-rule numbers (coverage 0.256, weighted 0.289); P9 item to refresh the table. Tests: weighted uses `coverage_frac` (hand-computed case where the rules differ), ablate's weights, unscored exclusion; each seen failing · this PR
