@@ -96,6 +96,10 @@ class ActionsCfg:
     pair_keep: int  # output pairs kept per verb segment (selector keeps pairing.top_k)
     match_tiou: float  # output-only verb-noun tIoU gate (selector uses pairing.match_tiou)
     soft_nms_sigma: float  # per-(verb, noun) Gaussian soft-NMS on output actions; 0 = off
+    rescore_coef: tuple[float, ...]  # Campaign #4 logistic [b, w...] on output actions; empty = off
+    rescore_mean: tuple[float, ...]  # feature means (rewind.detect.rescore.FEATURES order)
+    rescore_std: tuple[float, ...]  # feature standard deviations
+    rescore_old_power: float  # output score = P(TP) * pairing score ** rescore_old_power
 
 
 @dataclass(frozen=True)
@@ -410,6 +414,15 @@ def _check_ranges(cfg: Config) -> None:
             raise ConfigError(
                 f"select.pair_*: expected {np_ + 1} coefficients and {np_} means/stds"
             )
+    ac = cfg.actions
+    if ac.rescore_coef:
+        from rewind.detect.rescore import FEATURES as RESCORE_FEATURES
+
+        na = len(RESCORE_FEATURES)
+        if (len(ac.rescore_coef), len(ac.rescore_mean), len(ac.rescore_std)) != (na + 1, na, na):
+            raise ConfigError(
+                f"actions.rescore_*: expected {na + 1} coefficients and {na} means/stds"
+            )
     for key, v in unit_interval.items():
         if not 0.0 <= v <= 1.0:
             raise ConfigError(f"{key}: {v} must be in [0, 1]")
@@ -459,6 +472,7 @@ def _check_ranges(cfg: Config) -> None:
         "importance.shot_thr": imp.shot_thr,
         "actions.prior_alpha": cfg.actions.prior_alpha,
         "actions.soft_nms_sigma": cfg.actions.soft_nms_sigma,
+        "actions.rescore_old_power": cfg.actions.rescore_old_power,
         "importance.w_audio_rms": imp.w_audio_rms,
         "importance.w_audio_flux": imp.w_audio_flux,
     }

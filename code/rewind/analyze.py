@@ -45,6 +45,7 @@ from rewind.detect.pairing import (
     pair_proposals,
     proposals_to_actions,
 )
+from rewind.detect.rescore import rescore_actions
 from rewind.features.audio import audio_cache_version, audio_signals
 from rewind.features.cache import FeatureCache, content_fingerprint
 from rewind.features.clip import Encoder, class_embeddings, zero_shot_probs
@@ -150,10 +151,15 @@ def proposals_from(
 
 def output_actions(dets: Detections, prior: VNPrior, cfg: Config) -> list:
     """``actions[]`` from detections with the output-only settings (`actions.*`): prior
-    exponent, verb-noun gate, pairs kept per segment, per-class soft-NMS, cap."""
+    exponent, verb-noun gate, pairs kept per segment, learned rescoring (when
+    `actions.rescore_coef` is set), per-class soft-NMS, cap."""
     a = cfg.actions
     scored = proposals_from(dets, prior, cfg, alpha=a.prior_alpha, match_tiou=a.match_tiou,
                             keep=a.pair_keep)  # fmt: skip
+    if a.rescore_coef:  # Campaign #4: learned P(TP) score (rewind.detect.rescore)
+        acts = rescore_actions(scored, dets[1], a.min_score, a.rescore_coef, a.rescore_mean,
+                               a.rescore_std, a.rescore_old_power, MAX_ACTIONS)  # fmt: skip
+        return class_soft_nms(acts, a.soft_nms_sigma)[: a.max_per_video]
     acts = class_soft_nms(proposals_to_actions(scored, MAX_ACTIONS, a.min_score), a.soft_nms_sigma)
     return acts[: a.max_per_video]
 

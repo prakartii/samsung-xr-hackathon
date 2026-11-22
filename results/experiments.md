@@ -182,3 +182,23 @@ production clusters exactly as in training and validation, and the gain holds (c
 alone with sim 1.0: 0.3748, 6/8, so the pair model is what helps). **ADOPTED** as the pair: pair
 scorer + cluster.sim 1.0. The Campaign #2 coefficients stay in the config as the fallback when
 `pair_coef` is emptied.
+
+## Campaign #4: learned output-action score for mAP (2026-11-22)
+
+- Model: L2 logistic regression per output action on 16 inference-time features (pairing
+  score, verb/noun probability, verb/noun/pair rank in the proposal, verb-noun tIoU, duration,
+  position, overlap density, same-class rank and count, same-verb/noun counts, score ratio,
+  tIoU with a higher-ranked same-class action; `code/rewind/detect/rescore.py`). Label: mean
+  over tIoU 0.1-0.5 of "true positive under greedy mAP matching". Fit on dev + 175 extra train
+  videos (`tools/train_rescore.py`); transform chosen on dev 5-fold OOF; val scored once.
+- Output score = P(TP) (old-score power 0, best on dev OOF).
+
+| Split | pairing score (main) | learned P(TP) | @0.1 | @0.3 | @0.5 |
+|---|---|---|---|---|---|
+| dev, 5-fold OOF | 0.5144 | **0.5450** | 0.5415 -> 0.5728 | 0.5207 -> 0.5519 | 0.4749 -> 0.5035 |
+| val (unseen, once) | 0.5447 | **0.5753** | 0.5735 -> 0.6049 | 0.5494 -> 0.5809 | 0.5058 -> 0.5337 |
+| tune, full pipeline | 0.6637 | **0.6847** | 0.6900 -> 0.7113 | 0.6669 -> 0.6886 | 0.6266 -> 0.6460 |
+
+Highlights and labels identical on tune (69/69). Caveat: all checks are EPIC *train* videos
+(ActionFormer's training data), so absolute mAP is inflated; the gain is consistent on three
+independent sets. **ADOPTED.**
