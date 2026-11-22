@@ -52,6 +52,7 @@ class ImportanceParams:
     stride: float
     w_audio_rms: float = 0.0
     w_audio_flux: float = 0.0
+    fill_step: float = 0.0
 
     def __post_init__(self) -> None:
         if self.min_window < MIN_SEG_EMIT:
@@ -173,7 +174,48 @@ def select_segments(
         used += e - s
         if budget_sec - used < p.min_window:
             break
+    if p.fill_step > 0:
+        chosen = fill_budget(t, imp, chosen, duration, budget_sec - used, p.fill_step)
     return sorted(chosen)
+
+
+def fill_budget(
+    t_dense: np.ndarray,
+    imp: np.ndarray,
+    chosen: list[Segment],
+    duration: float,
+    leftover: float,
+    step: float,
+) -> list[Segment]:
+    """Spend ``leftover`` seconds by growing windows ``step`` s at a time on the side whose
+    new slice has the highest mean importance; never past [0, duration] or into another
+    window. Ties: earliest window, left side first. Total length grows by <= leftover."""
+    segs = sorted(chosen)
+    t = np.asarray(t_dense)
+    imp = np.asarray(imp)
+
+    def gain(a: float, b: float) -> float:
+        inside = (t >= a) & (t < b)
+        return float(imp[inside].mean()) if inside.any() else -np.inf
+
+    while leftover >= step - 1e-9 and segs:
+        best: tuple[float, int, int] | None = None  # (gain, window index, side 0=left/1=right)
+        for i, (s, e) in enumerate(segs):
+            lo = segs[i - 1][1] if i > 0 else 0.0
+            hi = segs[i + 1][0] if i + 1 < len(segs) else float(duration)
+            for side, (a, b) in enumerate(((s - step, s), (e, e + step))):
+                if a < lo - 1e-9 or b > hi + 1e-9:
+                    continue
+                g = gain(a, b)
+                if g > -np.inf and (best is None or g > best[0]):
+                    best = (g, i, side)
+        if best is None:
+            break
+        _, i, side = best
+        s, e = segs[i]
+        segs[i] = (s - step, e) if side == 0 else (s, e + step)
+        leftover -= step
+    return segs
 
 
 def fpvsum_segments(

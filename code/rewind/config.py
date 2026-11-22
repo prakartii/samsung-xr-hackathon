@@ -196,6 +196,7 @@ class ImportanceCfg:
     stride: float
     w_audio_rms: float
     w_audio_flux: float
+    fill_step: float  # > 0: grow chosen windows by this many s into the best adjacent time; 0 = off
 
 
 @dataclass(frozen=True)

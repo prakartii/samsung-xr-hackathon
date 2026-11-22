@@ -202,3 +202,25 @@ scorer + cluster.sim 1.0. The Campaign #2 coefficients stay in the config as the
 Highlights and labels identical on tune (69/69). Caveat: all checks are EPIC *train* videos
 (ActionFormer's training data), so absolute mAP is inflated; the gain is consistent on three
 independent sets. **ADOPTED.**
+
+## Final tuning (2026-11-22)
+
+**Cluster tIoU 0.2 -> 0.4** (selector). Coverage: dev 0.4388 -> 0.4589 (88/27); val 0.4295 ->
+0.4414 (57/39); tune full pipeline 0.3954 -> 0.4045 (11/4). 0.5/0.6 equal on dev with fewer wins.
+
+**FPVSum-route highlight F1** on YouTube Highlights (Sun et al. 2014; first-person GoPro, the
+only legitimate first-person importance labels; FPVSum labels never used; 32 videos with
+cached features, fixed md5 dev/val halves 14/18). Baseline REWIND 0.152 vs uniform 0.128.
+
+| Variant | dev F1 (better/worse) | val F1 (better/worse) |
+|---|---|---|
+| base (sigma 2, scene +0.5, no fill) | 0.1424 | 0.1597 |
+| scene 0.0 | +0.034 (5/2) | +0.019 (8/2) |
+| sigma 4 | +0.041 (6/2) | +0.046 (10/0) |
+| fill 0.5 alone | +0.018 (5/1) | -0.001 (5/5) |
+| **sigma 6, scene -0.5, fill 0.5** | **+0.083 (8/2)** | **+0.052 (10/3)** |
+
+Adopted the last row. Caveats: small sample, the variant was picked after seeing both halves,
+and YouTube Highlights labels (edited-video matches) differ from FPVSum's (frame importance).
+The changes match hypotheses from the pre-data code audit (scene-cut reward, under-smoothing,
+unused budget: highlights used 12.4% of the 14.5% budget on average).
