@@ -26,7 +26,7 @@ of it lies inside the highlights (`rewind_eval`, `results/leaderboard.csv`):
 
 | | Weighted | Action coverage (40%) | Action mAP (25%) | Highlight F1 (25%) | Label acc. (10%) |
 |---|---|---|---|---|---|
-| **REWIND** | **0.298** | 0.304 (50.0% of oracle) | 0.149 | 0.226 | 0.830 |
+| **REWIND** | **0.327** | 0.364 (59.7% of oracle) | 0.152 | 0.233 | 0.851 |
 | Uniform windows | 0.112 | 0.177 (29.0%) | 0 | 0.167 | 0 |
 | Oracle (GT-aware) | 0.773 | 0.609 | 1 | 0.717 | 1 |
 
