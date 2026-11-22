@@ -34,7 +34,7 @@ of it lies inside the highlights (`rewind_eval`, `results/leaderboard.csv`):
 and picks windows under the same rule and budget. FPVSum settings are untuned defaults
 (see the tuning-split statement). Highlight F1 is over the 44 FPVSum videos with usable
 ground-truth timing: `rewind_eval` leaves out three videos whose annotation timing doesn't
-match any standard frame rate. Over all 47, F1 is 0.222 and the weighted total about 0.298.
+match any standard frame rate.
 
 - **85.7% of visual tokens pruned** (highlight seconds vs video seconds, all 187 outputs).
 - **41 s of CPU time per minute of video** (measured 2026-11-21): `run.sh`'s full
@@ -42,7 +42,7 @@ match any standard frame rate. Over all 47, F1 is 0.222 and the weighted total a
   included, on a laptop (Intel i7-13700H, 16 GB RAM, Windows, no GPU), 4 videos totalling
   19.6 min (2 EPIC, 2 FPVSum). `tools/latency.py`, `results/latency_2026-11-21.csv`;
   `results/latency.csv` keeps the earlier runs.
-- Removing a component on `report` costs: ActionFormer 0.057 weighted, expected coverage
+- Removing a component on `report` costs (ablation of an earlier version, 2026-11-21): ActionFormer 0.057 weighted, expected coverage
   (vs label dedup) 0.015, flow/camera motion 0.015, scene change 0.007, hands 0.002. The
   selector's verb-noun prior does not help there (removing it scores 0.002 higher); it was
   kept because the decision is made on `tune`, not `report`. Ablations in `results/ablation_report.md` and
@@ -155,8 +155,14 @@ tables and numbers above.
 
 ## Deck and demo
 
-Submission deck: [`docs/VITVellore_Nexus.pdf`](docs/VITVellore_Nexus.pdf) (PowerPoint: `docs/VITVellore_Nexus.pptx`,
-rebuilt by `tools/make_deck.py`, which needs `pip install python-pptx`).
+- **Deck:** [`docs/VITVellore_Nexus.pdf`](docs/VITVellore_Nexus.pdf) (PowerPoint: `docs/VITVellore_Nexus.pptx`,
+  rebuilt by `tools/make_deck.py`, which needs `pip install python-pptx`).
+- **Demo video** (about 2 min, link in the submission form): real REWIND predictions on a
+  9-minute kitchen video and six outdoor first-person videos, every label, timestamp and
+  highlight read from `outputs/`.
+- **Reproducibility video** (about 2.5 min, link in the submission form): an anonymous
+  clone of this repository, the documented setup, `./run.sh` on three videos with outputs
+  matching `outputs/`, and the validator, all captured from a real run.
 
 ## Demo tools
 
