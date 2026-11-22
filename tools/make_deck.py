@@ -27,7 +27,7 @@ from pptx.oxml.ns import qn
 from pptx.util import Inches, Pt
 
 REPO = Path(__file__).resolve().parents[1]
-MEMBERS = [("Prakarti Dubey", "ML & perception"), ("Daksh Arora", "algorithms & infra")]
+MEMBERS = [("Prakarti Dubey", "24BCI0263"), ("Daksh Arora", "24BCI0259")]
 FRAMES = {"ff": 26, "fridge": 60, "boxing": 95}  # demo-video seconds used as slide images
 
 ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
